@@ -1,0 +1,4 @@
+# Ignore everything in the input folder
+input/*
+# But don't ignore the input folder itself
+!input/.gitkeep 
