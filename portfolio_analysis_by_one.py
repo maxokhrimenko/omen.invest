@@ -1,16 +1,34 @@
 # ==============================================================
-#  📈  PORTFOLIO ANALYZER (PER-TICKER)  –  v3.0.0  📊
+#  📈  PORTFOLIO ANALYZER (PER-TICKER)  –  v3.1.0  📊
 # ==============================================================
 
 import yfinance as yf
 import pandas as pd
 import numpy as np
 from datetime import date
+import os
 from portfolio_analysis_consolidated import (
-    RAW_PORTFOLIO, START, END, RF_ANNUAL,
-    parse_portfolio, load_prices, sharpe_ratio, max_drawdown,
+    START, END, RF_ANNUAL,
+    load_prices, sharpe_ratio, max_drawdown,
     pct, usd
 )
+
+# ---------- 1) YOUR PORTFOLIO  (ticker  ↔  quantity) ----------
+INPUT_FILE = "input/input.csv"
+
+def parse_portfolio(csv_path: str) -> pd.Series:
+    """Returns Series{ticker: quantity} with Yahoo-format tickers."""
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"Portfolio file not found: {csv_path}")
+    
+    df = pd.read_csv(csv_path)
+    if 'ticker' not in df.columns or 'position' not in df.columns:
+        raise ValueError("CSV must contain 'ticker' and 'position' columns")
+    
+    return pd.Series(
+        {t.replace('.', '-'): float(q) for t, q in zip(df['ticker'], df['position'])},
+        name="Qty"
+    )
 
 def get_yield_color(yield_value):
     """Returns ANSI color code based on yield percentage."""
@@ -129,7 +147,16 @@ def get_annual_dividends_and_yields(ticker_symbol: str,
 def do_per_ticker():
     # ---------- LOAD DATA ------------------------------------
     print("Parsing portfolio...")
-    qty_ser = parse_portfolio(RAW_PORTFOLIO)
+    try:
+        qty_ser = parse_portfolio(INPUT_FILE)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        print("Please ensure input/input.csv exists with 'ticker' and 'position' columns")
+        exit(1)
+    except ValueError as e:
+        print(f"Error: {e}")
+        exit(1)
+
     print(f"\nLoading prices for {len(qty_ser)} tickers from {START} to {END}...")
     close   = load_prices(qty_ser.index, START, END)
 

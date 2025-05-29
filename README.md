@@ -130,4 +130,72 @@ Handles detailed analysis of individual stocks.
 
 ## 🔄 Version History
 
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history and changes. 
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history and changes.
+
+## Version
+Current version: 3.1.0
+
+## Features
+- Portfolio analysis with consolidated metrics
+- Per-ticker analysis with dividend tracking
+- Color-coded yield indicators
+- CSV-based portfolio data input
+- Comprehensive error handling
+
+## Requirements
+- Python 3.6+
+- pandas
+- colorama
+
+## Installation
+1. Clone the repository
+2. Install required packages:
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+1. Place your portfolio data in `input/input.csv` with the following format:
+```csv
+ticker,shares,price
+AAPL,10,150.00
+MSFT,5,300.00
+```
+
+2. Run the analysis:
+```bash
+# For consolidated analysis
+python portfolio_analysis_consolidated.py
+
+# For per-ticker analysis
+python portfolio_analysis_by_one.py
+```
+
+## Output
+The tool provides:
+- Total portfolio value
+- Per-ticker metrics
+- Dividend yields with color coding
+- Position sizes and weights
+- Error handling for missing data
+
+## File Structure
+- `portfolio_analysis_consolidated.py`: Consolidated portfolio analysis
+- `portfolio_analysis_by_one.py`: Per-ticker analysis
+- `input/input.csv`: Portfolio data file
+- `README.md`: This documentation
+- `CHANGELOG.md`: Version history
+- `.gitignore`: Git ignore rules
+
+## Error Handling
+The tool includes comprehensive error handling for:
+- Missing input files
+- Invalid CSV format
+- Missing price data
+- Invalid numeric values
+
+## Contributing
+Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
+
+## License
+This project is licensed under the MIT License - see the LICENSE file for details. 

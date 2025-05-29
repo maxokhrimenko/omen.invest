@@ -1,142 +1,15 @@
 # ==============================================================
-#  📈  PORTFOLIO ANALYZER (CONSOLIDATED)  –  v3.0.0  📊
+#  📈  PORTFOLIO ANALYZER (CONSOLIDATED)  –  v3.1.0  📊
 # ==============================================================
 
 import yfinance as yf
 import pandas as pd
 import numpy as np
 from datetime import date
+import os
 
 # ---------- 1) YOUR PORTFOLIO  (ticker  ↔  quantity) ----------
-RAW_PORTFOLIO = """
-TUYA	25
-UNH	0.1
-BRK.B	0.6
-AAPL	0.75
-FICO	0.02
-UPST	1
-CPRT	0.5
-GPI	0.2
-GLPI	2
-MRK	0.25
-XOM	0.2
-BJ	0.5
-COST	0.1
-SPG	1
-AZN	0.5
-MO	1
-OKE	1
-PBA	1
-MCK	0.1
-ANET	0.3
-SGOV	3
-ENB	1
-PFF	2
-QCOM	0.2
-L	0.25
-ICSH	10
-VZ	1
-MCD	0.2
-T	1
-BIL	1
-BND	1
-KR	0.5
-TDG	0.02
-BX	0.2
-HYG	1
-EPD	1.3
-VTIP	1
-PG	0.5
-BSM	2
-VYM	0.2
-JEPI	5
-CPRX	1
-KMI	1
-CASY	0.2
-PSO	2
-WCN	0.5
-CINF	0.2
-MET	0.3
-LIN	0.1
-RLI	0.2
-MPLX	1
-GFI	2
-WM	0.1
-TKO	0.2
-ALL	0.1
-DUOL	0.05
-KO	0.25
-RIO	1
-VFH	0.2
-ET	2
-CLS	0.2
-IBM	0.1
-MKL	0.02
-OHI	1
-MELI	0.01
-ARCC	1
-SPY	0.05
-IAU	1
-UBS	1
-ASX	2
-WRB	0.5
-AXP	0.1
-ROL	0.5
-STWD	2
-GLP	1
-CEG	0.1
-BLK	0.1
-VRNA	0.5
-VTI	0.2
-CAAP	2
-SCHG	1
-HD	0.25
-ASML	0.09
-MNDY	0.1
-NTRA	0.2
-IBN	1
-NU	2
-KLAC	0.05
-TTWO	0.2
-GOOGL	0.7
-PM	0.2
-CAT	0.2
-LYG	10
-ORCL	0.2
-AMZN	0.5
-BCS	2
-BKNG	0.006
-SAP	0.2
-UBER	0.5
-TRI	0.25
-VOO	0.4
-TSM	0.2
-META	0.1
-QQQ	0.2
-MAIN	2
-AFRM	1
-GLDM	3
-TSLA	0.1
-MCO	0.3
-VUG	0.2
-MA	0.25
-URI	0.1
-SPOT	0.1
-WMT	1
-MSFT	0.2
-V	0.5
-COF	0.5
-NVDA	0.5
-CHWY	1
-GRND	2
-SHOP	1
-AVGO	0.3
-NOW	0.1
-APP	0.2
-LIF	1
-HOOD	2
-PLTR	2
-"""
+INPUT_FILE = "input/input.csv"
 
 START = "2023-03-01"                     # date A
 END   = date.today().isoformat()         # date B (today)
@@ -144,11 +17,17 @@ RF_ANNUAL = 0.05                         # 5% annual rate
 # ---------------------------------------------------------------
 
 # ---------- UTILITIES --------------------------------------------
-def parse_portfolio(raw: str) -> pd.Series:
+def parse_portfolio(csv_path: str) -> pd.Series:
     """Returns Series{ticker: quantity} with Yahoo-format tickers."""
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"Portfolio file not found: {csv_path}")
+    
+    df = pd.read_csv(csv_path)
+    if 'ticker' not in df.columns or 'position' not in df.columns:
+        raise ValueError("CSV must contain 'ticker' and 'position' columns")
+    
     return pd.Series(
-        {t.replace('.', '-'): float(q) for t, q in
-         (ln.split() for ln in raw.strip().splitlines())},
+        {t.replace('.', '-'): float(q) for t, q in zip(df['ticker'], df['position'])},
         name="Qty"
     )
 
@@ -203,7 +82,16 @@ def usd(x):  return f"${x:,.2f}" if not pd.isna(x) else "   N/A   "
 
 # ---------- LOAD DATA ------------------------------------
 print("Parsing portfolio...")
-qty_ser = parse_portfolio(RAW_PORTFOLIO)
+try:
+    qty_ser = parse_portfolio(INPUT_FILE)
+except FileNotFoundError as e:
+    print(f"Error: {e}")
+    print("Please ensure input/input.csv exists with 'ticker' and 'position' columns")
+    exit(1)
+except ValueError as e:
+    print(f"Error: {e}")
+    exit(1)
+
 print(f"\nLoading prices for {len(qty_ser)} tickers from {START} to {END}...")
 close   = load_prices(qty_ser.index, START, END)
 
