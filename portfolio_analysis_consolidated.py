@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from datetime import date
 import os
+from scipy.stats import norm
 
 # ---------- 1) YOUR PORTFOLIO  (ticker  ↔  quantity) ----------
 INPUT_FILE = "input/input.csv"
@@ -80,6 +81,48 @@ def max_drawdown(curve):
 def pct(x):  return f"{x:7.1%}" if not pd.isna(x) else "   N/A "
 def usd(x):  return f"${x:,.2f}" if not pd.isna(x) else "   N/A   "
 
+def annualized_volatility(returns):
+    """Calculates annualized volatility from daily returns."""
+    if returns.empty:
+        return np.nan
+    return returns.std() * np.sqrt(252)
+
+def sortino_ratio(returns, rf_daily):
+    """Calculates Sortino ratio from daily returns."""
+    if returns.empty:
+        return np.nan
+    excess = returns - rf_daily
+    downside = returns[returns < 0]
+    if len(downside) == 0 or downside.std() == 0:
+        return np.nan
+    return np.sqrt(252) * excess.mean() / downside.std()
+
+def calmar_ratio(annual_return, max_drawdown):
+    """Calculates Calmar ratio."""
+    if pd.isna(annual_return) or pd.isna(max_drawdown) or max_drawdown == 0:
+        return np.nan
+    return annual_return / abs(max_drawdown)
+
+def parametric_var(returns, confidence=0.95):
+    """Calculates 1-day Parametric VaR at specified confidence level."""
+    if returns.empty:
+        return np.nan
+    z_score = norm.ppf(1 - confidence)
+    return -(z_score * returns.std() - returns.mean()) * 100  # Convert to percentage
+
+def beta_calculation(portfolio_returns, benchmark_returns):
+    """Calculates beta against benchmark."""
+    if portfolio_returns.empty or benchmark_returns.empty:
+        return np.nan
+    # Align the returns
+    aligned_returns = pd.concat([portfolio_returns, benchmark_returns], axis=1).dropna()
+    if len(aligned_returns) < 2:
+        return np.nan
+    # Calculate beta using covariance method
+    covar = aligned_returns.iloc[:, 0].cov(aligned_returns.iloc[:, 1])
+    benchmark_var = aligned_returns.iloc[:, 1].var()
+    return covar / benchmark_var if benchmark_var != 0 else np.nan
+
 # ---------- LOAD DATA ------------------------------------
 print("Parsing portfolio...")
 try:
@@ -124,39 +167,92 @@ def do_aggregate():
         return
 
     port = (close * qty_ser).sum(axis=1)
-    if port.empty or port.nunique() < 2 : # Need at least two different portfolio values to calculate returns
+    if port.empty or port.nunique() < 2:
         print("\nCannot perform aggregate analysis: Portfolio value is constant or insufficient data.")
         return
 
-    rts  = port.pct_change().dropna()
+    rts = port.pct_change().dropna()
     if rts.empty:
         print("\nCannot perform aggregate analysis: No returns could be calculated.")
         return
         
     curv = (1 + rts).cumprod()
 
-    s_val, e_val = port.iloc[0], port.iloc[-1] # Use actual first and last available portfolio values
-    
+    s_val, e_val = port.iloc[0], port.iloc[-1]
     tot = e_val / s_val - 1 if s_val != 0 else np.nan
     
-    # Calculate annualized return based on the actual number of trading days in the data for the portfolio
-    actual_trading_days_in_period = len(rts) # Number of returns periods
+    actual_trading_days_in_period = len(rts)
     if actual_trading_days_in_period > 0:
         ann = (1 + tot) ** (252 / actual_trading_days_in_period) - 1 if not pd.isna(tot) else np.nan
     else:
         ann = np.nan
 
+    # Calculate all metrics
     shp = sharpe_ratio(rts, rf_daily)
     mdd = max_drawdown(curv)
+    vol = annualized_volatility(rts)
+    srt = sortino_ratio(rts, rf_daily)
+    clm = calmar_ratio(ann, mdd)
+    var = parametric_var(rts)
+    
+    # Calculate beta against SPY as benchmark
+    try:
+        spy = yf.download('SPY', start=START, end=END, progress=False)['Adj Close']
+        spy_rts = spy.pct_change().dropna()
+        bta = beta_calculation(rts, spy_rts)
+    except:
+        bta = np.nan
+
+    # Define color thresholds
+    def get_color(metric, value):
+        if pd.isna(value):
+            return ""
+        
+        thresholds = {
+            'Annual Return': {'bad': 0.05, 'excellent': 0.15},
+            'Sharpe': {'bad': 0.5, 'excellent': 1.5},
+            'MaxDD': {'bad': 0.30, 'excellent': 0.15},
+            'Volatility': {'bad': 0.20, 'excellent': 0.10},
+            'Sortino': {'bad': 1.0, 'excellent': 2.0},
+            'Calmar': {'bad': 0.5, 'excellent': 1.0},
+            'VaR': {'bad': 0.02, 'excellent': 0.01},
+            'Beta': {'bad': 1.3, 'excellent': 0.7}
+        }
+        
+        if metric not in thresholds:
+            return ""
+            
+        t = thresholds[metric]
+        if metric in ['MaxDD', 'Volatility', 'VaR', 'Beta']:
+            if value <= t['excellent']:
+                return "\033[92m"  # Green
+            elif value >= t['bad']:
+                return "\033[91m"  # Red
+        else:
+            if value >= t['excellent']:
+                return "\033[92m"  # Green
+            elif value <= t['bad']:
+                return "\033[91m"  # Red
+        return "\033[93m"  # Yellow
+
+    RESET = "\033[0m"
 
     print("\n" + "📊 PORTFOLIO RESULTS".center(60, "─"))
     print(f"🗓  {close.index.min().date()} → {close.index.max().date()} ({actual_trading_days_in_period} trading days)")
     print(f"💸  Start:    {usd(s_val)}")
     print(f"💰  End:      {usd(e_val)}")
-    print(f"{'🔺' if not pd.isna(tot) and tot>=0 else '🔻'}  Return:    {pct(tot)}")
-    print(f"📈  Annual:   {pct(ann)}")
-    print(f"📏  Sharpe:   {shp:7.2f}" if not pd.isna(shp) else "Sharpe:     N/A")
-    print(f"📉  MaxDD:    {pct(mdd)}")
+    
+    # Print all metrics with color coding
+    print(f"{'🔺' if not pd.isna(tot) and tot>=0 else '🔻'}  Return:    {get_color('Annual Return', ann)}{pct(tot)}{RESET}")
+    print(f"📈  Annual:   {get_color('Annual Return', ann)}{pct(ann)}{RESET}")
+    print(f"📏  Sharpe:   {get_color('Sharpe', shp)}{shp:7.2f}{RESET}" if not pd.isna(shp) else "Sharpe:     N/A")
+    print(f"📉  MaxDD:    {get_color('MaxDD', mdd)}{pct(mdd)}{RESET}")
+    print(f"📊  Vol:      {get_color('Volatility', vol)}{pct(vol)}{RESET}")
+    print(f"📈  Sortino:  {get_color('Sortino', srt)}{srt:7.2f}{RESET}" if not pd.isna(srt) else "Sortino:    N/A")
+    print(f"📊  Calmar:   {get_color('Calmar', clm)}{clm:7.2f}{RESET}" if not pd.isna(clm) else "Calmar:     N/A")
+    print(f"⚠️  VaR:      {get_color('VaR', var)}{var:7.2f}%{RESET}" if not pd.isna(var) else "VaR:        N/A")
+    print(f"β   Beta:     {get_color('Beta', bta)}{bta:7.2f}{RESET}" if not pd.isna(bta) else "Beta:       N/A")
+    
     if excluded:
         print(f"\n⚠️  Tickers excluded due to missing price data at period start/end or other issues: {', '.join(excluded)}")
     print("─"*60, "\n")

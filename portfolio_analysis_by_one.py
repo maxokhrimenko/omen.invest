@@ -144,6 +144,138 @@ def get_annual_dividends_and_yields(ticker_symbol: str,
             
     return yearly_data
 
+def annualized_volatility(returns):
+    """Calculates annualized volatility from daily returns."""
+    if returns.empty:
+        return np.nan
+    return returns.std() * np.sqrt(252)
+
+def sortino_ratio(returns, rf_daily):
+    """Calculates Sortino ratio from daily returns."""
+    if returns.empty:
+        return np.nan
+    excess = returns - rf_daily
+    downside = returns[returns < 0]
+    if len(downside) == 0 or downside.std() == 0:
+        return np.nan
+    return np.sqrt(252) * excess.mean() / downside.std()
+
+def historical_var(returns, confidence=0.95):
+    """Calculates 1-day Historical VaR at specified confidence level."""
+    if returns.empty:
+        return np.nan
+    return np.percentile(returns, (1 - confidence) * 100) * 100  # Convert to percentage
+
+def beta_to_portfolio(ticker_returns, portfolio_returns):
+    """Calculates beta against portfolio returns."""
+    if ticker_returns.empty or portfolio_returns.empty:
+        return np.nan
+    # Align the returns
+    aligned_returns = pd.concat([ticker_returns, portfolio_returns], axis=1).dropna()
+    if len(aligned_returns) < 2:
+        return np.nan
+    # Calculate beta using covariance method
+    covar = aligned_returns.iloc[:, 0].cov(aligned_returns.iloc[:, 1])
+    portfolio_var = aligned_returns.iloc[:, 1].var()
+    return covar / portfolio_var if portfolio_var != 0 else np.nan
+
+def momentum_12_1(prices):
+    """Calculates 12-1 momentum (skip last month)."""
+    if len(prices) < 252:
+        return np.nan
+    # Get prices 252 days ago and 21 days ago
+    price_252d = prices.iloc[-252]
+    price_21d = prices.iloc[-21]
+    return (price_21d - price_252d) / price_252d
+
+def calculate_score(metrics, weights):
+    """Calculates weighted score from normalized metrics."""
+    if not metrics or not weights:
+        return np.nan
+    
+    # Normalize metrics to 0-100
+    normalized = {}
+    for metric, value in metrics.items():
+        if pd.isna(value):
+            continue
+        # For risk metrics (lower is better), multiply by -1
+        if metric in ['Volatility', 'VaR', 'MaxDD', 'Beta']:
+            value = -value
+        normalized[metric] = value
+    
+    if not normalized:
+        return np.nan
+    
+    # Get min and max for normalization
+    min_val = min(normalized.values())
+    max_val = max(normalized.values())
+    
+    if max_val == min_val:
+        return 50  # Return middle score if all values are the same
+    
+    # Calculate weighted score
+    score = 0
+    total_weight = 0
+    
+    for metric, value in normalized.items():
+        if metric in weights:
+            # Normalize to 0-100
+            norm_value = 100 * (value - min_val) / (max_val - min_val)
+            score += norm_value * weights[metric]
+            total_weight += weights[metric]
+    
+    return score / total_weight if total_weight > 0 else np.nan
+
+def get_rating(score):
+    """Maps score to rating (1-5)."""
+    if pd.isna(score):
+        return "N/A"
+    if score < 20:
+        return "1"
+    elif score < 40:
+        return "2"
+    elif score < 60:
+        return "3"
+    elif score < 80:
+        return "4"
+    else:
+        return "5"
+
+def get_color(metric, value):
+    """Returns color code based on metric thresholds."""
+    if pd.isna(value):
+        return ""
+    
+    thresholds = {
+        'Annual Return': {'bad': 0.05, 'excellent': 0.20},
+        'Sharpe': {'bad': 0.5, 'excellent': 1.5},
+        'MaxDD': {'bad': 0.50, 'excellent': 0.30},
+        'Vol': {'bad': 0.50, 'excellent': 0.30},
+        'Sortino': {'bad': 0.8, 'excellent': 2.0},
+        'Beta': {'bad': 1.5, 'excellent': 0.5},
+        'VaR': {'bad': 0.04, 'excellent': 0.02},
+        'Momentum': {'bad': 0.0, 'excellent': 0.20},
+        'Current Yield': {'bad': 0.01, 'excellent': 0.04},
+        'Avg Yield': {'bad': 0.01, 'excellent': 0.04},
+        'Max Yield': {'bad': 0.02, 'excellent': 0.06}
+    }
+    
+    if metric not in thresholds:
+        return ""
+        
+    t = thresholds[metric]
+    if metric in ['MaxDD', 'Vol', 'VaR', 'Beta']:
+        if value <= t['excellent']:
+            return "\033[92m"  # Green
+        elif value >= t['bad']:
+            return "\033[91m"  # Red
+    else:
+        if value >= t['excellent']:
+            return "\033[92m"  # Green
+        elif value <= t['bad']:
+            return "\033[91m"  # Red
+    return "\033[93m"  # Yellow
+
 def do_per_ticker():
     # ---------- LOAD DATA ------------------------------------
     print("Parsing portfolio...")
@@ -200,12 +332,16 @@ def do_per_ticker():
             all_dividend_histories[t] = pd.Series(dtype='float64', index=pd.to_datetime([])) 
     print("Calculating metrics...")
 
+    # Calculate portfolio returns for beta calculation
+    port = (close * qty_ser).sum(axis=1)
+    port_rts = port.pct_change().dropna()
+
     for t in live_tickers:
         ser = close[t].dropna()
         if ser.size < 2:
             continue
         
-        rts   = ser.pct_change().dropna()
+        rts = ser.pct_change().dropna()
         if rts.empty:
             curv = pd.Series([1] * len(ser), index=ser.index)
             s, e = ser.iloc[0], ser.iloc[-1]
@@ -214,17 +350,24 @@ def do_per_ticker():
             shp = np.nan
             mdd = 0.0 if s > 0 else np.nan
         else:
-            curv  = (1 + rts).cumprod()
-            s, e  = ser.iloc[0], ser.iloc[-1]
-            tot   = e / s - 1 if s != 0 else np.nan
+            curv = (1 + rts).cumprod()
+            s, e = ser.iloc[0], ser.iloc[-1]
+            tot = e / s - 1 if s != 0 else np.nan
             
             actual_ticker_trading_days = len(rts)
             if actual_ticker_trading_days > 0:
-                 ann = (1 + tot) ** (252 / actual_ticker_trading_days) - 1 if not pd.isna(tot) else np.nan
+                ann = (1 + tot) ** (252 / actual_ticker_trading_days) - 1 if not pd.isna(tot) else np.nan
             else:
                 ann = np.nan
             shp = sharpe_ratio(rts, rf_daily)
             mdd = max_drawdown(curv)
+
+        # Calculate new metrics
+        vol = annualized_volatility(rts)
+        srt = sortino_ratio(rts, rf_daily)
+        bta = beta_to_portfolio(rts, port_rts)
+        var = historical_var(rts)
+        mom = momentum_12_1(ser)
 
         ticker_dividend_history = all_dividend_histories.get(t, pd.Series(dtype='float64', index=pd.to_datetime([])))
         
@@ -236,17 +379,6 @@ def do_per_ticker():
             END
         )
         
-        # Create base row with common metrics
-        row_data = {
-            "Ticker": t,
-            "Start $": s,
-            "End $": e,
-            "TotRet": tot,
-            "AnnRet": ann,
-            "Sharpe": shp,
-            "MaxDD": mdd
-        }
-        
         # Calculate yield metrics
         max_yield = 0.0
         avg_yield = 0.0
@@ -256,20 +388,68 @@ def do_per_ticker():
         if annual_div_data:
             for year, data in annual_div_data.items():
                 yield_pct = data['yield_pct']
-                if yield_pct > 0:  # Only include non-zero yields in calculations
+                if yield_pct > 0:
                     valid_yields.append(yield_pct)
                     max_yield = max(max_yield, yield_pct)
             
             if valid_yields:
                 avg_yield = sum(valid_yields) / len(valid_yields)
                 
-            # Get current yield (last year in range)
             last_year = max(annual_div_data.keys())
             current_yield = annual_div_data[last_year]['yield_pct']
+
+        # Calculate score
+        metrics = {
+            'Annual Return': ann,
+            'Sharpe': shp,
+            'MaxDD': mdd,
+            'Vol': vol,
+            'Sortino': srt,
+            'Beta': bta,
+            'VaR': var,
+            'Momentum': mom,
+            'Current Yield': current_yield,
+            'Avg Yield': avg_yield,
+            'Max Yield': max_yield
+        }
         
-        row_data["Max Yield"] = max_yield
-        row_data["Avg Yield"] = avg_yield
-        row_data["Current Yield"] = current_yield
+        weights = {
+            'Annual Return': 0.15,
+            'Sharpe': 0.15,
+            'MaxDD': 0.10,
+            'Vol': 0.10,
+            'Sortino': 0.10,
+            'Beta': 0.05,
+            'VaR': 0.10,
+            'Momentum': 0.10,
+            'Current Yield': 0.05,
+            'Avg Yield': 0.05,
+            'Max Yield': 0.05
+        }
+        
+        score = calculate_score(metrics, weights)
+        rating = get_rating(score)
+        
+        row_data = {
+            "Ticker": t,
+            "Start $": s,
+            "End $": e,
+            "TotRet": tot,
+            "AnnRet": ann,
+            "Sharpe": shp,
+            "MaxDD": mdd,
+            "Vol": vol,
+            "Sortino": srt,
+            "Beta": bta,
+            "VaR": var,
+            "Momentum": mom,
+            "Max Yield": max_yield,
+            "Avg Yield": avg_yield,
+            "Current Yield": current_yield,
+            "Score": score,
+            "Rating": rating
+        }
+        
         rows.append(row_data)
 
     if not rows:
@@ -279,11 +459,13 @@ def do_per_ticker():
         return
 
     df = pd.DataFrame(rows)
-    if "Sharpe" in df.columns:
-        df = df.sort_values("Sharpe", ascending=False, na_position='last')
+    if "Score" in df.columns:
+        df = df.sort_values("Score", ascending=False, na_position='last')
 
     # Define column order
-    base_columns = ["Ticker", "Start $", "End $", "TotRet", "AnnRet", "Sharpe", "MaxDD", "Max Yield", "Avg Yield", "Current Yield"]
+    base_columns = ["Ticker", "Start $", "End $", "TotRet", "AnnRet", "Sharpe", "MaxDD", 
+                   "Vol", "Sortino", "Beta", "VaR", "Momentum", 
+                   "Max Yield", "Avg Yield", "Current Yield", "Score", "Rating"]
     all_columns = base_columns
 
     # Reorder columns and fill NaN values with "N/A"
@@ -298,9 +480,16 @@ def do_per_ticker():
         "AnnRet": 8,
         "Sharpe": 7,
         "MaxDD": 8,
+        "Vol": 8,
+        "Sortino": 8,
+        "Beta": 6,
+        "VaR": 6,
+        "Momentum": 8,
         "Max Yield": 9,
         "Avg Yield": 9,
-        "Current Yield": 12
+        "Current Yield": 12,
+        "Score": 6,
+        "Rating": 6
     }
 
     # Create header
@@ -310,7 +499,7 @@ def do_per_ticker():
     
     total_table_width = len(header_str)
 
-    print("\n" + "📑 PER-TICKER METRICS (Sharpe ↓)".center(total_table_width, "─"))
+    print("\n" + "📑 PER-TICKER METRICS (Score ↓)".center(total_table_width, "─"))
     print(header_str)
     print(separator_str)
 
@@ -324,22 +513,26 @@ def do_per_ticker():
                 row_parts.append(f"{r[col]:<{col_widths[col]-1}}")
             elif col in ["Start $", "End $"]:
                 row_parts.append(f"{r[col]:>{col_widths[col]-1}.2f}")
-            elif col in ["TotRet", "AnnRet", "MaxDD"]:
+            elif col in ["TotRet", "AnnRet", "MaxDD", "Vol", "VaR", "Momentum"]:
                 if isinstance(r[col], (int, float)):
-                    row_parts.append(f"{pct(r[col]).strip():>{col_widths[col]-1}}")
+                    color = get_color(col, r[col])
+                    row_parts.append(f"{color}{pct(r[col]).strip():>{col_widths[col]-1}}{RESET}")
                 else:
                     row_parts.append(f"{r[col]:>{col_widths[col]-1}}")
-            elif col == "Sharpe":
+            elif col in ["Sharpe", "Sortino", "Beta", "Score"]:
                 if isinstance(r[col], (int, float)):
-                    row_parts.append(f"{r[col]:>{col_widths[col]-1}.1f}")
+                    color = get_color(col, r[col])
+                    row_parts.append(f"{color}{r[col]:>{col_widths[col]-1}.2f}{RESET}")
                 else:
                     row_parts.append(f"{r[col]:>{col_widths[col]-1}}")
             elif col in ["Max Yield", "Avg Yield", "Current Yield"]:
                 if isinstance(r[col], (int, float)):
-                    color = get_yield_color(r[col])
+                    color = get_color(col, r[col])
                     row_parts.append(f"{color}{r[col]:>{col_widths[col]-1}.1f}%{RESET}")
                 else:
                     row_parts.append(f"{r[col]:>{col_widths[col]-1}}")
+            elif col == "Rating":
+                row_parts.append(f"{r[col]:>{col_widths[col]-1}}")
         
         print(" | ".join(row_parts))
         
