@@ -1,6 +1,8 @@
 # 📈 Investment Portfolio Analysis Tool
 
-A comprehensive Python-based tool for analyzing investment portfolios, providing both consolidated portfolio metrics and detailed per-ticker analysis.
+A comprehensive Python-based tool for analyzing investment portfolios, built with clean architecture principles. Provides both consolidated portfolio metrics and detailed per-ticker analysis with an interactive CLI interface.
+
+> **🚀 Recently Refactored**: This application has been completely refactored to follow SOLID principles and clean architecture patterns, making it more maintainable, testable, and extensible.
 
 ## 🎯 Overview
 
@@ -28,27 +30,123 @@ This tool helps investors analyze their portfolios by providing:
 - Expected dividend calculations
 - Risk metrics per ticker
 
-## 📁 Project Structure
+## 🏗️ Architecture
 
-### `portfolio_analysis_consolidated.py`
-The core file handling overall portfolio analysis and shared utilities.
+This application follows **Clean Architecture** principles with clear separation of concerns:
 
-**Key Components:**
-- Portfolio data parsing
-- Price data loading and validation
-- Common utility functions
-- Aggregate portfolio metrics calculation
-- Data validation and error handling
+### 📦 Project Structure
 
-**Main Functions:**
-- `parse_portfolio()`: Converts raw portfolio text to structured data
-- `load_prices()`: Downloads historical price data
-- `sharpe_ratio()`: Calculates risk-adjusted returns
-- `max_drawdown()`: Computes maximum portfolio drawdown
-- `do_aggregate()`: Performs overall portfolio analysis
+```
+src/
+├── domain/                 # Business logic and rules
+│   ├── entities/          # Core business objects
+│   │   ├── ticker.py     # Ticker symbol entity
+│   │   ├── position.py   # Position in portfolio
+│   │   └── portfolio.py  # Portfolio aggregate
+│   └── value_objects/     # Immutable value types
+│       ├── money.py      # Money with currency
+│       ├── percentage.py # Percentage values
+│       └── date_range.py # Date range handling
+├── application/           # Use cases and business workflows
+│   ├── use_cases/        # Business use cases
+│   │   ├── load_portfolio.py
+│   │   ├── analyze_portfolio.py
+│   │   ├── analyze_ticker.py
+│   │   └── compare_tickers.py
+│   └── interfaces/       # Repository interfaces
+│       └── repositories.py
+├── infrastructure/       # External concerns
+│   ├── repositories/     # Data access implementations
+│   │   ├── csv_portfolio_repository.py
+│   │   └── yfinance_market_repository.py
+│   └── config/          # Configuration management
+│       └── settings.py
+└── presentation/         # User interface
+    ├── cli/             # Command-line interface
+    │   └── menu.py
+    └── controllers/     # Application controllers
+        └── portfolio_controller.py
 
-### `portfolio_analysis_by_one.py`
-Handles detailed analysis of individual stocks.
+tests/
+├── unit/                # Unit tests
+└── integration/         # Integration tests
+
+config/
+└── settings.yaml       # Application configuration
+```
+
+### 🎯 Key Benefits of This Architecture
+
+1. **Separation of Concerns**: Each layer has a single responsibility
+2. **Dependency Inversion**: Business logic doesn't depend on external libraries
+3. **Testability**: Easy to unit test with comprehensive test coverage
+4. **Maintainability**: Changes in one layer don't affect others
+5. **Extensibility**: Easy to add new features or change implementations
+
+### Legacy Files (Preserved for Reference)
+
+- `portfolio_analysis_consolidated.py`: Original consolidated analysis
+- `portfolio_analysis_by_one.py`: Original per-ticker analysis
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Python 3.8 or higher
+- Internet connection for market data
+
+### Installation
+
+1. **Clone or download** this repository
+2. **Create and activate virtual environment**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### Usage
+
+1. **Prepare your portfolio** in `input/input.csv` with the following format:
+   ```csv
+   ticker,position
+   AAPL,10
+   MSFT,5
+   GOOGL,3
+   ```
+
+2. **Run the interactive application**:
+   ```bash
+   python main.py
+   ```
+
+3. **Follow the interactive menu** to:
+   - Load your portfolio
+   - Analyze portfolio performance  
+   - Analyze individual tickers
+   - Compare ticker performance
+   - Generate comprehensive reports
+
+### Testing
+
+Run the comprehensive test suite:
+
+```bash
+# Run all tests
+pytest
+
+# Run only unit tests
+pytest tests/unit/
+
+# Run only integration tests  
+pytest tests/integration/
+```
+
+### Legacy Scripts (Still Available)
+
+For backwards compatibility, the original scripts are still available:
 
 **Key Components:**
 - Per-ticker performance metrics
@@ -133,7 +231,7 @@ Handles detailed analysis of individual stocks.
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history and changes.
 
 ## Version
-Current version: 3.1.0
+Current version: 4.0.0 - **Major Refactoring Release**
 
 ## Features
 - Portfolio analysis with consolidated metrics
@@ -142,60 +240,26 @@ Current version: 3.1.0
 - CSV-based portfolio data input
 - Comprehensive error handling
 
-## Requirements
-- Python 3.6+
-- pandas
-- colorama
+## 📚 Documentation
 
-## Installation
-1. Clone the repository
-2. Install required packages:
-```bash
-pip install -r requirements.txt
-```
+- **[ARCHITECTURE.md](ARCHITECTURE.md)**: Detailed technical architecture documentation
+- **[CHANGELOG.md](CHANGELOG.md)**: Version history and changes
+- **[METRICS_MEMORANDUM.md](METRICS_MEMORANDUM.md)**: Financial metrics definitions
 
-## Usage
-1. Place your portfolio data in `input/input.csv` with the following format:
-```csv
-ticker,shares,price
-AAPL,10,150.00
-MSFT,5,300.00
-```
+## 🤝 Contributing
 
-2. Run the analysis:
-```bash
-# For consolidated analysis
-python portfolio_analysis_consolidated.py
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Run tests (`pytest`)
+4. Commit your changes (`git commit -m 'Add amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
-# For per-ticker analysis
-python portfolio_analysis_by_one.py
-```
+## 📄 License
 
-## Output
-The tool provides:
-- Total portfolio value
-- Per-ticker metrics
-- Dividend yields with color coding
-- Position sizes and weights
-- Error handling for missing data
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## File Structure
-- `portfolio_analysis_consolidated.py`: Consolidated portfolio analysis
-- `portfolio_analysis_by_one.py`: Per-ticker analysis
-- `input/input.csv`: Portfolio data file
-- `README.md`: This documentation
-- `CHANGELOG.md`: Version history
-- `.gitignore`: Git ignore rules
+## 🙏 Acknowledgments
 
-## Error Handling
-The tool includes comprehensive error handling for:
-- Missing input files
-- Invalid CSV format
-- Missing price data
-- Invalid numeric values
-
-## Contributing
-Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
-
-## License
-This project is licensed under the MIT License - see the LICENSE file for details. 
+- Yahoo Finance for providing market data via the yfinance library
+- The Python community for excellent financial analysis libraries 

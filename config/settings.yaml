@@ -1,0 +1,44 @@
+# Portfolio Analysis Tool Configuration
+
+# Default settings
+defaults:
+  start_date: "2024-03-01"
+  risk_free_rate: 0.03
+  portfolio_file: "input/input.csv"
+
+# Analysis settings
+analysis:
+  min_trading_days: 30
+  confidence_level: 0.95
+  annualization_factor: 252
+
+# Data sources
+data_sources:
+  market_data: "yfinance"
+  portfolio_format: "csv"
+
+# Display settings
+display:
+  decimal_places: 2
+  percentage_places: 1
+  currency_symbol: "$"
+  date_format: "%Y-%m-%d"
+
+# Risk thresholds for color coding
+thresholds:
+  annual_return:
+    excellent: 0.15
+    good: 0.10
+    poor: 0.05
+  sharpe_ratio:
+    excellent: 1.5
+    good: 1.0
+    poor: 0.5
+  max_drawdown:
+    excellent: 0.15
+    good: 0.25
+    poor: 0.40
+  volatility:
+    excellent: 0.15
+    good: 0.25
+    poor: 0.40
