@@ -29,6 +29,7 @@ from src.application.use_cases.analyze_portfolio import AnalyzePortfolioUseCase
 from src.application.use_cases.analyze_ticker import AnalyzeTickerUseCase
 from src.application.use_cases.compare_tickers import CompareTickersUseCase
 
+
 def setup_dependencies():
     """Set up dependency injection container."""
     # Infrastructure layer
