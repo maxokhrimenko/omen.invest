@@ -18,9 +18,10 @@
 - [15. Core Flows (Sequence Diagrams)](#15-core-flows-sequence-diagrams)
 - [16. LLM/AI Integration (if any)](#16-llmai-integration-if-any)
 - [17. Extension Guide (How to Safely Change Things)](#17-extension-guide-how-to-safely-change-things)
-- [18. Known Issues & TODOs](#18-known-issues--todos)
-- [19. Glossary & Domain Concepts](#19-glossary--domain-concepts)
-- [20. License & Third-Party Notices](#20-license--third-party-notices)
+- [18. Data Validation & Missing Data Detection](#18-data-validation--missing-data-detection)
+- [19. Known Issues & TODOs](#19-known-issues--todos)
+- [20. Glossary & Domain Concepts](#20-glossary--domain-concepts)
+- [21. License & Third-Party Notices](#21-license--third-party-notices)
 - [Appendix A. Module Index](#appendix-a-module-index)
 - [Appendix B. Evidence Index](#appendix-b-evidence-index)
 
@@ -154,11 +155,12 @@ Evidence: yfinance_market_repository.py:L1-L135
 |------|-----------------|------------------|-----------------|------------|----------|
 | PortfolioController | Controller | Orchestrate user interactions, format results | load_portfolio(), analyze_portfolio(), analyze_tickers(), compare_tickers() | All use cases | portfolio_controller.py:L11-L20 |
 | LoadPortfolioUseCase | Use Case | Load portfolio from CSV files | execute(LoadPortfolioRequest) | PortfolioRepository | load_portfolio.py:L16-L33 |
-| AnalyzePortfolioUseCase | Use Case | Calculate portfolio-level metrics | execute(AnalyzePortfolioRequest) | MarketDataRepository | analyze_portfolio.py:L38-L86 |
-| AnalyzeTickerUseCase | Use Case | Calculate individual ticker metrics | execute(AnalyzeTickerRequest) | MarketDataRepository | analyze_ticker.py:L39-L91 |
+| AnalyzePortfolioUseCase | Use Case | Calculate portfolio-level metrics with data validation | execute(AnalyzePortfolioRequest) | MarketDataRepository | analyze_portfolio.py:L38-L86 |
+| AnalyzeTickerUseCase | Use Case | Calculate individual ticker metrics with data validation | execute(AnalyzeTickerRequest) | MarketDataRepository | analyze_ticker.py:L39-L91 |
 | CompareTickersUseCase | Use Case | Compare multiple tickers | execute(CompareTickersRequest) | AnalyzeTickerUseCase | compare_tickers.py:L27-L82 |
 | CsvPortfolioRepository | Repository | Load/save portfolios from CSV | load(file_path), save(portfolio, file_path) | pandas | csv_portfolio_repository.py:L9-L74 |
 | YFinanceMarketRepository | Repository | Fetch market data from Yahoo Finance | get_price_history(), get_current_prices(), get_dividend_history() | yfinance | yfinance_market_repository.py:L9-L134 |
+| LoggerService | Service | Centralized logging management | get_logger(), log_performance(), log_user_action(), log_api_call() | logging | logger_service.py:L21-L235 |
 | Portfolio | Entity | Portfolio aggregate root | get_tickers(), get_positions(), get_total_value() | Position, Ticker | portfolio.py:L6-L43 |
 | Ticker | Entity | Stock ticker symbol | symbol property | None | ticker.py:L1-L27 |
 | Position | Entity | Portfolio position | get_value(price) | Ticker, Money | position.py:L6-L37 |
@@ -238,17 +240,24 @@ Evidence: README.md:L101-L145
 
 ## 11. Observability
 **Logs:** formats, levels, sinks.  
-- Print statements for user feedback
-- Error messages to console
-- No structured logging system
+- **Comprehensive logging system** with session-based separation
+- **Dual log streams**: Session-specific logs (`logs/sessions/`) and total logs (`logs/total/`)
+- **Structured logging** with human-readable format
+- **Log levels**: DEBUG, INFO, WARNING, ERROR, CRITICAL
+- **File-based storage** with no console output (logs only go to files)
+- **Detailed operation tracking**: User actions, API calls, file operations, business operations, performance metrics
+- **Session management**: Timestamp-based session IDs (YYYY-MM-DD-HH-MM-SS)
+- **Log management tools**: Administrative script for log cleanup and statistics
 
 **Metrics:** key counters/gauges/histograms.  
-- Financial metrics (returns, volatility, Sharpe ratio, etc.)
-- No application metrics collection
+- **Performance metrics**: Operation timing and duration tracking
+- **Business metrics**: Portfolio analysis results, API call success rates
+- **User interaction metrics**: Action tracking and completion times
+- **Financial metrics**: Returns, volatility, Sharpe ratio, etc.
 
 **Tracing:** N/A - No distributed tracing  
 **Dashboards & alerts:** N/A - No monitoring dashboards  
-Evidence: No logging framework or metrics collection in codebase
+Evidence: src/infrastructure/logging/logger_service.py, admin/logs_clear.py
 
 ## 12. Testing & QA
 | Test Type | Where | How to Run | Coverage Hints | Evidence |
@@ -373,7 +382,39 @@ Evidence: portfolio_controller.py:L25-L67, analyze_portfolio.py:L42-L86
 - Test changes locally before committing
 Evidence: ARCHITECTURE.md:L405-L422
 
-## 18. Known Issues & TODOs
+## 18. Data Validation & Missing Data Detection
+
+**Purpose:**  
+Comprehensive data validation system that identifies and reports tickers with missing or incomplete data for accurate portfolio analysis.
+
+**Key Features:**
+- **Missing Tickers Detection**: Identifies tickers with no data available at all
+- **Start Date Validation**: Detects tickers without data at analysis start date (with 5-day business tolerance)
+- **User-Friendly Warnings**: Clear messages about data availability issues
+- **Analysis Impact Reporting**: Shows how missing data affects analysis accuracy
+
+**Implementation Details:**
+- **Portfolio Analysis**: `AnalyzePortfolioResponse` includes `missing_tickers` and `tickers_without_start_data` fields
+- **Ticker Analysis**: `AnalyzeTickerResponse` includes `has_data_at_start` and `first_available_date` fields
+- **Business Day Tolerance**: 5-day tolerance accounts for weekends, holidays, and data availability delays
+- **Controller Integration**: `_display_data_issues()` method shows comprehensive data availability warnings
+
+**User Experience:**
+```
+⚠️  DATA AVAILABILITY ISSUES
+============================================================
+❌ No data available for: INVALID
+   These tickers will be excluded from analysis.
+
+⚠️  No data at start date for: TSLA, NVDA
+   These tickers may have incomplete analysis periods.
+   Consider adjusting your start date or excluding these tickers.
+============================================================
+```
+
+**Evidence:** analyze_portfolio.py:L172-L206, analyze_ticker.py:L70-L85, portfolio_controller.py:L316-L331
+
+## 19. Known Issues & TODOs
 - No known issues documented in code
 - No TODO comments found in codebase
 - Potential improvements:
@@ -383,7 +424,7 @@ Evidence: ARCHITECTURE.md:L405-L422
   - Add logging framework
 Evidence: No TODO comments or issue tracking found
 
-## 19. Glossary & Domain Concepts
+## 20. Glossary & Domain Concepts
 | Term | Meaning | Evidence |
 |------|---------|----------|
 | Portfolio | Collection of investment positions | portfolio.py:L6-L43 |
@@ -397,7 +438,7 @@ Evidence: No TODO comments or issue tracking found
 | Repository Pattern | Data access abstraction | repositories.py:L9-L36 |
 | Value Object | Immutable domain concept | money.py:L4-L45 |
 
-## 20. License & Third-Party Notices
+## 21. License & Third-Party Notices
 | Package | Version | License | Obligations | Evidence |
 |---------|---------|---------|-------------|----------|
 | pandas | >=1.3.0 | BSD-3-Clause | Attribution required | requirements.txt:L1 |
@@ -426,6 +467,8 @@ Evidence: No TODO comments or issue tracking found
 | src/application/interfaces/repositories.py | PortfolioRepository, MarketDataRepository | Abstract methods | None | Domain entities | repositories.py:L9-L36 |
 | src/infrastructure/repositories/csv_portfolio_repository.py | CsvPortfolioRepository | load(), save() | pandas | Portfolio, Position, Ticker | csv_portfolio_repository.py:L9-L74 |
 | src/infrastructure/repositories/yfinance_market_repository.py | YFinanceMarketRepository | get_price_history(), get_current_prices(), get_dividend_history() | yfinance | Ticker, Money, DateRange | yfinance_market_repository.py:L9-L134 |
+| src/infrastructure/logging/logger_service.py | LoggerService | get_logger(), log_performance(), log_user_action(), log_api_call() | logging | All layers | logger_service.py:L21-L235 |
+| admin/logs_clear.py | LogsClearManager | clear_sessions(), clear_total(), show_statistics() | os, shutil | LoggerService | logs_clear.py:L30-L255 |
 | src/presentation/controllers/portfolio_controller.py | PortfolioController | All controller methods | All use cases | None | portfolio_controller.py:L11-L20 |
 | src/presentation/cli/menu.py | MainMenu | show() | PortfolioController | None | menu.py:L4-L80 |
 

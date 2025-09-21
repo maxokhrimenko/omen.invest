@@ -35,6 +35,8 @@ class AnalyzeTickerResponse:
     metrics: Optional[TickerMetrics]
     success: bool
     message: str
+    has_data_at_start: bool = True
+    first_available_date: Optional[str] = None
 
 class AnalyzeTickerUseCase:
     def __init__(self, market_data_repo: MarketDataRepository):
@@ -52,7 +54,8 @@ class AnalyzeTickerUseCase:
                 return AnalyzeTickerResponse(
                     metrics=None,
                     success=False,
-                    message=f"No price data available for {request.ticker.symbol}"
+                    message=f"No price data available for {request.ticker.symbol}",
+                    has_data_at_start=False
                 )
             
             prices = price_history[request.ticker]
@@ -60,7 +63,25 @@ class AnalyzeTickerUseCase:
                 return AnalyzeTickerResponse(
                     metrics=None,
                     success=False,
-                    message=f"Insufficient price data for {request.ticker.symbol}"
+                    message=f"Insufficient price data for {request.ticker.symbol}",
+                    has_data_at_start=False
+                )
+            
+            # Check if data is available at start date (with tolerance for business days)
+            start_timestamp = pd.Timestamp(request.date_range.start)
+            first_available_date = prices.index[0]
+            # Allow up to 5 business days tolerance for start date (to account for weekends/holidays)
+            tolerance_days = 5
+            max_allowed_start = start_timestamp + pd.Timedelta(days=tolerance_days)
+            has_data_at_start = first_available_date <= max_allowed_start
+            
+            if not has_data_at_start:
+                return AnalyzeTickerResponse(
+                    metrics=None,
+                    success=False,
+                    message=f"No data available within {tolerance_days} days of start date {request.date_range.start} for {request.ticker.symbol}. First available data: {first_available_date.date()}",
+                    has_data_at_start=False,
+                    first_available_date=str(first_available_date.date())
                 )
             
             # Get dividend history
@@ -80,7 +101,9 @@ class AnalyzeTickerUseCase:
             return AnalyzeTickerResponse(
                 metrics=metrics,
                 success=True,
-                message=f"Analysis completed for {request.ticker.symbol}"
+                message=f"Analysis completed for {request.ticker.symbol}",
+                has_data_at_start=True,
+                first_available_date=str(first_available_date.date())
             )
             
         except Exception as e:

@@ -21,6 +21,7 @@ This tool helps investors analyze their portfolios by providing:
 - Sharpe ratio calculation
 - Maximum drawdown analysis
 - Trading days tracking
+- **Missing data detection and validation**
 
 ### Per-Ticker Analysis
 - Individual stock performance metrics
@@ -29,6 +30,22 @@ This tool helps investors analyze their portfolios by providing:
 - Historical dividend data analysis
 - Expected dividend calculations
 - Risk metrics per ticker
+- **Data availability validation with business day tolerance**
+
+### Data Validation & Quality Assurance
+- **Missing Data Detection**: Identifies tickers with no data available
+- **Start Date Validation**: Detects tickers without data at analysis start date (5-day business tolerance)
+- **User-Friendly Warnings**: Clear messages about data availability issues
+- **Analysis Impact Reporting**: Shows how missing data affects analysis accuracy
+- **Transparent Reporting**: Full visibility into data limitations and recommendations
+
+### Comprehensive Logging System
+- **Session-based logging**: Complete logs for each application session
+- **Dual log streams**: Session-specific and total application logs
+- **Detailed operation tracking**: User actions, API calls, file operations, business operations
+- **Performance monitoring**: Timing information for all operations
+- **Human-readable format**: Easy debugging and analysis
+- **Log management**: Administrative tools for log cleanup and statistics
 
 ## 🏗️ Architecture
 
@@ -59,6 +76,9 @@ src/
 │   ├── repositories/     # Data access implementations
 │   │   ├── csv_portfolio_repository.py
 │   │   └── yfinance_market_repository.py
+│   ├── logging/          # Comprehensive logging system
+│   │   ├── logger_service.py    # Centralized logging service
+│   │   └── decorators.py        # Logging decorators
 │   └── config/          # Configuration management
 │       └── settings.py
 └── presentation/         # User interface
@@ -70,6 +90,13 @@ src/
 tests/
 ├── unit/                # Unit tests
 └── integration/         # Integration tests
+
+admin/
+└── logs_clear.py       # Log management script
+
+logs/                   # Log storage
+├── sessions/           # Session-specific logs
+└── total/              # All logs across sessions
 
 config/
 └── settings.yaml       # Application configuration
@@ -144,6 +171,29 @@ pytest tests/unit/
 pytest tests/integration/
 ```
 
+### Log Management
+
+The application includes comprehensive logging with administrative tools:
+
+```bash
+# View log statistics
+python admin/logs_clear.py --stats
+
+# Clear session logs
+python admin/logs_clear.py --clear-sessions --force
+
+# Clear all logs
+python admin/logs_clear.py --clear-all --force
+
+# Backup and clear logs
+python admin/logs_clear.py --backup-and-clear --force
+```
+
+**Log Structure:**
+- `logs/sessions/` - Complete logs for each application session
+- `logs/total/` - All logs across all sessions
+- Human-readable format with detailed timing and operation tracking
+
 ### Legacy Scripts (Still Available)
 
 For backwards compatibility, the original scripts are still available:
@@ -190,6 +240,16 @@ For backwards compatibility, the original scripts are still available:
 📈  Annual:   [Percentage]
 📏  Sharpe:   [Value]
 📉  MaxDD:    [Percentage]
+
+⚠️  DATA AVAILABILITY ISSUES
+============================================================
+❌ No data available for: INVALID
+   These tickers will be excluded from analysis.
+
+⚠️  No data at start date for: TSLA, NVDA
+   These tickers may have incomplete analysis periods.
+   Consider adjusting your start date or excluding these tickers.
+============================================================
 ```
 
 ### Per-Ticker Analysis

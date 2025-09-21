@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import date
 from ...application.use_cases.load_portfolio import LoadPortfolioUseCase, LoadPortfolioRequest
 from ...application.use_cases.analyze_portfolio import AnalyzePortfolioUseCase, AnalyzePortfolioRequest
@@ -7,6 +7,8 @@ from ...application.use_cases.compare_tickers import CompareTickersUseCase, Comp
 from ...domain.entities.portfolio import Portfolio
 from ...domain.entities.ticker import Ticker
 from ...domain.value_objects.date_range import DateRange
+from ...infrastructure.logging.logger_service import get_logger_service
+from ...infrastructure.logging.decorators import log_user_action
 
 class PortfolioController:
     def __init__(self, 
@@ -21,9 +23,16 @@ class PortfolioController:
         self._current_portfolio: Optional[Portfolio] = None
         self._default_start_date = "2024-03-01"
         self._risk_free_rate = 0.03
+        
+        # Initialize logging
+        self._logger_service = get_logger_service()
+        self._logger = self._logger_service.get_logger("presentation")
+        self._logger.info("PortfolioController initialized")
     
+    @log_user_action("load_portfolio", include_inputs=True)
     def load_portfolio(self) -> None:
         """Load portfolio from file."""
+        self._logger.info("User initiated portfolio load")
         print("\n📁 Load Portfolio")
         print("─" * 50)
         
@@ -31,14 +40,19 @@ class PortfolioController:
         if not file_path:
             file_path = "input/input.csv"
         
+        self._logger.info(f"User selected file path: {file_path}")
+        self._logger_service.log_user_action("load_portfolio", {"file_path": file_path})
+        
         request = LoadPortfolioRequest(file_path=file_path)
         response = self._load_portfolio_use_case.execute(request)
         
         if response.success:
             self._current_portfolio = response.portfolio
+            self._logger.info(f"Portfolio loaded successfully: {response.message}")
             print(f"✅ {response.message}")
             self._display_portfolio_summary()
         else:
+            self._logger.error(f"Portfolio load failed: {response.message}")
             print(f"❌ {response.message}")
     
     def analyze_portfolio(self) -> None:
@@ -63,8 +77,14 @@ class PortfolioController:
         
         if response.success and response.metrics:
             self._display_portfolio_metrics(response.metrics)
+            self._display_data_issues(response.missing_tickers, response.tickers_without_start_data)
         else:
             print(f"❌ {response.message}")
+            if hasattr(response, 'missing_tickers') or hasattr(response, 'tickers_without_start_data'):
+                self._display_data_issues(
+                    getattr(response, 'missing_tickers', []), 
+                    getattr(response, 'tickers_without_start_data', [])
+                )
     
     def analyze_tickers(self) -> None:
         """Analyze individual tickers in portfolio."""
@@ -235,7 +255,10 @@ class PortfolioController:
             if response.success and response.metrics:
                 results.append(response.metrics)
             else:
-                print(f"⚠️  Failed to analyze {ticker.symbol}: {response.message}")
+                if not response.has_data_at_start and response.first_available_date:
+                    print(f"⚠️  {ticker.symbol}: No data at start date. First available: {response.first_available_date}")
+                else:
+                    print(f"⚠️  Failed to analyze {ticker.symbol}: {response.message}")
         
         if results:
             self._display_ticker_results(results)
@@ -266,7 +289,10 @@ class PortfolioController:
                 if response.success and response.metrics:
                     self._display_ticker_results([response.metrics])
                 else:
-                    print(f"❌ {response.message}")
+                    if not response.has_data_at_start and response.first_available_date:
+                        print(f"❌ {selected_ticker.symbol}: No data at start date. First available: {response.first_available_date}")
+                    else:
+                        print(f"❌ {response.message}")
             else:
                 print("❌ Invalid ticker number.")
         except ValueError:
@@ -292,6 +318,23 @@ class PortfolioController:
             print(f"   💰 Dividend Yield:     {metrics.dividend_yield}")
             print(f"   📊 Momentum (12-1):    {metrics.momentum_12_1}")
         print("=" * 80)
+    
+    def _display_data_issues(self, missing_tickers: List[str], tickers_without_start_data: List[str]) -> None:
+        """Display information about tickers with data issues."""
+        if missing_tickers or tickers_without_start_data:
+            print("\n⚠️  DATA AVAILABILITY ISSUES")
+            print("=" * 60)
+            
+            if missing_tickers:
+                print(f"❌ No data available for: {', '.join(missing_tickers)}")
+                print("   These tickers will be excluded from analysis.")
+            
+            if tickers_without_start_data:
+                print(f"⚠️  No data at start date for: {', '.join(tickers_without_start_data)}")
+                print("   These tickers may have incomplete analysis periods.")
+                print("   Consider adjusting your start date or excluding these tickers.")
+            
+            print("=" * 60)
     
     def _display_ticker_comparison(self, comparison) -> None:
         """Display ticker comparison results."""

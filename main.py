@@ -12,10 +12,12 @@ Major changes in v4.0.0:
 - Comprehensive test suite (38 tests)
 - SOLID principles implementation
 - Enhanced error handling and user experience
+- Comprehensive logging system with session management
 """
 
 import sys
 import os
+import atexit
 
 # Add src to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -28,6 +30,7 @@ from src.application.use_cases.load_portfolio import LoadPortfolioUseCase
 from src.application.use_cases.analyze_portfolio import AnalyzePortfolioUseCase
 from src.application.use_cases.analyze_ticker import AnalyzeTickerUseCase
 from src.application.use_cases.compare_tickers import CompareTickersUseCase
+from src.infrastructure.logging.logger_service import initialize_logging
 
 
 def setup_dependencies():
@@ -54,24 +57,51 @@ def setup_dependencies():
 
 def main():
     """Main application entry point."""
+    # Initialize logging system
+    logger_service = initialize_logging("logs")
+    session_id = logger_service.start_session()
+    
+    # Register cleanup function
+    def cleanup():
+        logger_service.end_session()
+    
+    atexit.register(cleanup)
+    
+    # Get logger for main application
+    logger = logger_service.get_logger("main")
+    
     try:
+        logger.info("=== PORTFOLIO ANALYSIS TOOL STARTING ===")
+        logger.info(f"Session ID: {session_id}")
         print("🚀 Starting Portfolio Analysis Tool v4.0.0...")
         print("📦 Initializing components...")
         
+        logger.info("Setting up dependency injection")
         controller = setup_dependencies()
         menu = MainMenu(controller)
         
+        logger.info("Application initialization completed successfully")
         print("✅ Application ready!")
+        
+        # Log user interaction start
+        logger.info("Starting user interaction loop")
         menu.show()
         
+        logger.info("User interaction completed normally")
+        
     except KeyboardInterrupt:
+        logger.warning("Application interrupted by user (KeyboardInterrupt)")
         print("\n\n⚠️  Application interrupted by user.")
         print("👋 Goodbye!")
         return 1
     except Exception as e:
+        logger.error(f"Fatal error in main application: {str(e)}", exc_info=True)
         print(f"\n💥 Fatal error: {str(e)}")
         print("📞 Please check your configuration and try again.")
         return 1
+    finally:
+        logger.info("=== PORTFOLIO ANALYSIS TOOL SHUTTING DOWN ===")
+        cleanup()
     
     return 0
 

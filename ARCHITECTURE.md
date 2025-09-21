@@ -58,6 +58,10 @@ portfolio-analysis-tool/
 │   │   │   ├── __init__.py
 │   │   │   ├── csv_portfolio_repository.py  # CSV file operations
 │   │   │   └── yfinance_market_repository.py # Market data from yfinance
+│   │   ├── logging/               # Comprehensive logging system
+│   │   │   ├── __init__.py
+│   │   │   ├── logger_service.py  # Centralized logging service
+│   │   │   └── decorators.py      # Logging decorators
 │   │   ├── services/              # External service integrations
 │   │   │   └── __init__.py
 │   │   ├── config/                # Configuration management
@@ -82,6 +86,12 @@ portfolio-analysis-tool/
 │   │   └── test_portfolio_analysis.py # End-to-end tests
 │   └── e2e/                       # End-to-end tests
 │       └── __init__.py
+├── admin/                         # Administrative tools
+│   ├── __init__.py
+│   └── logs_clear.py              # Log management script
+├── logs/                          # Log storage
+│   ├── sessions/                  # Session-specific logs
+│   └── total/                     # All logs across sessions
 ├── config/                        # Configuration files
 │   └── settings.yaml              # Application settings
 ├── input/                         # Input data
@@ -177,11 +187,16 @@ The application layer orchestrates domain objects to fulfill business use cases.
 
 #### AnalyzePortfolioUseCase
 - **Input**: `AnalyzePortfolioRequest` (portfolio, date range, risk-free rate)
-- **Output**: `AnalyzePortfolioResponse` (metrics, success, message)
+- **Output**: `AnalyzePortfolioResponse` (metrics, success, message, missing_tickers, tickers_without_start_data)
 - **Responsibilities**:
   - Fetch market data for all portfolio tickers
   - Calculate portfolio-level metrics
-  - Handle missing data scenarios
+  - Validate data availability with business day tolerance
+  - Identify missing tickers and incomplete data scenarios
+- **Data Validation Features**:
+  - Missing tickers detection (no data available)
+  - Start date validation (5-day business tolerance)
+  - Comprehensive data availability reporting
 - **Calculated Metrics**:
   - Total return, annualized return
   - Volatility, Sharpe ratio, Sortino ratio
@@ -190,11 +205,16 @@ The application layer orchestrates domain objects to fulfill business use cases.
 
 #### AnalyzeTickerUseCase
 - **Input**: `AnalyzeTickerRequest` (ticker, date range, risk-free rate)
-- **Output**: `AnalyzeTickerResponse` (metrics, success, message)
+- **Output**: `AnalyzeTickerResponse` (metrics, success, message, has_data_at_start, first_available_date)
 - **Responsibilities**:
   - Fetch price and dividend data for single ticker
   - Calculate individual ticker metrics
-  - Handle ticker-specific errors
+  - Validate data availability at start date with business day tolerance
+  - Handle ticker-specific errors and data validation
+- **Data Validation Features**:
+  - Start date data availability check (5-day business tolerance)
+  - First available date reporting
+  - Clear error messages for missing data scenarios
 
 #### CompareTickersUseCase
 - **Input**: `CompareTickersRequest` (tickers list, date range, risk-free rate)
@@ -267,6 +287,37 @@ class MarketDataRepository(ABC):
   - Data format normalization
   - Dividend history processing
 
+### Logging Infrastructure
+
+#### LoggerService
+- **Purpose**: Centralized logging management with session-based separation
+- **Features**:
+  - Session-based log separation (sessions vs total logs)
+  - Human-readable log format with detailed timing
+  - Multiple log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  - File-based storage (no console output)
+  - Performance monitoring and operation tracking
+  - User action logging, API call logging, file operation logging
+  - Business operation logging with structured data
+
+#### Logging Decorators
+- **Purpose**: Easy application of logging to functions across all layers
+- **Available Decorators**:
+  - `@log_operation`: General operation logging with timing
+  - `@log_user_action`: User interaction logging
+  - `@log_api_call`: External API call logging
+  - `@log_file_operation`: File I/O operation logging
+  - `@log_calculation`: Business calculation logging
+
+#### Log Management
+- **Purpose**: Administrative tools for log maintenance
+- **Features**:
+  - Log statistics and storage usage
+  - Session log cleanup
+  - Total log cleanup
+  - Backup and restore functionality
+  - Force operations for automation
+
 ### Configuration Management
 
 #### Settings Service
@@ -312,25 +363,93 @@ User Input → Menu → Controller → Use Case → Repository → External Syst
 ### Portfolio Loading Flow
 ```
 1. User selects "Load Portfolio"
-2. PortfolioController.load_portfolio()
-3. LoadPortfolioUseCase.execute(LoadPortfolioRequest)
-4. CsvPortfolioRepository.load(file_path)
-5. Parse CSV → Create Ticker/Position objects → Create Portfolio
-6. Return LoadPortfolioResponse with success/error
-7. Controller displays result to user
+2. PortfolioController.load_portfolio() [LOGGED: User action]
+3. LoadPortfolioUseCase.execute(LoadPortfolioRequest) [LOGGED: Business operation]
+4. CsvPortfolioRepository.load(file_path) [LOGGED: File operation]
+5. Parse CSV → Create Ticker/Position objects → Create Portfolio [LOGGED: Domain operations]
+6. Return LoadPortfolioResponse with success/error [LOGGED: Performance metrics]
+7. Controller displays result to user [LOGGED: User action completion]
 ```
 
 ### Portfolio Analysis Flow
 ```
-1. User selects "Analyze Portfolio"
-2. PortfolioController.analyze_portfolio()
-3. Get date range from user input
-4. AnalyzePortfolioUseCase.execute(AnalyzePortfolioRequest)
-5. YFinanceMarketRepository.get_price_history()
-6. Calculate portfolio metrics using domain objects
-7. Return AnalyzePortfolioResponse with metrics
-8. Controller formats and displays results
+1. User selects "Analyze Portfolio" [LOGGED: User action]
+2. PortfolioController.analyze_portfolio() [LOGGED: User action]
+3. Get date range from user input [LOGGED: User input]
+4. AnalyzePortfolioUseCase.execute(AnalyzePortfolioRequest) [LOGGED: Business operation]
+5. YFinanceMarketRepository.get_price_history() [LOGGED: API call with timing]
+6. Calculate portfolio metrics using domain objects [LOGGED: Calculations and performance]
+7. Return AnalyzePortfolioResponse with metrics [LOGGED: Business operation completion]
+8. Controller formats and displays results [LOGGED: User action completion]
 ```
+
+## 🔍 Data Validation & Quality Assurance
+
+### Missing Data Detection System
+
+The application includes comprehensive data validation to ensure analysis accuracy and provide clear feedback about data availability issues.
+
+#### Portfolio-Level Data Validation
+
+**Purpose**: Identify and report tickers with missing or incomplete data for portfolio analysis.
+
+**Implementation**:
+- **Missing Tickers Detection**: Identifies tickers with no data available at all
+- **Start Date Validation**: Detects tickers without data at analysis start date
+- **Business Day Tolerance**: 5-day tolerance accounts for weekends, holidays, and data delays
+- **User-Friendly Reporting**: Clear warnings about data availability issues
+
+**Response Structure**:
+```python
+@dataclass
+class AnalyzePortfolioResponse:
+    metrics: Optional[PortfolioMetrics]
+    success: bool
+    message: str
+    missing_tickers: List[str] = None
+    tickers_without_start_data: List[str] = None
+```
+
+#### Ticker-Level Data Validation
+
+**Purpose**: Validate individual ticker data availability with detailed reporting.
+
+**Implementation**:
+- **Start Date Check**: Validates data availability at analysis start date
+- **First Available Date**: Reports when data first becomes available
+- **Tolerance Handling**: Uses business day tolerance for realistic validation
+
+**Response Structure**:
+```python
+@dataclass
+class AnalyzeTickerResponse:
+    metrics: Optional[TickerMetrics]
+    success: bool
+    message: str
+    has_data_at_start: bool = True
+    first_available_date: Optional[str] = None
+```
+
+#### User Experience
+
+**Data Issues Display**:
+```
+⚠️  DATA AVAILABILITY ISSUES
+============================================================
+❌ No data available for: INVALID
+   These tickers will be excluded from analysis.
+
+⚠️  No data at start date for: TSLA, NVDA
+   These tickers may have incomplete analysis periods.
+   Consider adjusting your start date or excluding these tickers.
+============================================================
+```
+
+**Benefits**:
+- **Analysis Accuracy**: Prevents misleading results from incomplete data
+- **User Awareness**: Clear understanding of data limitations
+- **Informed Decisions**: Users can adjust analysis parameters accordingly
+- **Transparency**: Full visibility into data availability issues
 
 ## 🧪 Testing Strategy
 
@@ -457,6 +576,9 @@ External Error → Repository → Use Case → Controller → User Message
 5. **Strategy Pattern**: Different analysis strategies
 6. **Aggregate Pattern**: Portfolio as aggregate root
 7. **Value Object Pattern**: Immutable domain values
+8. **Singleton Pattern**: LoggerService for centralized logging
+9. **Decorator Pattern**: Logging decorators for cross-cutting concerns
+10. **Observer Pattern**: Logging as observation of system events
 
 ## 🔮 Future Enhancements
 

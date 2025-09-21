@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 import pandas as pd
 import numpy as np
 from ..interfaces.repositories import MarketDataRepository
@@ -8,6 +8,8 @@ from ...domain.entities.ticker import Ticker
 from ...domain.value_objects.date_range import DateRange
 from ...domain.value_objects.money import Money
 from ...domain.value_objects.percentage import Percentage
+from ...infrastructure.logging.logger_service import get_logger_service
+from ...infrastructure.logging.decorators import log_operation, log_calculation
 
 @dataclass
 class AnalyzePortfolioRequest:
@@ -34,51 +36,113 @@ class AnalyzePortfolioResponse:
     metrics: Optional[PortfolioMetrics]
     success: bool
     message: str
+    missing_tickers: List[str] = None
+    tickers_without_start_data: List[str] = None
 
 class AnalyzePortfolioUseCase:
     def __init__(self, market_data_repo: MarketDataRepository):
         self._market_data_repo = market_data_repo
+        self._logger_service = get_logger_service()
+        self._logger = self._logger_service.get_logger("application")
     
+    @log_operation("analyze_portfolio", include_args=True, include_result=True)
     def execute(self, request: AnalyzePortfolioRequest) -> AnalyzePortfolioResponse:
+        ticker_symbols = [t.symbol for t in request.portfolio.get_tickers()]
+        self._logger.info(f"Starting portfolio analysis for {len(ticker_symbols)} tickers: {', '.join(ticker_symbols)}")
+        self._logger.info(f"Date range: {request.date_range.start} to {request.date_range.end}")
+        
         try:
             # Get price history for all tickers
+            self._logger.debug("Fetching price history from market data repository")
             price_history = self._market_data_repo.get_price_history(
                 request.portfolio.get_tickers(),
                 request.date_range
             )
             
+            # Identify missing tickers and tickers without start data
+            missing_tickers, tickers_without_start_data = self._identify_data_issues(
+                request.portfolio.get_tickers(), 
+                price_history, 
+                request.date_range.start
+            )
+            
             if not price_history:
+                self._logger.warning("No price data available for portfolio analysis")
                 return AnalyzePortfolioResponse(
                     metrics=None,
                     success=False,
-                    message="No price data available for portfolio analysis"
+                    message="No price data available for portfolio analysis",
+                    missing_tickers=missing_tickers,
+                    tickers_without_start_data=tickers_without_start_data
                 )
             
+            self._logger.info(f"Retrieved price data for {len(price_history)} tickers")
+            if missing_tickers:
+                self._logger.warning(f"Missing data for tickers: {', '.join(missing_tickers)}")
+            if tickers_without_start_data:
+                self._logger.warning(f"Tickers without data at start date: {', '.join(tickers_without_start_data)}")
+            
             # Calculate portfolio value over time
+            self._logger.debug("Calculating portfolio values over time")
             portfolio_values = self._calculate_portfolio_values(
                 request.portfolio, price_history
             )
             
             if portfolio_values.empty:
+                self._logger.error("Unable to calculate portfolio values")
                 return AnalyzePortfolioResponse(
                     metrics=None,
                     success=False,
                     message="Unable to calculate portfolio values"
                 )
             
+            self._logger.info(f"Portfolio values calculated for {len(portfolio_values)} data points")
+            
             # Calculate metrics
+            self._logger.debug("Calculating portfolio metrics")
             metrics = self._calculate_metrics(
                 portfolio_values, 
                 request.risk_free_rate
             )
             
+            self._logger.info("Portfolio analysis completed successfully")
+            self._logger.debug(f"Portfolio metrics: Total Return: {metrics.total_return}, Sharpe: {metrics.sharpe_ratio:.2f}")
+            
+            self._logger_service.log_business_operation(
+                "analyze_portfolio",
+                "application",
+                True,
+                {
+                    "ticker_count": len(ticker_symbols),
+                    "tickers": ticker_symbols,
+                    "date_range": f"{request.date_range.start} to {request.date_range.end}",
+                    "data_points": len(portfolio_values),
+                    "total_return": str(metrics.total_return),
+                    "sharpe_ratio": metrics.sharpe_ratio
+                }
+            )
+            
             return AnalyzePortfolioResponse(
                 metrics=metrics,
                 success=True,
-                message="Portfolio analysis completed successfully"
+                message="Portfolio analysis completed successfully",
+                missing_tickers=missing_tickers,
+                tickers_without_start_data=tickers_without_start_data
             )
             
         except Exception as e:
+            self._logger.error(f"Portfolio analysis failed: {str(e)}")
+            self._logger_service.log_business_operation(
+                "analyze_portfolio",
+                "application",
+                False,
+                {
+                    "ticker_count": len(ticker_symbols),
+                    "tickers": ticker_symbols,
+                    "error": str(e)
+                }
+            )
+            
             return AnalyzePortfolioResponse(
                 metrics=None,
                 success=False,
@@ -105,10 +169,48 @@ class AnalyzePortfolioUseCase:
         
         return portfolio_values.dropna()
     
+    def _identify_data_issues(self, 
+                             tickers: List[Ticker], 
+                             price_history: Dict[Ticker, pd.Series], 
+                             start_date: str) -> tuple[List[str], List[str]]:
+        """Identify tickers with missing data or no data at start date."""
+        missing_tickers = []
+        tickers_without_start_data = []
+        
+        start_timestamp = pd.Timestamp(start_date)
+        # Allow up to 5 business days tolerance for start date (to account for weekends/holidays)
+        tolerance_days = 5
+        max_allowed_start = start_timestamp + pd.Timedelta(days=tolerance_days)
+        
+        for ticker in tickers:
+            if ticker not in price_history:
+                missing_tickers.append(ticker.symbol)
+                self._logger.warning(f"No price data available for {ticker.symbol}")
+            else:
+                prices = price_history[ticker]
+                if prices.empty:
+                    missing_tickers.append(ticker.symbol)
+                    self._logger.warning(f"Empty price data for {ticker.symbol}")
+                else:
+                    # Check if there's data within reasonable tolerance of the start date
+                    available_dates = prices.index
+                    first_available = available_dates[0]
+                    
+                    # If first available data is more than tolerance_days after start date, consider it missing
+                    if first_available > max_allowed_start:
+                        tickers_without_start_data.append(ticker.symbol)
+                        self._logger.warning(f"No data within {tolerance_days} days of start date {start_date} for {ticker.symbol} (first data: {first_available.date()})")
+                    else:
+                        self._logger.debug(f"Data available for {ticker.symbol} within tolerance (first data: {first_available.date()})")
+        
+        return missing_tickers, tickers_without_start_data
+    
+    @log_calculation("portfolio_metrics", include_inputs=True, include_outputs=True)
     def _calculate_metrics(self, 
                           portfolio_values: pd.Series, 
                           risk_free_rate: float) -> PortfolioMetrics:
         """Calculate portfolio performance metrics."""
+        self._logger.debug(f"Calculating portfolio metrics for {len(portfolio_values)} data points")
         # Calculate returns
         returns = portfolio_values.pct_change().dropna()
         
