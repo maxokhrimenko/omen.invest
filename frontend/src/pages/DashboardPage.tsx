@@ -6,7 +6,6 @@ import {
   TrendingUp, 
   FileText,
   ArrowRight,
-  CheckCircle
 } from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
@@ -60,7 +59,7 @@ const DashboardPage: React.FC = () => {
       {/* Welcome Section */}
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Welcome to Portfolio Analyzer
+          Welcome to Omen Screen
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
           Upload your portfolio and get comprehensive analysis with detailed metrics, 

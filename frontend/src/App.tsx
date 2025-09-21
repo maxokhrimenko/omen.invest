@@ -1,67 +1,17 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Upload, FileText, BarChart3, Home, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, BarChart3, CheckCircle, AlertCircle } from 'lucide-react';
+import PortfolioAnalysisPage from './pages/PortfolioAnalysisPage';
+import { apiService } from './services/api';
+import Logo from './components/Logo';
 
-// File upload hook
-const useFileUpload = () => {
-  const [isUploading, setIsUploading] = useState(false);
+
+const DashboardPage = ({ portfolio, setPortfolio }: { portfolio: any, setPortfolio: (portfolio: any) => void }) => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const handleFileSelect = useCallback((file: File) => {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setError('Please select a CSV file');
-      return;
-    }
-    
-    setError(null);
-    setUploadedFile(file);
-    setSuccess(`File "${file.name}" selected successfully!`);
-  }, []);
-
-  const handleUpload = useCallback(async () => {
-    if (!uploadedFile) return;
-    
-    setIsUploading(true);
-    setError(null);
-    
-    try {
-      // Simulate upload
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setSuccess('Portfolio uploaded successfully!');
-    } catch (err) {
-      setError('Upload failed. Please try again.');
-    } finally {
-      setIsUploading(false);
-    }
-  }, [uploadedFile]);
-
-  return {
-    isUploading,
-    uploadedFile,
-    error,
-    success,
-    handleFileSelect,
-    handleUpload,
-    clearMessages: () => {
-      setError(null);
-      setSuccess(null);
-    }
-  };
-};
-
-const DashboardPage = () => {
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [portfolio, setPortfolio] = useState<any>(() => {
-    // Load portfolio from localStorage on component mount
-    const saved = localStorage.getItem('portfolio');
-    return saved ? JSON.parse(saved) : null;
-  });
   const [parseError, setParseError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Show success message when portfolio is loaded from localStorage
+  // Show success message when portfolio is loaded
   useEffect(() => {
     if (portfolio && !success) {
       setSuccess(`Portfolio loaded: ${portfolio.tickers.length} tickers, ${portfolio.positions.length} positions`);
@@ -71,9 +21,9 @@ const DashboardPage = () => {
   // Update page title based on portfolio state
   useEffect(() => {
     if (portfolio) {
-      document.title = `Portfolio Analyzer - ${portfolio.tickers.length} Tickers | ${portfolio.positions.length} Positions`;
+      document.title = `Omen Screen - ${portfolio.tickers.length} Tickers | ${portfolio.positions.length} Positions`;
     } else {
-      document.title = 'Portfolio Analyzer - Professional Investment Analysis';
+      document.title = 'Omen Screen - Deep Portfolio Analysis';
     }
   }, [portfolio]);
 
@@ -102,76 +52,51 @@ const DashboardPage = () => {
     e.preventDefault();
   };
 
-  const handleClearPortfolio = () => {
-    setPortfolio(null);
-    setUploadedFile(null);
-    setParseError(null);
-    setSuccess(null);
-    // Clear portfolio from localStorage
-    localStorage.removeItem('portfolio');
+  const handleClearPortfolio = async () => {
+    try {
+      await apiService.clearPortfolio();
+      setPortfolio(null);
+      setUploadedFile(null);
+      setParseError(null);
+      setSuccess('Portfolio cleared successfully!');
+      
+      // Clear portfolio from localStorage
+      localStorage.removeItem('portfolio');
+      
+      // Clear any existing analysis results
+      localStorage.removeItem('portfolioAnalysisResults');
+      localStorage.removeItem('portfolioAnalysisDateRange');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      console.error('Failed to clear portfolio:', error);
+      setParseError('Failed to clear portfolio');
+    }
   };
 
-  const parseCSV = (csvText: string) => {
-    const lines = csvText.split('\n').filter(line => line.trim());
-    if (lines.length < 2) {
-      throw new Error('CSV file must have at least a header and one data row');
-    }
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const tickerIndex = headers.findIndex(h => h === 'ticker');
-    const positionIndex = headers.findIndex(h => h === 'position');
-
-    if (tickerIndex === -1 || positionIndex === -1) {
-      throw new Error('CSV must contain "ticker" and "position" columns');
-    }
-
-    const positions = [];
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
-      if (values.length >= 2) {
-        const ticker = values[tickerIndex];
-        const position = parseFloat(values[positionIndex]);
-        
-        if (ticker && !isNaN(position)) {
-          positions.push({ ticker, position });
-        }
-      }
-    }
-
-    if (positions.length === 0) {
-      throw new Error('No valid data rows found in CSV');
-    }
-
-    const totalPositions = positions.reduce((sum, pos) => sum + pos.position, 0);
-    const tickers = [...new Set(positions.map(pos => pos.ticker))];
-
-    return {
-      positions,
-      totalPositions,
-      tickers
-    };
-  };
-
-  const processCSVFile = (file: File) => {
+  const processCSVFile = async (file: File) => {
     setParseError(null);
     setPortfolio(null);
     
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const csvText = e.target?.result as string;
-        const portfolio = parseCSV(csvText);
-        setPortfolio(portfolio);
-        // Save portfolio to localStorage for persistence
-        localStorage.setItem('portfolio', JSON.stringify(portfolio));
-        // Show success message
-        setSuccess(`Portfolio loaded successfully! ${portfolio.tickers.length} tickers processed.`);
-      } catch (error) {
-        console.error('CSV parsing error:', error);
-        setParseError(error instanceof Error ? error.message : 'Failed to parse CSV file');
+    try {
+      const response = await apiService.uploadPortfolio(file);
+      
+      if (response.success && response.portfolio) {
+        setPortfolio(response.portfolio);
+        setSuccess(`Portfolio loaded successfully! ${response.portfolio.tickers.length} tickers processed.`);
+        
+        // Clear any existing analysis results since we have a new portfolio
+        localStorage.removeItem('portfolioAnalysisResults');
+        localStorage.removeItem('portfolioAnalysisDateRange');
+      } else {
+        setParseError(response.message || 'Upload failed');
       }
-    };
-    reader.readAsText(file);
+    } catch (error) {
+      console.error('Portfolio upload error:', error);
+      setParseError(error instanceof Error ? error.message : 'Failed to upload portfolio');
+    }
   };
 
   return (
@@ -388,7 +313,7 @@ const DashboardPage = () => {
 };
 
 
-const Sidebar = () => {
+const Sidebar = ({ portfolio }: { portfolio: any }) => {
   const location = useLocation();
 
   const isActive = (path: string) => {
@@ -401,8 +326,15 @@ const Sidebar = () => {
   return (
     <div className="w-72 bg-white border-r border-gray-200 h-screen">
       <div className="p-6 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900">Portfolio Analyzer</h1>
-        <p className="text-sm text-gray-500 mt-1">Professional Analysis Tool</p>
+        <div className="flex items-center space-x-4">
+          <div className="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden">
+            <Logo />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Omen Screen</h1>
+            <p className="text-sm text-gray-500 mt-1">Deep portfolio analysis</p>
+          </div>
+        </div>
       </div>
       
       <nav className="p-4 space-y-2">
@@ -420,14 +352,17 @@ const Sidebar = () => {
         
         
         <Link
-          to="/portfolio/analysis"
+          to={portfolio ? "/portfolio/analysis" : "#"}
           className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-            isActive('/portfolio/analysis')
+            !portfolio
+              ? 'text-gray-400 cursor-not-allowed opacity-50'
+              : isActive('/portfolio/analysis')
               ? 'bg-blue-50 text-blue-700 border border-blue-200'
               : 'text-gray-700 hover:bg-gray-50'
           }`}
+          onClick={!portfolio ? (e) => e.preventDefault() : undefined}
         >
-          <BarChart3 className="w-5 h-5 mr-3" />
+          <BarChart3 className={`w-5 h-5 mr-3 ${!portfolio ? 'text-gray-400' : ''}`} />
           <span className="font-medium">Portfolio Analysis</span>
         </Link>
       </nav>
@@ -437,28 +372,69 @@ const Sidebar = () => {
 
 const MainLayout = () => {
   const location = useLocation();
+  const [portfolio, setPortfolio] = useState<any>(null);
+
+  // Load portfolio from backend on component mount
+  useEffect(() => {
+    const loadPortfolio = async () => {
+      try {
+        const portfolioData = await apiService.getPortfolio();
+        if (portfolioData) {
+          setPortfolio(portfolioData);
+        } else {
+          setPortfolio(null);
+        }
+      } catch (error) {
+        setPortfolio(null);
+      }
+    };
+    
+    loadPortfolio();
+  }, []);
+
+  // Refresh portfolio when returning to this page (e.g., after clearing portfolio)
+  useEffect(() => {
+    const handleFocus = () => {
+      const loadPortfolio = async () => {
+        try {
+          const portfolioData = await apiService.getPortfolio();
+          if (portfolioData) {
+            setPortfolio(portfolioData);
+          } else {
+            setPortfolio(null);
+          }
+        } catch (error) {
+          setPortfolio(null);
+        }
+      };
+      loadPortfolio();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   // Update page title based on current route
   useEffect(() => {
     switch (location.pathname) {
       case '/':
-        document.title = 'Portfolio Analyzer - Portfolio Management';
+        document.title = 'Omen Screen - Portfolio Management';
         break;
       case '/portfolio/analysis':
-        document.title = 'Portfolio Analyzer - Analysis Dashboard';
+        document.title = 'Omen Screen - Analysis Dashboard';
         break;
       default:
-        document.title = 'Portfolio Analyzer - Professional Investment Analysis';
+        document.title = 'Omen Screen - Deep Portfolio Analysis';
     }
   }, [location.pathname]);
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      <Sidebar portfolio={portfolio} />
       <div className="flex-1 overflow-auto">
         <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/portfolio/analysis" element={<div className="p-8">Portfolio Analysis - Coming Soon</div>} />
+          <Route path="/" element={<DashboardPage portfolio={portfolio} setPortfolio={setPortfolio} />} />
+          <Route path="/portfolio/analysis" element={<PortfolioAnalysisPage />} />
         </Routes>
       </div>
     </div>

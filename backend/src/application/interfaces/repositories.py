@@ -34,3 +34,9 @@ class MarketDataRepository(ABC):
                            date_range: DateRange) -> pd.Series:
         """Get dividend history for a ticker."""
         pass
+    
+    @abstractmethod
+    def get_benchmark_data(self, benchmark_symbol: str, 
+                          date_range: DateRange) -> pd.Series:
+        """Get benchmark data (e.g., S&P 500) for Beta calculation."""
+        pass

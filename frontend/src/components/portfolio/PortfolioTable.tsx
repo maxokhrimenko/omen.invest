@@ -1,6 +1,6 @@
 import React from 'react';
 import { Trash2, Download, RefreshCw } from 'lucide-react';
-import { Portfolio } from '../../types/portfolio';
+import type { Portfolio } from '../../types/portfolio';
 
 interface PortfolioTableProps {
   portfolio: Portfolio;

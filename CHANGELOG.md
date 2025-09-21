@@ -5,6 +5,165 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0] - 2025-09-22
+
+### 🚀 Advanced Portfolio Analysis & Visualization
+
+This release introduces comprehensive portfolio analysis enhancements with advanced risk metrics, benchmark comparisons, interactive visualizations, and enhanced frontend logging capabilities.
+
+### ✨ Added
+
+#### Advanced Risk Metrics
+- **VaR (Value at Risk) Calculation**: 95% confidence level VaR calculation for both portfolio and individual tickers
+- **Beta Calculation**: Portfolio and individual stock Beta calculation against S&P 500 benchmark
+- **Benchmark Data Integration**: S&P 500 and NASDAQ benchmark data with warehouse caching
+- **Enhanced Risk Assessment**: Comprehensive risk metrics with color-coded performance indicators
+
+#### Interactive Frontend Visualizations
+- **Portfolio Performance Charts**: Interactive Recharts-based performance comparison charts
+- **Benchmark Comparison**: Side-by-side portfolio vs S&P 500 vs NASDAQ performance visualization
+- **Time Series Data**: Historical portfolio value tracking with benchmark overlays
+- **Responsive Chart Design**: Mobile-friendly chart components with proper scaling
+
+#### Enhanced Frontend Components
+- **PortfolioChart**: Interactive performance comparison charts with multiple benchmarks
+- **RedesignedPortfolioMetrics**: Comprehensive metrics display with integrated charts
+- **TickerAnalysisDisplay**: Enhanced individual ticker analysis with collapsible details
+- **CompactPortfolioMetrics**: Condensed metrics view for dashboard integration
+- **MetricsLegend**: Color-coded metrics legend for better user understanding
+- **DataAvailabilityWarnings**: Clear warnings for missing or incomplete data
+
+#### Frontend Logging System
+- **Portfolio Session Management**: UUID-based portfolio session tracking
+- **Frontend Request Logging**: Comprehensive logging of all frontend API requests
+- **Session-Based Log Files**: Individual log files per portfolio session
+- **Enhanced Debugging**: Detailed operation logging for frontend operations
+- **Log Management Tools**: Administrative tools for frontend log cleanup and statistics
+
+#### Warehouse Enhancements
+- **Benchmark Data Caching**: S&P 500 and NASDAQ data caching in warehouse
+- **Coverage Tracking**: Benchmark data coverage information storage
+- **Enhanced Statistics**: Benchmark data statistics in warehouse management
+- **Database Schema Updates**: New tables for benchmark data and coverage tracking
+
+### 🔄 Changed
+
+#### API Enhancements
+- **Enhanced Portfolio Analysis**: Added time series data, benchmark comparisons, and VaR calculations
+- **Dynamic Timeout Calculation**: Intelligent timeout calculation based on portfolio size
+- **Improved Error Handling**: Better error responses with detailed information
+- **Type Safety Improvements**: Enhanced TypeScript interfaces for all API responses
+
+#### Frontend Architecture
+- **Component Modularity**: Improved component separation and reusability
+- **State Management**: Enhanced state management with proper error handling
+- **API Integration**: Improved API service with better error handling and timeout management
+- **Type Safety**: Full TypeScript integration across all components
+
+#### Database Schema
+- **Benchmark Tables**: New `benchmark_data` and `benchmark_coverage` tables
+- **Enhanced Coverage Tracking**: Improved coverage tracking for all data types
+- **Performance Optimization**: Better indexing and query optimization
+
+### 🏗️ Technical Implementation
+
+#### New Risk Metrics
+- **VaR 95% Calculation**: Historical VaR using 5th percentile of daily returns
+- **Beta Calculation**: Covariance-based Beta calculation against S&P 500
+- **Benchmark Integration**: S&P 500 (SPY) and NASDAQ (QQQ) benchmark data
+- **Portfolio Beta**: Weighted average of individual stock betas
+
+#### Frontend Visualization Stack
+- **Recharts Integration**: Professional charting library for financial data
+- **Interactive Charts**: Hover effects, tooltips, and zoom capabilities
+- **Responsive Design**: Mobile-optimized chart components
+- **Performance Optimization**: Efficient data handling for large datasets
+
+#### Logging Architecture
+- **Portfolio Session Manager**: Centralized session management with UUID tracking
+- **Frontend Logger Service**: Dedicated logging service for frontend operations
+- **Session-Based Files**: Individual log files per portfolio session
+- **Comprehensive Coverage**: Logs for all frontend operations and API calls
+
+### 📊 New API Endpoints
+
+#### Enhanced Analysis Endpoints
+```
+GET /portfolio/analysis
+- Returns: Portfolio metrics, time series data, benchmark comparisons
+- New fields: timeSeriesData, sp500Values, nasdaqValues, var95, beta
+
+GET /portfolio/tickers/analysis
+- Returns: Individual ticker analysis with VaR and Beta
+- New fields: var95, beta, benchmarkComparison
+```
+
+#### Frontend Logging Endpoints
+```
+POST /portfolio/session/start
+- Start new portfolio session with UUID
+
+POST /portfolio/session/log
+- Log frontend operations and errors
+
+GET /portfolio/session/status
+- Get current session status and statistics
+```
+
+### 🎯 User Experience Improvements
+
+#### Visual Enhancements
+- **Interactive Charts**: Hover effects and tooltips for better data exploration
+- **Color-Coded Metrics**: Consistent color coding across all components
+- **Responsive Design**: Seamless experience on desktop and mobile
+- **Loading States**: Better loading indicators and error states
+
+#### Data Transparency
+- **Missing Data Warnings**: Clear indicators for incomplete data
+- **Data Availability**: Transparent reporting of data limitations
+- **Benchmark Context**: Clear comparison with market benchmarks
+- **Risk Assessment**: Comprehensive risk metrics with visual indicators
+
+### 🔧 Technical Details
+
+#### New Dependencies
+- **Frontend**: Recharts 3.2.1 for interactive charts
+- **Backend**: Enhanced warehouse service with benchmark support
+- **Database**: New schema for benchmark data storage
+
+#### Performance Improvements
+- **Chart Rendering**: Optimized chart rendering for large datasets
+- **Data Caching**: Enhanced caching for benchmark data
+- **API Optimization**: Improved response times for analysis endpoints
+- **Memory Management**: Better memory usage for large portfolios
+
+### 🚀 Development Experience
+
+#### Enhanced Debugging
+- **Frontend Logging**: Comprehensive logging for all frontend operations
+- **Session Tracking**: Easy debugging with session-based log files
+- **Error Tracking**: Detailed error logging with context information
+- **Performance Monitoring**: Timing information for all operations
+
+#### Administrative Tools
+- **Log Management**: Enhanced log cleanup tools for frontend logs
+- **Warehouse Statistics**: Benchmark data statistics and coverage information
+- **Session Management**: Tools for managing active portfolio sessions
+
+### 🔮 Future Enhancements
+
+#### Planned Features
+- **Advanced Charting**: More chart types and technical indicators
+- **Real-time Updates**: Live market data integration
+- **Export Capabilities**: PDF and Excel export for analysis results
+- **Custom Benchmarks**: User-defined benchmark comparisons
+
+#### Technical Roadmap
+- **WebSocket Integration**: Real-time data updates
+- **Advanced Analytics**: Machine learning-based insights
+- **Mobile App**: Native mobile application
+- **Cloud Deployment**: Scalable cloud infrastructure
+
 ## [4.2.0] - 2025-09-21
 
 ### 🚀 Full-Stack Implementation with FastAPI & React
@@ -340,7 +499,7 @@ This release introduces a complete warehouse system with read-through caching fo
 - **Log Management**: Enhanced logging for warehouse operations
 
 ### 🔧 Technical Details
-- **SQLite Database**: `./warehouse/warehouse.sqlite` with WAL mode enabled
+- **SQLite Database**: `../database/warehouse/warehouse.sqlite` with WAL mode enabled
 - **ACID Compliance**: Transactional updates with proper error handling
 - **Cross-Platform**: Single-file database with no external dependencies
 - **Idempotent Operations**: Safe to re-run without creating duplicates

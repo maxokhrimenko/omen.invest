@@ -33,6 +33,7 @@ class LoggerService:
         """Create necessary log directories."""
         os.makedirs(self.logs_dir, exist_ok=True)
         os.makedirs(os.path.join(self.logs_dir, "sessions"), exist_ok=True)
+        os.makedirs(os.path.join(self.logs_dir, "frontend"), exist_ok=True)
         os.makedirs(os.path.join(self.logs_dir, "total"), exist_ok=True)
     
     def _setup_logging(self):
@@ -76,6 +77,50 @@ class LoggerService:
             
             self.session_id = None
             self.session_start_time = None
+    
+    def start_frontend_session(self, request_id: str = None) -> str:
+        """Start a new frontend logging session based on request ID."""
+        if not request_id:
+            request_id = f"req-{datetime.now().strftime('%Y%m%d-%H%M%S-%f')[:-3]}"
+        
+        # Create frontend session-specific logger
+        frontend_logger = self._create_logger(
+            name="frontend",
+            log_file=os.path.join(self.logs_dir, "frontend", f"frontend-{request_id}.log")
+        )
+        
+        # Log frontend session start
+        frontend_logger.info(f"=== FRONTEND SESSION STARTED: {request_id} ===")
+        frontend_logger.info(f"Frontend session started at: {datetime.now()}")
+        
+        return request_id
+    
+    def get_frontend_logger(self, request_id: str) -> logging.Logger:
+        """Get a logger for a specific frontend request session."""
+        logger_name = f"frontend-{request_id}"
+        
+        if logger_name not in self._loggers:
+            # Create frontend session logger
+            self._loggers[logger_name] = self._create_logger(
+                name=logger_name,
+                log_file=os.path.join(self.logs_dir, "frontend", f"frontend-{request_id}.log")
+            )
+        else:
+            # If we have an active frontend session, ensure it has a frontend handler
+            if not any(isinstance(h, logging.FileHandler) and 
+                      f"frontend-{request_id}.log" in h.baseFilename 
+                      for h in self._loggers[logger_name].handlers):
+                frontend_log_file = os.path.join(self.logs_dir, "frontend", f"frontend-{request_id}.log")
+                frontend_handler = logging.FileHandler(frontend_log_file, mode='a', encoding='utf-8')
+                frontend_handler.setLevel(logging.DEBUG)
+                frontend_formatter = logging.Formatter(
+                    '%(asctime)s | %(levelname)-8s | %(name)-20s | %(funcName)-20s:%(lineno)-4d | %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S'
+                )
+                frontend_handler.setFormatter(frontend_formatter)
+                self._loggers[logger_name].addHandler(frontend_handler)
+        
+        return self._loggers[logger_name]
     
     def get_logger(self, name: str) -> logging.Logger:
         """Get or create a logger for the given name."""
@@ -194,6 +239,44 @@ class LoggerService:
         logger = self.get_logger("business")
         status = "SUCCESS" if success else "FAILED"
         message = f"BIZ | {layer} | {operation} | {status}"
+        if details:
+            detail_str = " | ".join([f"{k}: {v}" for k, v in details.items()])
+            message += f" | {detail_str}"
+        logger.info(message)
+    
+    def log_frontend_request(self, request_id: str, method: str, endpoint: str, 
+                           duration: Optional[float] = None, status: Optional[str] = None,
+                           details: Optional[Dict[str, Any]] = None):
+        """Log frontend API requests."""
+        logger = self.get_frontend_logger(request_id)
+        message = f"REQ | {method} {endpoint}"
+        if status:
+            message += f" | Status: {status}"
+        if duration:
+            message += f" | Duration: {duration:.4f}s"
+        if details:
+            detail_str = " | ".join([f"{k}: {v}" for k, v in details.items()])
+            message += f" | {detail_str}"
+        logger.info(message)
+    
+    def log_frontend_error(self, request_id: str, error: str, endpoint: str = None, 
+                          details: Optional[Dict[str, Any]] = None):
+        """Log frontend errors."""
+        logger = self.get_frontend_logger(request_id)
+        message = f"ERR | {error}"
+        if endpoint:
+            message += f" | Endpoint: {endpoint}"
+        if details:
+            detail_str = " | ".join([f"{k}: {v}" for k, v in details.items()])
+            message += f" | {detail_str}"
+        logger.error(message)
+    
+    def log_frontend_operation(self, request_id: str, operation: str, 
+                              success: bool, details: Optional[Dict[str, Any]] = None):
+        """Log frontend operations."""
+        logger = self.get_frontend_logger(request_id)
+        status = "SUCCESS" if success else "FAILED"
+        message = f"OP | {operation} | {status}"
         if details:
             detail_str = " | ".join([f"{k}: {v}" for k, v in details.items()])
             message += f" | {detail_str}"

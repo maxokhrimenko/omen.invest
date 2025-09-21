@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """
 Logs Clear Script - Administrative tool for clearing application logs.
-Version 4.1.2 - Full-Stack Repository Restructure
+Version 4.3.0 - Advanced Portfolio Analysis & Visualization
 
 This script provides functionality to:
-- Clear all session logs
+- Clear all session logs (CLI)
+- Clear all frontend logs (API/Portfolio sessions)
 - Clear all total logs
-- Clear specific session logs
-- Show log statistics
+- Show log statistics including frontend portfolio sessions
 - Backup logs before clearing (optional)
 
 Usage:
     python backend/admin/logs_clear.py --help
     python backend/admin/logs_clear.py --clear-all
     python backend/admin/logs_clear.py --clear-sessions
+    python backend/admin/logs_clear.py --clear-frontend
     python backend/admin/logs_clear.py --clear-total
     python backend/admin/logs_clear.py --stats
     python backend/admin/logs_clear.py --backup-and-clear
@@ -31,16 +32,25 @@ from typing import List, Dict, Any
 class LogsClearManager:
     """Manager for clearing and managing application logs."""
     
-    def __init__(self, logs_dir: str = "backend/logs"):
+    def __init__(self, logs_dir: str = "logs"):
         self.logs_dir = Path(logs_dir)
         self.sessions_dir = self.logs_dir / "sessions"
+        self.frontend_dir = self.logs_dir / "frontend"
         self.total_dir = self.logs_dir / "total"
         self.backup_dir = self.logs_dir / "backups"
+        
+        # Check for alternative frontend logs location (legacy backend/logs/ directory)
+        self.alt_frontend_dir = Path("backend/logs/frontend")
     
     def get_log_statistics(self) -> Dict[str, Any]:
         """Get statistics about current logs."""
         stats = {
             "sessions": {
+                "count": 0,
+                "total_size": 0,
+                "files": []
+            },
+            "frontend": {
                 "count": 0,
                 "total_size": 0,
                 "files": []
@@ -68,6 +78,26 @@ class LogsClearManager:
                     "size": file_size,
                     "modified": datetime.fromtimestamp(file_path.stat().st_mtime)
                 })
+        
+        # Count frontend logs (check both possible locations)
+        frontend_dirs = [self.frontend_dir]
+        if self.alt_frontend_dir.exists() and not self.frontend_dir.exists():
+            frontend_dirs = [self.alt_frontend_dir]
+        elif self.alt_frontend_dir.exists() and self.frontend_dir.exists():
+            frontend_dirs = [self.frontend_dir, self.alt_frontend_dir]
+        
+        for frontend_dir in frontend_dirs:
+            if frontend_dir.exists():
+                for file_path in frontend_dir.glob("*.log"):
+                    file_size = file_path.stat().st_size
+                    stats["frontend"]["count"] += 1
+                    stats["frontend"]["total_size"] += file_size
+                    stats["frontend"]["files"].append({
+                        "name": file_path.name,
+                        "size": file_size,
+                        "modified": datetime.fromtimestamp(file_path.stat().st_mtime),
+                        "location": str(frontend_dir)
+                    })
         
         # Count total logs
         if self.total_dir.exists():
@@ -110,13 +140,23 @@ class LogsClearManager:
         print("📊 LOG STATISTICS")
         print("=" * 50)
         
-        print(f"\n📁 Session Logs:")
+        print(f"\n📁 Session Logs (CLI):")
         print(f"   Count: {stats['sessions']['count']} files")
         print(f"   Total Size: {self.format_size(stats['sessions']['total_size'])}")
         
         if stats['sessions']['files']:
             print("   Recent Files:")
             for file_info in sorted(stats['sessions']['files'], 
+                                  key=lambda x: x['modified'], reverse=True)[:5]:
+                print(f"     {file_info['name']} ({self.format_size(file_info['size'])}) - {file_info['modified']}")
+        
+        print(f"\n📁 Frontend Logs (API):")
+        print(f"   Count: {stats['frontend']['count']} files")
+        print(f"   Total Size: {self.format_size(stats['frontend']['total_size'])}")
+        
+        if stats['frontend']['files']:
+            print("   Recent Files:")
+            for file_info in sorted(stats['frontend']['files'], 
                                   key=lambda x: x['modified'], reverse=True)[:5]:
                 print(f"     {file_info['name']} ({self.format_size(file_info['size'])}) - {file_info['modified']}")
         
@@ -133,7 +173,7 @@ class LogsClearManager:
         print(f"   Count: {stats['backups']['count']} files")
         print(f"   Total Size: {self.format_size(stats['backups']['total_size'])}")
         
-        total_size = stats['sessions']['total_size'] + stats['total']['total_size'] + stats['backups']['total_size']
+        total_size = stats['sessions']['total_size'] + stats['frontend']['total_size'] + stats['total']['total_size'] + stats['backups']['total_size']
         print(f"\n💾 Total Storage Used: {self.format_size(total_size)}")
     
     def create_backup(self) -> str:
@@ -149,6 +189,17 @@ class LogsClearManager:
         if self.sessions_dir.exists():
             sessions_backup = backup_path / "sessions"
             shutil.copytree(self.sessions_dir, sessions_backup)
+        
+        # Copy frontend logs (check both locations)
+        frontend_dirs = []
+        if self.frontend_dir.exists():
+            frontend_dirs.append((self.frontend_dir, "frontend"))
+        if self.alt_frontend_dir.exists():
+            frontend_dirs.append((self.alt_frontend_dir, "frontend_alt"))
+        
+        for frontend_dir, backup_name in frontend_dirs:
+            frontend_backup = backup_path / backup_name
+            shutil.copytree(frontend_dir, frontend_backup)
         
         # Copy total logs
         if self.total_dir.exists():
@@ -184,6 +235,51 @@ class LogsClearManager:
             print(f"❌ Error clearing session logs: {e}")
             return False
     
+    def clear_frontend(self, confirm: bool = True) -> bool:
+        """Clear all frontend logs."""
+        # Check both possible locations
+        frontend_dirs = []
+        if self.frontend_dir.exists():
+            frontend_dirs.append(self.frontend_dir)
+        if self.alt_frontend_dir.exists():
+            frontend_dirs.append(self.alt_frontend_dir)
+        
+        if not frontend_dirs:
+            print("ℹ️  No frontend logs to clear.")
+            return True
+        
+        if confirm:
+            dirs_str = ", ".join([str(d) for d in frontend_dirs])
+            response = input(f"⚠️  This will delete all frontend logs in {dirs_str}. Continue? (y/N): ")
+            if response.lower() != 'y':
+                print("❌ Operation cancelled.")
+                return False
+        
+        try:
+            total_files_cleared = 0
+            
+            # Clear files from all found directories
+            for frontend_dir in frontend_dirs:
+                file_count = len(list(frontend_dir.glob("*.log")))
+                total_files_cleared += file_count
+                
+                # Remove all log files
+                for file_path in frontend_dir.glob("*.log"):
+                    file_path.unlink()
+                
+                if file_count > 0:
+                    print(f"✅ Cleared {file_count} frontend log files from {frontend_dir}")
+            
+            if total_files_cleared == 0:
+                print("ℹ️  No frontend log files found to clear.")
+            else:
+                print(f"✅ Total: Cleared {total_files_cleared} frontend log files.")
+            
+            return True
+        except Exception as e:
+            print(f"❌ Error clearing frontend logs: {e}")
+            return False
+    
     def clear_total(self, confirm: bool = True) -> bool:
         """Clear all total logs."""
         if not self.total_dir.exists():
@@ -211,15 +307,16 @@ class LogsClearManager:
             return False
     
     def clear_all(self, confirm: bool = True) -> bool:
-        """Clear all logs (sessions and total)."""
+        """Clear all logs (sessions, frontend, and total)."""
         if confirm:
-            response = input("⚠️  This will delete ALL logs (sessions and total). Continue? (y/N): ")
+            response = input("⚠️  This will delete ALL logs (sessions, frontend, and total). Continue? (y/N): ")
             if response.lower() != 'y':
                 print("❌ Operation cancelled.")
                 return False
         
         success = True
         success &= self.clear_sessions(confirm=False)
+        success &= self.clear_frontend(confirm=False)
         success &= self.clear_total(confirm=False)
         
         if success:
@@ -263,7 +360,8 @@ def main():
         epilog="""
 Examples:
   python backend/admin/logs_clear.py --stats                    # Show log statistics
-  python backend/admin/logs_clear.py --clear-sessions          # Clear session logs
+  python backend/admin/logs_clear.py --clear-sessions          # Clear session logs (CLI)
+  python backend/admin/logs_clear.py --clear-frontend          # Clear frontend logs (API)
   python backend/admin/logs_clear.py --clear-total             # Clear total logs
   python backend/admin/logs_clear.py --clear-all               # Clear all logs
   python backend/admin/logs_clear.py --backup-and-clear        # Backup and clear all logs
@@ -272,8 +370,8 @@ Examples:
     
     parser.add_argument(
         "--logs-dir",
-        default="backend/logs",
-        help="Path to logs directory (default: backend/logs)"
+        default="logs",
+        help="Path to logs directory (default: logs)"
     )
     
     parser.add_argument(
@@ -285,7 +383,13 @@ Examples:
     parser.add_argument(
         "--clear-sessions",
         action="store_true",
-        help="Clear all session logs"
+        help="Clear all session logs (CLI)"
+    )
+    
+    parser.add_argument(
+        "--clear-frontend",
+        action="store_true",
+        help="Clear all frontend logs (API)"
     )
     
     parser.add_argument(
@@ -297,7 +401,7 @@ Examples:
     parser.add_argument(
         "--clear-all",
         action="store_true",
-        help="Clear all logs (sessions and total)"
+        help="Clear all logs (sessions, frontend, and total)"
     )
     
     parser.add_argument(
@@ -328,6 +432,8 @@ Examples:
         manager.show_statistics()
     elif args.clear_sessions:
         manager.clear_sessions(confirm=not args.force)
+    elif args.clear_frontend:
+        manager.clear_frontend(confirm=not args.force)
     elif args.clear_total:
         manager.clear_total(confirm=not args.force)
     elif args.clear_all:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Portfolio Analysis Tool - Main Entry Point
-Version 4.1.2 - Full-Stack Repository Restructure
+Version 4.3.0 - Advanced Portfolio Analysis & Visualization
 
 This application provides comprehensive portfolio analysis
 with interactive CLI interface following clean architecture principles.
@@ -77,7 +77,7 @@ def main():
     try:
         logger.info("=== PORTFOLIO ANALYSIS TOOL STARTING ===")
         logger.info(f"Session ID: {session_id}")
-        print("🚀 Starting Portfolio Analysis Tool v4.1.1...")
+        print("🚀 Starting Portfolio Analysis Tool v4.3.0...")
         print("📦 Initializing components...")
         
         logger.info("Setting up dependency injection")

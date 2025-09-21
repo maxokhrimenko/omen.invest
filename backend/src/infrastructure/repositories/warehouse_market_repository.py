@@ -22,7 +22,7 @@ class WarehouseMarketRepository(MarketDataRepository):
     - Feature flag support
     """
     
-    def __init__(self, warehouse_enabled: bool = True, warehouse_db_path: str = "./warehouse/warehouse.sqlite"):
+    def __init__(self, warehouse_enabled: bool = True, warehouse_db_path: str = "../database/warehouse/warehouse.sqlite"):
         self.warehouse_enabled = warehouse_enabled
         self.warehouse_service = WarehouseService(warehouse_db_path) if warehouse_enabled else None
         self.trading_day_service = TradingDayService()
@@ -40,7 +40,7 @@ class WarehouseMarketRepository(MarketDataRepository):
     @log_operation("warehouse_market", include_args=True, include_result=True)
     def get_price_history(self, tickers: List[Ticker], 
                          date_range: DateRange) -> Dict[Ticker, pd.Series]:
-        """Get historical price data with warehouse caching."""
+        """Get historical price data with warehouse caching and batching."""
         if not self.warehouse_enabled:
             self._logger.info("Warehouse disabled, using direct Yahoo Finance")
             return self.yahoo_repo.get_price_history(tickers, date_range)
@@ -50,21 +50,48 @@ class WarehouseMarketRepository(MarketDataRepository):
         
         result = {}
         
-        for ticker in tickers:
-            try:
-                ticker_result = self._get_ticker_price_history(ticker, date_range)
-                if not ticker_result.empty:
-                    result[ticker] = ticker_result
-            except Exception as e:
-                self._logger.error(f"Error processing ticker {ticker.symbol}: {str(e)}")
-                # Fallback to Yahoo for this ticker
+        # Process tickers in batches for better performance
+        batch_size = min(20, len(tickers))  # Process up to 20 tickers at once
+        ticker_batches = [tickers[i:i + batch_size] for i in range(0, len(tickers), batch_size)]
+        
+        for batch_idx, ticker_batch in enumerate(ticker_batches):
+            self._logger.info(f"Processing batch {batch_idx + 1}/{len(ticker_batches)} ({len(ticker_batch)} tickers)")
+            
+            # Log progress for large portfolios
+            if len(tickers) > 50:
+                progress_pct = ((batch_idx + 1) / len(ticker_batches)) * 100
+                print(f"Warehouse Progress: Batch {batch_idx + 1}/{len(ticker_batches)} ({progress_pct:.1f}%)")
+            
+            # Check warehouse coverage for all tickers in batch
+            batch_missing_tickers = []
+            batch_warehouse_data = {}
+            
+            for ticker in ticker_batch:
                 try:
-                    yahoo_result = self.yahoo_repo.get_price_history([ticker], date_range)
-                    if ticker in yahoo_result:
-                        result[ticker] = yahoo_result[ticker]
+                    ticker_result = self._get_ticker_price_history(ticker, date_range)
+                    if not ticker_result.empty:
+                        batch_warehouse_data[ticker] = ticker_result
+                    else:
+                        batch_missing_tickers.append(ticker)
+                except Exception as e:
+                    self._logger.error(f"Error processing ticker {ticker.symbol}: {str(e)}")
+                    batch_missing_tickers.append(ticker)
+            
+            # Fetch missing data from Yahoo in batch
+            if batch_missing_tickers:
+                self._logger.info(f"Fetching {len(batch_missing_tickers)} missing tickers from Yahoo")
+                try:
+                    yahoo_result = self.yahoo_repo.get_price_history(batch_missing_tickers, date_range)
+                    for ticker in batch_missing_tickers:
+                        if ticker in yahoo_result and not yahoo_result[ticker].empty:
+                            batch_warehouse_data[ticker] = yahoo_result[ticker]
+                            # Store in warehouse for future use
+                            self.warehouse_service.store_price_data(ticker, yahoo_result[ticker])
                 except Exception as yahoo_error:
-                    self._logger.error(f"Yahoo fallback also failed for {ticker.symbol}: {str(yahoo_error)}")
-                    continue
+                    self._logger.error(f"Yahoo batch fetch failed: {str(yahoo_error)}")
+            
+            # Add batch results to final result
+            result.update(batch_warehouse_data)
         
         self._logger.info(f"Warehouse processing completed: {len(result)} tickers processed")
         return result
@@ -169,6 +196,36 @@ class WarehouseMarketRepository(MarketDataRepository):
         """Get current prices - always use Yahoo for real-time data."""
         self._logger.info("Getting current prices from Yahoo Finance (real-time data)")
         return self.yahoo_repo.get_current_prices(tickers)
+    
+    @log_operation("warehouse_market", include_args=True, include_result=True)
+    def get_benchmark_data(self, benchmark_symbol: str, 
+                          date_range: DateRange) -> pd.Series:
+        """Get benchmark data (e.g., S&P 500) for Beta calculation with warehouse caching."""
+        if not self.warehouse_enabled:
+            self._logger.info(f"Getting benchmark data for {benchmark_symbol} from Yahoo Finance (warehouse disabled)")
+            return self.yahoo_repo.get_benchmark_data(benchmark_symbol, date_range)
+        
+        # Check if we have benchmark coverage information in warehouse
+        if self.warehouse_service.has_benchmark_coverage(benchmark_symbol, date_range):
+            # We have coverage information, get the actual data
+            existing_benchmark = self.warehouse_service.get_benchmark_data(benchmark_symbol, date_range)
+            self._logger.debug(f"Using cached benchmark data for {benchmark_symbol} from warehouse")
+            self.warehouse_hits += 1
+            return existing_benchmark
+        
+        # No coverage information in warehouse, fetch from Yahoo and store
+        self._logger.info(f"Fetching benchmark data for {benchmark_symbol} from Yahoo Finance")
+        benchmark_data = self.yahoo_repo.get_benchmark_data(benchmark_symbol, date_range)
+        
+        # Store in warehouse for future use (including coverage information)
+        self.warehouse_service.store_benchmark_data(benchmark_symbol, benchmark_data, date_range)
+        if not benchmark_data.empty:
+            self._logger.debug(f"Stored benchmark data for {benchmark_symbol} in warehouse")
+        else:
+            self._logger.debug(f"Stored benchmark absence information for {benchmark_symbol} in warehouse")
+        
+        self.warehouse_misses += 1
+        return benchmark_data
     
     @log_operation("warehouse_market", include_args=True, include_result=True)
     def get_dividend_history(self, ticker: Ticker, 

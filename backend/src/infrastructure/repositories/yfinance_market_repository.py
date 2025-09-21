@@ -147,6 +147,50 @@ class YFinanceMarketRepository(MarketDataRepository):
         except Exception as e:
             raise ValueError(f"Error fetching current prices: {str(e)}")
     
+    @log_api_call("yfinance", include_request=True, include_response=True)
+    def get_benchmark_data(self, benchmark_symbol: str, 
+                          date_range: DateRange) -> pd.Series:
+        """Get benchmark data (e.g., S&P 500) for Beta calculation."""
+        self._logger.info(f"Fetching benchmark data for {benchmark_symbol}")
+        self._logger.info(f"Date range: {date_range.start} to {date_range.end}")
+        
+        try:
+            # Download benchmark data
+            self._logger.debug(f"Calling yfinance.download() for benchmark {benchmark_symbol}")
+            data = yf.download(
+                benchmark_symbol,
+                start=date_range.start,
+                end=date_range.end,
+                progress=False,
+                auto_adjust=False
+            )
+            
+            if data.empty:
+                self._logger.warning(f"No benchmark data available for {benchmark_symbol}")
+                return pd.Series(dtype=float)
+            
+            # Extract closing prices
+            if 'Close' in data.columns:
+                benchmark_prices = data['Close']
+            elif ('Close', benchmark_symbol) in data.columns:
+                # Handle multi-level columns for single symbol
+                benchmark_prices = data[('Close', benchmark_symbol)]
+            else:
+                # Handle case where data is a Series instead of DataFrame
+                benchmark_prices = data
+            
+            # Ensure we return a Series, not a DataFrame
+            if isinstance(benchmark_prices, pd.DataFrame):
+                # If it's a DataFrame, take the first column and convert to Series
+                benchmark_prices = benchmark_prices.iloc[:, 0]
+            
+            self._logger.info(f"Retrieved {len(benchmark_prices)} benchmark data points")
+            return benchmark_prices
+            
+        except Exception as e:
+            self._logger.error(f"Error fetching benchmark data for {benchmark_symbol}: {str(e)}")
+            raise ValueError(f"Error fetching benchmark data: {str(e)}")
+    
     def get_dividend_history(self, ticker: Ticker, 
                            date_range: DateRange) -> pd.Series:
         """Get dividend history for a ticker."""

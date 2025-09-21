@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Portfolio, ApiError } from '../../types/portfolio';
-import { apiService } from '../../services/api';
+import type { Portfolio, ApiError } from '../types/portfolio';
+import { apiService } from '../services/api';
 import PortfolioUpload from '../components/portfolio/PortfolioUpload';
 import PortfolioTable from '../components/portfolio/PortfolioTable';
 import { AlertCircle, CheckCircle } from 'lucide-react';
@@ -23,6 +23,9 @@ const PortfolioUploadPage: React.FC = () => {
       setError(null);
       const portfolioData = await apiService.getPortfolio();
       setPortfolio(portfolioData);
+      
+      // Save portfolio to localStorage for analysis page
+      localStorage.setItem('portfolio', JSON.stringify(portfolioData));
     } catch (error) {
       const apiError = error as ApiError;
       // Don't show error if no portfolio exists (404 is expected)
@@ -38,6 +41,13 @@ const PortfolioUploadPage: React.FC = () => {
     setPortfolio(uploadedPortfolio);
     setSuccess('Portfolio uploaded successfully!');
     setError(null);
+    
+    // Save portfolio to localStorage for analysis page
+    localStorage.setItem('portfolio', JSON.stringify(uploadedPortfolio));
+    
+    // Clear any existing analysis results since we have a new portfolio
+    localStorage.removeItem('portfolioAnalysisResults');
+    localStorage.removeItem('portfolioAnalysisDateRange');
     
     // Clear success message after 3 seconds
     setTimeout(() => setSuccess(null), 3000);
@@ -57,6 +67,13 @@ const PortfolioUploadPage: React.FC = () => {
       await apiService.clearPortfolio();
       setPortfolio(null);
       setSuccess('Portfolio cleared successfully!');
+      
+      // Remove portfolio from localStorage
+      localStorage.removeItem('portfolio');
+      
+      // Clear any existing analysis results
+      localStorage.removeItem('portfolioAnalysisResults');
+      localStorage.removeItem('portfolioAnalysisDateRange');
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);

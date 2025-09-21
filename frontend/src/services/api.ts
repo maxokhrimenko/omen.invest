@@ -1,14 +1,15 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { ApiError, ApiConfig } from '../types/api';
-import { Portfolio, PortfolioUploadResponse, PortfolioAnalysis, TickerAnalysis } from '../types/portfolio';
+import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
+import type { ApiError, ApiConfig } from '../types/api';
+import type { Portfolio, PortfolioUploadResponse, PortfolioAnalysis, TickerAnalysis } from '../types/portfolio';
+import { calculateAnalysisTimeout, formatTimeout } from '../utils/timeoutCalculator';
 
 class ApiService {
   private api: AxiosInstance;
 
   constructor() {
     const config: ApiConfig = {
-      baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
-      timeout: 30000,
+      baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+      timeout: 300000, // 5 minutes for large portfolio analysis
       headers: {
         'Content-Type': 'application/json',
       },
@@ -60,9 +61,18 @@ class ApiService {
     return response.data;
   }
 
-  async getPortfolio(): Promise<Portfolio> {
-    const response = await this.api.get<Portfolio>('/portfolio');
-    return response.data;
+  async getPortfolio(): Promise<Portfolio | null> {
+    try {
+      const response = await this.api.get<Portfolio>('/portfolio');
+      return response.data;
+    } catch (error: any) {
+      // If it's a 404 error, that means no portfolio is loaded, which is a valid state
+      if (error.status === 404) {
+        return null;
+      }
+      // For other errors, re-throw them
+      throw error;
+    }
   }
 
   async clearPortfolio(): Promise<{ success: boolean; message: string }> {
@@ -70,14 +80,47 @@ class ApiService {
     return response.data;
   }
 
-  async analyzePortfolio(): Promise<PortfolioAnalysis> {
-    const response = await this.api.get<PortfolioAnalysis>('/portfolio/analysis');
+  async analyzePortfolio(startDate: string, endDate: string, tickerCount?: number): Promise<PortfolioAnalysis> {
+    console.log('Calling analyzePortfolio API...', { startDate, endDate });
+    
+    // Calculate dynamic timeout if ticker count is provided
+    let timeout = 300000; // Default 5 minutes
+    if (tickerCount) {
+      timeout = calculateAnalysisTimeout(tickerCount, startDate, endDate) * 1000; // Convert to milliseconds
+      console.log(`Using dynamic timeout: ${formatTimeout(timeout / 1000)} for ${tickerCount} tickers`);
+    }
+    
+    const response = await this.api.get<PortfolioAnalysis>('/portfolio/analysis', {
+      params: { start_date: startDate, end_date: endDate },
+      timeout
+    });
+    console.log('analyzePortfolio response:', response.data);
     return response.data;
   }
 
-  async analyzeTickers(): Promise<TickerAnalysis[]> {
-    const response = await this.api.get<TickerAnalysis[]>('/portfolio/tickers/analysis');
-    return response.data;
+  async analyzeTickers(startDate: string, endDate: string, tickerCount?: number): Promise<{ data: TickerAnalysis[]; failedTickers?: Array<{ ticker: string; firstAvailableDate?: string }> }> {
+    console.log('Calling analyzeTickers API...', { startDate, endDate });
+    
+    // Calculate dynamic timeout if ticker count is provided
+    let timeout = 300000; // Default 5 minutes
+    if (tickerCount) {
+      timeout = calculateAnalysisTimeout(tickerCount, startDate, endDate) * 1000; // Convert to milliseconds
+      console.log(`Using dynamic timeout: ${formatTimeout(timeout / 1000)} for ${tickerCount} tickers`);
+    }
+    
+    const response = await this.api.get<{ success: boolean; message: string; data: TickerAnalysis[]; failedTickers?: Array<{ ticker: string; firstAvailableDate?: string }> }>('/portfolio/tickers/analysis', {
+      params: { start_date: startDate, end_date: endDate },
+      timeout
+    });
+    console.log('analyzeTickers response:', { 
+      success: response.data.success, 
+      tickerCount: response.data.data.length,
+      failedTickers: response.data.failedTickers?.length || 0
+    });
+    return {
+      data: response.data.data,
+      failedTickers: response.data.failedTickers
+    };
   }
 
   // Health check

@@ -7,6 +7,7 @@ from ...domain.entities.ticker import Ticker
 from ...domain.value_objects.date_range import DateRange
 from ...domain.value_objects.money import Money
 from ...domain.value_objects.percentage import Percentage
+from ...infrastructure.logging.logger_service import get_logger_service
 
 @dataclass
 class AnalyzeTickerRequest:
@@ -44,6 +45,8 @@ class AnalyzeTickerResponse:
 class AnalyzeTickerUseCase:
     def __init__(self, market_data_repo: MarketDataRepository):
         self._market_data_repo = market_data_repo
+        self._logger_service = get_logger_service()
+        self._logger = self._logger_service.get_logger("application")
     
     def execute(self, request: AnalyzeTickerRequest) -> AnalyzeTickerResponse:
         try:
@@ -93,13 +96,20 @@ class AnalyzeTickerUseCase:
                 request.date_range
             )
             
+            # Get benchmark data for Beta calculation
+            benchmark_data = self._market_data_repo.get_benchmark_data(
+                "^GSPC",  # S&P 500 symbol
+                request.date_range
+            )
+            
             # Calculate metrics
             metrics = self._calculate_metrics(
                 request.ticker,
                 prices,
                 dividend_history,
                 request.risk_free_rate,
-                request.date_range
+                request.date_range,
+                benchmark_data
             )
             
             return AnalyzeTickerResponse(
@@ -117,19 +127,89 @@ class AnalyzeTickerUseCase:
                 message=f"Analysis failed for {request.ticker.symbol}: {str(e)}"
             )
     
+    def _calculate_var_95(self, returns: pd.Series) -> Percentage:
+        """Calculate VaR 95% with proper validation and error handling."""
+        if len(returns) < 5:
+            # Insufficient data for reliable VaR calculation
+            return Percentage(0)  # Default to 0 when insufficient data
+        
+        # Calculate VaR using historical simulation method
+        var_95_raw = np.percentile(returns, 5) * 100
+        
+        # Validate VaR result - it should be negative (representing a loss)
+        if var_95_raw > 0:
+            # Check if we have any negative returns at all
+            negative_returns = returns[returns < 0]
+            if not negative_returns.empty:
+                # Use the worst negative return as VaR
+                var_95_raw = negative_returns.min() * 100
+            else:
+                # No negative returns - this is very unusual for financial data
+                # In this case, we cannot calculate a meaningful VaR, so we set it to 0
+                # This indicates that there's no historical loss to base VaR on
+                var_95_raw = 0
+        
+        # Additional validation: VaR should not be more extreme than the worst return
+        # Only apply this validation if we have a meaningful VaR (negative)
+        if var_95_raw < 0:
+            worst_return = returns.min() * 100
+            if var_95_raw < worst_return:
+                var_95_raw = worst_return
+        
+        return Percentage(var_95_raw)
+    
+    def _calculate_beta(self, ticker: Ticker, returns: pd.Series, 
+                       benchmark_returns: pd.Series) -> float:
+        """Calculate Beta for a ticker against benchmark."""
+        if len(returns) < 5 or len(benchmark_returns) < 5:
+            self._logger.warning(f"Insufficient data for Beta calculation: {len(returns)} ticker, {len(benchmark_returns)} benchmark observations")
+            return 1.0  # Default to market beta
+        
+        # Align the data by date (in case of missing data points)
+        common_dates = returns.index.intersection(benchmark_returns.index)
+        if len(common_dates) < 5:
+            self._logger.warning(f"Insufficient common dates for Beta calculation: {len(common_dates)}")
+            return 1.0
+        
+        aligned_returns = returns.loc[common_dates]
+        aligned_benchmark = benchmark_returns.loc[common_dates]
+        
+        # Ensure data is 1D for covariance calculation
+        if aligned_benchmark.ndim > 1:
+            aligned_benchmark = aligned_benchmark.iloc[:, 0] if hasattr(aligned_benchmark, 'iloc') else aligned_benchmark.flatten()
+        
+        # Calculate covariance and variance
+        covariance = np.cov(aligned_returns, aligned_benchmark)[0, 1]
+        benchmark_variance = np.var(aligned_benchmark)
+        
+        if benchmark_variance == 0:
+            self._logger.warning("Benchmark variance is zero - cannot calculate Beta")
+            return 1.0
+        
+        beta = covariance / benchmark_variance
+        
+        # Validate Beta result
+        if np.isnan(beta) or np.isinf(beta):
+            self._logger.warning(f"Invalid Beta calculation result: {beta}")
+            return 1.0
+        
+        self._logger.debug(f"Calculated Beta for {ticker.symbol}: {beta:.3f}")
+        return beta
+    
     def _calculate_metrics(self,
                           ticker: Ticker,
                           prices: pd.Series,
                           dividends: pd.Series,
                           risk_free_rate: float,
-                          date_range: DateRange) -> TickerMetrics:
+                          date_range: DateRange,
+                          benchmark_data: pd.Series = None) -> TickerMetrics:
         """Calculate ticker performance metrics."""
         # Calculate returns
         returns = prices.pct_change().dropna()
         
         # Basic metrics
-        start_price = Money(prices.iloc[0])
-        end_price = Money(prices.iloc[-1])
+        start_price = Money(float(prices.iloc[0]))
+        end_price = Money(float(prices.iloc[-1]))
         total_return = Percentage(float((end_price.amount - start_price.amount) / start_price.amount) * 100)
         
         # Annualized return
@@ -148,7 +228,8 @@ class AnalyzeTickerUseCase:
         # Sharpe ratio
         rf_daily = risk_free_rate / 252
         excess_returns = returns - rf_daily
-        sharpe_ratio = np.sqrt(252) * excess_returns.mean() / excess_returns.std() if excess_returns.std() > 0 else 0
+        excess_std = excess_returns.std()
+        sharpe_ratio = np.sqrt(252) * excess_returns.mean() / excess_std if excess_std > 0 else 0
         
         # Max drawdown
         cumulative_returns = (1 + returns).cumprod()
@@ -158,13 +239,16 @@ class AnalyzeTickerUseCase:
         
         # Sortino ratio
         downside_returns = returns[returns < 0]
+        downside_std = downside_returns.std() if not downside_returns.empty else 0
         sortino_ratio = (
-            np.sqrt(252) * excess_returns.mean() / downside_returns.std() 
-            if len(downside_returns) > 0 and downside_returns.std() > 0 else 0
+            np.sqrt(252) * excess_returns.mean() / downside_std 
+            if downside_std > 0 else 0
         )
         
-        # VaR (95%)
-        var_95 = Percentage(np.percentile(returns, 5) * 100)
+        # VaR (95%) - Historical simulation method with validation
+        # For VaR 95%, we take the 5th percentile of returns (worst 5% of outcomes)
+        # This represents the maximum expected loss with 95% confidence
+        var_95 = self._calculate_var_95(returns)
         
         # Momentum 12-1 (skip last month)
         momentum_12_1 = Percentage(0)
@@ -200,8 +284,13 @@ class AnalyzeTickerUseCase:
                     annualized_yield = (float(annualized_dividend.amount) / float(average_price)) * 100
                     dividend_yield = Percentage(annualized_yield)
         
-        # Beta (placeholder - would need benchmark data)
-        beta = 1.0
+        # Beta calculation against S&P 500
+        if benchmark_data is not None and hasattr(benchmark_data, 'empty') and not benchmark_data.empty:
+            benchmark_returns = benchmark_data.pct_change().dropna()
+            beta = self._calculate_beta(ticker, returns, benchmark_returns)
+        else:
+            self._logger.warning(f"No benchmark data available for Beta calculation for {ticker.symbol}")
+            beta = 1.0  # Default to market beta
         
         return TickerMetrics(
             ticker=ticker,
@@ -272,13 +361,13 @@ class AnalyzeTickerUseCase:
         # Calculate annualized dividend based on frequency
         if frequency == "Monthly":
             # For monthly dividends, multiply by 12
-            annualized = total_dividends * (12 / len(dividends)) if len(dividends) > 0 else 0
+            annualized = total_dividends * (12 / len(dividends)) if not dividends.empty else 0
         elif frequency == "Quarterly":
             # For quarterly dividends, multiply by 4
-            annualized = total_dividends * (4 / len(dividends)) if len(dividends) > 0 else 0
+            annualized = total_dividends * (4 / len(dividends)) if not dividends.empty else 0
         elif frequency == "Semi-Annual":
             # For semi-annual dividends, multiply by 2
-            annualized = total_dividends * (2 / len(dividends)) if len(dividends) > 0 else 0
+            annualized = total_dividends * (2 / len(dividends)) if not dividends.empty else 0
         elif frequency == "Annual":
             # For annual dividends, use as-is
             annualized = total_dividends / period_years if period_years > 0 else 0

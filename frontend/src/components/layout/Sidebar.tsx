@@ -5,16 +5,16 @@ import {
   BarChart3, 
   TrendingUp, 
   Settings, 
-  Home,
-  FileText
+  Home
 } from 'lucide-react';
+import Logo from '../Logo';
 
 interface SidebarProps {
   isCollapsed?: boolean;
   onToggle?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false }) => {
   const location = useLocation();
 
   const menuItems = [
@@ -64,13 +64,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-            <FileText className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden">
+            <Logo />
           </div>
           {!isCollapsed && (
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Portfolio Analyzer</h1>
-              <p className="text-sm text-gray-500">Investment Analysis Tool</p>
+              <h1 className="text-xl font-bold text-gray-900">Omen Screen</h1>
+              <p className="text-sm text-gray-500">Deep portfolio analysis</p>
             </div>
           )}
         </div>
