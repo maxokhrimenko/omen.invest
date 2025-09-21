@@ -1,15 +1,15 @@
 # 📈 Investment Portfolio Analysis Tool
 
-A comprehensive full-stack application for analyzing investment portfolios, built with clean architecture principles. The system consists of a Python backend with clean architecture, a planned frontend interface, and a robust database layer.
+A comprehensive full-stack application for analyzing investment portfolios, built with clean architecture principles. The system consists of a FastAPI backend with clean architecture, a React frontend interface, and a robust database layer.
 
-> **🚀 Version 4.1.2 - Full-Stack Repository Restructure**: This application has been restructured as a full-stack service with clear separation between backend, frontend, and database components, preparing for scalable development and deployment.
+> **🚀 Version 4.2.0 - Full-Stack Implementation**: This application now features a complete full-stack implementation with FastAPI backend and React frontend, providing both CLI and web interfaces for portfolio analysis.
 
 ## 🏗️ Architecture Overview
 
 The application is structured as a full-stack service with clear component separation:
 
-- **Backend** (`/backend/`): Python-based API and business logic with Clean Architecture
-- **Frontend** (`/frontend/`): Modern web interface (planned)
+- **Backend** (`/backend/`): FastAPI-based REST API with Clean Architecture
+- **Frontend** (`/frontend/`): React + TypeScript web interface
 - **Database** (`/database/`): SQLite warehouse with caching and data storage
 - **Shared** (`/shared/`): Common types, schemas, and utilities
 - **Documentation** (`/docs/`): Comprehensive technical documentation
@@ -25,7 +25,16 @@ This tool helps investors analyze their portfolios by providing:
 
 ## 📋 Features
 
-### 🎯 Annualized Dividend Calculation System (NEW in v4.1.1)
+### 🚀 Full-Stack Web Application (NEW in v4.2.0)
+- **Modern Web Interface**: React + TypeScript frontend with responsive design
+- **REST API Backend**: FastAPI-based backend with comprehensive endpoints
+- **Drag & Drop Upload**: Intuitive CSV file upload with validation
+- **Real-time Feedback**: Immediate visual feedback for all operations
+- **Mobile Responsive**: Works seamlessly on desktop and mobile devices
+- **Type Safety**: End-to-end TypeScript integration from API to UI
+- **Hot Reloading**: Instant development feedback for both frontend and backend
+
+### 🎯 Annualized Dividend Calculation System (v4.1.1)
 - **Automatic Frequency Detection**: Intelligently detects dividend payment patterns (Monthly, Quarterly, Semi-Annual, Annual, Irregular)
 - **Smart Annualization**: Calculates proper annualized dividends based on detected payment frequency
 - **Enhanced Display**: New table columns showing annualized dividend amount, yield, and payment frequency
@@ -155,7 +164,24 @@ omen.invest/
 - Python 3.8 or higher
 - Internet connection for market data
 
-### Backend Installation
+### Quick Start (Full-Stack)
+
+1. **Setup the entire application**:
+   ```bash
+   ./local/run.sh setup
+   ```
+
+2. **Start both backend and frontend**:
+   ```bash
+   ./local/run.sh start
+   ```
+
+3. **Access the application**:
+   - **Web Interface**: http://localhost:3000
+   - **API Documentation**: http://localhost:8000/docs
+   - **Backend API**: http://localhost:8000
+
+### Backend Installation (CLI Mode)
 
 1. **Navigate to backend directory**:
    ```bash
@@ -173,7 +199,7 @@ omen.invest/
    pip install -r requirements.txt
    ```
 
-### Backend Usage
+### Backend Usage (CLI Mode)
 
 1. **Prepare your portfolio** in `input/test.csv` with the following format:
    ```csv
@@ -195,6 +221,38 @@ omen.invest/
    - Analyze individual tickers
    - Compare ticker performance
    - Generate comprehensive reports
+
+### Frontend Usage (Web Interface)
+
+1. **Start the frontend development server**:
+   ```bash
+   ./local/run.sh frontend
+   ```
+
+2. **Open your browser** to http://localhost:3000
+
+3. **Upload your portfolio**:
+   - Drag and drop a CSV file or click to select
+   - View your portfolio data in a clean table format
+   - Clear portfolio when needed
+
+### API Usage
+
+The backend provides a REST API for programmatic access:
+
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Upload portfolio
+curl -X POST -F "file=@portfolio.csv" http://localhost:8000/portfolio/upload
+
+# Get current portfolio
+curl http://localhost:8000/portfolio
+
+# Clear portfolio
+curl -X DELETE http://localhost:8000/portfolio
+```
 
 ### Testing
 
@@ -252,10 +310,26 @@ For backwards compatibility, the original scripts are still available:
 ## 🛠️ Technical Details
 
 ### Dependencies
-- Python 3.x
+
+#### Backend
+- Python 3.8+
+- FastAPI
+- Uvicorn
 - pandas
 - numpy
 - yfinance
+- pydantic
+- python-multipart
+
+#### Frontend
+- Node.js 18+
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- Axios
+- Lucide React
+- React Router
 
 ### Data Sources
 - Yahoo Finance API (via yfinance)
@@ -333,9 +407,11 @@ For backwards compatibility, the original scripts are still available:
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history and changes.
 
 ## Version
-Current version: 4.1.1 - **Annualized Dividend Calculation System**
+Current version: 4.2.0 - **Full-Stack Implementation with FastAPI & React**
 
 ## Features
+- **🚀 Full-Stack Web Application**: Modern React frontend with FastAPI backend
+- **📱 Responsive Design**: Works seamlessly on desktop and mobile devices
 - **🎯 Annualized Dividend Calculation**: Smart frequency detection and proper annualization for fair comparison
 - **🏪 Warehouse System**: Read-through caching with SQLite database for massive performance gains
 - **📊 Dividend Absence Caching**: Intelligent caching that eliminates repeated API calls for periods with no dividends
@@ -345,8 +421,10 @@ Current version: 4.1.1 - **Annualized Dividend Calculation System**
 - **📋 Multiple Display Formats**: Cards (detailed) and table (compact) views
 - **🎨 Color-Coded Metrics**: Comprehensive color-coding based on performance thresholds
 - **📊 Advanced Table Formatting**: Proper color code handling and alignment
-- **📁 CSV-Based Input**: Simple portfolio data input format
+- **📁 CSV-Based Input**: Simple portfolio data input format with drag-and-drop upload
 - **✅ Data Validation**: Comprehensive error handling and missing data detection
+- **🔧 REST API**: Complete REST API for programmatic access
+- **🎨 Modern UI**: Clean, intuitive web interface with real-time feedback
 
 ## 📚 Documentation
 

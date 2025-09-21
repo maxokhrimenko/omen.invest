@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Portfolio Analysis Tool has been completely refactored to follow **Clean Architecture** principles, ensuring separation of concerns, testability, and maintainability. This document provides a comprehensive overview of the application's architecture, design patterns, and data flow.
+The Portfolio Analysis Tool has been completely refactored to follow **Clean Architecture** principles, ensuring separation of concerns, testability, and maintainability. The application now features a full-stack implementation with a FastAPI backend and React frontend, providing both CLI and web interfaces for portfolio analysis. This document provides a comprehensive overview of the application's architecture, design patterns, and data flow.
 
 ## 🎯 Architectural Principles
 
@@ -382,9 +382,9 @@ The warehouse system provides a transparent read-through caching layer for marke
 
 ## 🎨 Presentation Layer
 
-The presentation layer handles user interaction and coordinates with the application layer.
+The presentation layer handles user interaction and coordinates with the application layer. The application now supports multiple presentation interfaces: CLI (command-line) and Web (React frontend).
 
-### CLI Interface
+### CLI Interface (Legacy)
 
 #### MainMenu
 - **Purpose**: Interactive command-line interface
@@ -402,19 +402,187 @@ The presentation layer handles user interaction and coordinates with the applica
   - Format and display results
   - Manage application state (current portfolio)
 
-### User Interaction Flow
+### Web Interface (React Frontend)
+
+#### Component Architecture
+The React frontend follows a component-based architecture with clear separation of concerns:
 
 ```
-User Input → Menu → Controller → Use Case → Repository → External System
-                  ↓                ↓           ↓
-                Response ← Response ← Data ← API Response
+frontend/src/
+├── components/           # Reusable UI components
+│   ├── common/          # Common UI components
+│   ├── layout/          # Layout components (Header, Sidebar, MainLayout)
+│   └── portfolio/       # Portfolio-specific components
+├── pages/               # Page-level components
+├── services/            # API service layer
+├── types/               # TypeScript type definitions
+└── utils/               # Utility functions
 ```
+
+#### Key Components
+
+##### PortfolioUpload Component
+- **Purpose**: Handles CSV file upload with drag-and-drop functionality
+- **Features**:
+  - File validation (CSV format only)
+  - Drag and drop interface
+  - Upload progress indicators
+  - Error handling and user feedback
+- **Props**:
+  - `onUploadSuccess`: Callback for successful upload
+  - `onUploadError`: Callback for upload errors
+
+##### PortfolioTable Component
+- **Purpose**: Displays portfolio data in tabular format
+- **Features**:
+  - Responsive table design
+  - Clean data presentation
+  - Action buttons (clear, refresh)
+- **Props**:
+  - `portfolio`: Portfolio data to display
+  - `onClear`: Callback for clear action
+  - `onRefresh`: Callback for refresh action
+
+##### MainLayout Component
+- **Purpose**: Main application layout wrapper
+- **Features**:
+  - Header with navigation
+  - Sidebar for additional controls
+  - Responsive design
+  - Consistent styling
+
+#### API Service Layer
+
+##### ApiService Class
+- **Purpose**: Centralized API communication
+- **Features**:
+  - Axios-based HTTP client
+  - Request/response interceptors
+  - Error handling and transformation
+  - Type-safe API calls
+- **Methods**:
+  - `uploadPortfolio()`: Upload CSV file
+  - `getPortfolio()`: Retrieve current portfolio
+  - `clearPortfolio()`: Clear portfolio data
+  - `analyzePortfolio()`: Analyze portfolio (placeholder)
+  - `analyzeTickers()`: Analyze individual tickers (placeholder)
+
+#### Type Safety
+- **TypeScript Integration**: Full type safety from API to UI
+- **API Types**: Comprehensive type definitions for all API responses
+- **Component Props**: Typed component props and state
+- **Error Handling**: Typed error objects with proper error boundaries
+
+### FastAPI Backend Integration
+
+#### REST API Endpoints
+The backend exposes a comprehensive REST API for frontend integration:
+
+```python
+# API Endpoints
+@app.get("/health")                    # Health check
+@app.post("/portfolio/upload")         # Upload portfolio CSV
+@app.get("/portfolio")                 # Get current portfolio
+@app.delete("/portfolio")              # Clear portfolio
+@app.get("/portfolio/analysis")        # Analyze portfolio
+@app.get("/portfolio/tickers/analysis") # Analyze tickers
+```
+
+#### CORS Configuration
+- **Cross-Origin Support**: Proper CORS setup for frontend-backend communication
+- **Allowed Origins**: Localhost development and production domains
+- **Credentials**: Support for authenticated requests
+- **Methods**: Full HTTP method support
+
+#### File Upload Handling
+- **Multipart Support**: Handles CSV file uploads
+- **Temporary Storage**: Secure temporary file management
+- **Validation**: File type and format validation
+- **Cleanup**: Automatic cleanup of temporary files
+
+#### Error Handling
+- **HTTP Status Codes**: Proper HTTP status code responses
+- **Error Messages**: User-friendly error messages
+- **Validation Errors**: Detailed validation error responses
+- **Exception Handling**: Comprehensive exception handling
+
+### State Management
+
+#### Frontend State
+- **React Hooks**: useState and useEffect for local state management
+- **Component State**: Local state for UI interactions
+- **API State**: Loading, error, and success states
+- **Portfolio State**: Current portfolio data management
+
+#### Backend State
+- **Global State**: Current portfolio stored in memory
+- **Session Management**: Portfolio persistence across requests
+- **Dependency Injection**: Controller instances managed globally
+
+### User Interaction Flow
+
+#### Web Interface Flow
+```
+User Action → React Component → API Service → FastAPI Endpoint → Use Case → Repository
+     ↓              ↓              ↓              ↓              ↓
+UI Update ← Component State ← API Response ← HTTP Response ← Business Logic ← Data Source
+```
+
+#### CLI Interface Flow (Legacy)
+```
+User Input → Menu → Controller → Use Case → Repository → External System
+     ↓           ↓        ↓           ↓
+Response ← Display ← Response ← Data ← API Response
+```
+
+### Responsive Design
+
+#### Mobile-First Approach
+- **Tailwind CSS**: Utility-first CSS framework
+- **Responsive Breakpoints**: Mobile, tablet, and desktop layouts
+- **Flexible Grid**: Responsive grid system
+- **Touch-Friendly**: Mobile-optimized interactions
+
+#### Component Responsiveness
+- **Portfolio Table**: Responsive table with horizontal scroll on mobile
+- **Upload Interface**: Touch-friendly drag and drop
+- **Navigation**: Collapsible sidebar for mobile
+- **Forms**: Mobile-optimized form inputs
+
+### Development Experience
+
+#### Hot Reloading
+- **Frontend**: Vite development server with instant updates
+- **Backend**: Uvicorn with auto-reload on code changes
+- **Full-Stack**: Both services restart automatically on changes
+
+#### Development Tools
+- **TypeScript**: Compile-time type checking
+- **ESLint**: Code quality and style enforcement
+- **Vite**: Fast build tool and development server
+- **FastAPI Docs**: Automatic API documentation at `/docs`
+
+#### Local Development
+- **Single Command**: `./local/run.sh start` starts both services
+- **Port Management**: Automatic port conflict resolution
+- **Process Management**: Graceful start/stop of all services
+- **Status Monitoring**: Real-time service status checking
 
 ## 🔄 Data Flow
 
-### Portfolio Loading Flow
+### Portfolio Loading Flow (Web Interface)
 ```
-1. User selects "Load Portfolio"
+1. User drags CSV file to PortfolioUpload component
+2. File validation and upload to /portfolio/upload endpoint
+3. FastAPI processes file and loads portfolio using LoadPortfolioUseCase
+4. Portfolio stored in backend memory and returned to frontend
+5. PortfolioTable component displays portfolio data
+6. User can clear portfolio or upload new file
+```
+
+### Portfolio Loading Flow (CLI Interface)
+```
+1. User selects "Load Portfolio" from menu
 2. PortfolioController.load_portfolio() [LOGGED: User action]
 3. LoadPortfolioUseCase.execute(LoadPortfolioRequest) [LOGGED: Business operation]
 4. CsvPortfolioRepository.load(file_path) [LOGGED: File operation]
@@ -423,7 +591,17 @@ User Input → Menu → Controller → Use Case → Repository → External Syst
 7. Controller displays result to user [LOGGED: User action completion]
 ```
 
-### Portfolio Analysis Flow
+### Portfolio Analysis Flow (Web Interface)
+```
+1. User clicks "Analyze Portfolio" button
+2. Frontend calls /portfolio/analysis endpoint
+3. FastAPI processes request using AnalyzePortfolioUseCase
+4. Market data fetched from YFinanceMarketRepository or WarehouseMarketRepository
+5. Analysis results returned to frontend
+6. Frontend displays results in appropriate UI components
+```
+
+### Portfolio Analysis Flow (CLI Interface)
 ```
 1. User selects "Analyze Portfolio" [LOGGED: User action]
 2. PortfolioController.analyze_portfolio() [LOGGED: User action]
@@ -434,6 +612,7 @@ User Input → Menu → Controller → Use Case → Repository → External Syst
 7. Return AnalyzePortfolioResponse with metrics [LOGGED: Business operation completion]
 8. Controller formats and displays results [LOGGED: User action completion]
 ```
+
 
 ## 🔍 Data Validation & Quality Assurance
 
@@ -741,4 +920,4 @@ The current architecture is designed to support these enhancements without major
 
 ---
 
-*This architecture documentation reflects version 4.1.2 of the Portfolio Analysis Tool with full-stack repository restructure.*
+*This architecture documentation reflects version 4.2.0 of the Portfolio Analysis Tool with full-stack implementation featuring FastAPI backend and React frontend.*

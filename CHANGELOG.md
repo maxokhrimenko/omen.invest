@@ -5,6 +5,188 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2025-09-21
+
+### 🚀 Full-Stack Implementation with FastAPI & React
+
+This release introduces a complete full-stack implementation with a FastAPI backend and React frontend, transforming the application from a CLI-only tool to a modern web application.
+
+### ✨ Added
+
+#### Backend API (FastAPI)
+- **REST API Endpoints**: Complete REST API with FastAPI framework
+- **Portfolio Management**: Upload, retrieve, and clear portfolio endpoints
+- **CORS Support**: Cross-origin resource sharing for frontend integration
+- **File Upload**: Multipart file upload support for CSV portfolio files
+- **Health Check**: System health monitoring endpoint
+- **Error Handling**: Comprehensive HTTP error handling with proper status codes
+- **Dependency Injection**: Clean dependency injection for API endpoints
+- **Pydantic Models**: Type-safe request/response models
+
+#### Frontend Application (React + TypeScript)
+- **Modern React Setup**: React 19 with TypeScript and Vite build system
+- **Portfolio Upload Interface**: Drag-and-drop CSV file upload with validation
+- **Portfolio Management**: View, clear, and manage portfolio data
+- **API Integration**: Axios-based API service with interceptors
+- **Responsive Design**: Tailwind CSS for modern, responsive UI
+- **Component Architecture**: Modular React components with proper separation
+- **Type Safety**: Full TypeScript integration with API types
+- **Error Handling**: User-friendly error messages and loading states
+
+#### Development Infrastructure
+- **Local Development Runner**: Comprehensive script for full-stack development
+- **Concurrent Development**: Backend and frontend run simultaneously
+- **Port Management**: Automatic port conflict resolution
+- **Dependency Management**: Automated setup for both Python and Node.js
+- **Process Management**: Graceful start/stop of all services
+- **Status Monitoring**: Real-time service status checking
+
+### 🔄 Changed
+
+#### API Architecture
+- **FastAPI Integration**: Backend now exposes REST API endpoints
+- **Request/Response Pattern**: Standardized API request/response format
+- **CORS Configuration**: Proper CORS setup for frontend-backend communication
+- **File Handling**: Temporary file management for CSV uploads
+- **Error Responses**: Structured error responses with proper HTTP status codes
+
+#### Frontend Architecture
+- **Component-Based Design**: Modular React components for maintainability
+- **API Service Layer**: Centralized API communication with error handling
+- **State Management**: React hooks for local state management
+- **Type Definitions**: Comprehensive TypeScript interfaces for API contracts
+- **Build System**: Vite for fast development and optimized builds
+
+#### Development Workflow
+- **Full-Stack Development**: Single command to start entire application stack
+- **Hot Reloading**: Both backend and frontend support hot reloading
+- **Environment Configuration**: Environment variable support for API URLs
+- **Cross-Platform**: Works on macOS, Linux, and Windows
+
+### 🏗️ Technical Implementation
+
+#### Backend API Endpoints
+```
+GET  /health                    # Health check
+POST /portfolio/upload          # Upload portfolio CSV
+GET  /portfolio                 # Get current portfolio
+DELETE /portfolio               # Clear portfolio
+GET  /portfolio/analysis        # Analyze portfolio (placeholder)
+GET  /portfolio/tickers/analysis # Analyze tickers (placeholder)
+```
+
+#### Frontend Components
+- **PortfolioUpload**: File upload with drag-and-drop support
+- **PortfolioTable**: Tabular display of portfolio data
+- **MainLayout**: Application layout with navigation
+- **Header/Sidebar**: Navigation components
+- **DashboardPage**: Main dashboard interface
+- **PortfolioUploadPage**: Dedicated upload page
+
+#### API Service Integration
+- **Axios Configuration**: Centralized HTTP client with interceptors
+- **Error Handling**: Automatic error transformation and user feedback
+- **Request/Response Logging**: Development-time API call logging
+- **Type Safety**: Full TypeScript integration with API responses
+
+### 🚀 Development Experience
+
+#### Local Development
+```bash
+# Start full-stack application
+./local/run.sh start
+
+# Start only backend
+./local/run.sh backend
+
+# Start only frontend  
+./local/run.sh frontend
+
+# Setup project
+./local/run.sh setup
+
+# Check status
+./local/run.sh status
+```
+
+#### Service URLs
+- **Backend API**: http://localhost:8000
+- **Frontend App**: http://localhost:3000
+- **API Documentation**: http://localhost:8000/docs (FastAPI auto-docs)
+
+### 📊 User Interface Features
+
+#### Portfolio Upload
+- **Drag & Drop**: Intuitive file upload interface
+- **File Validation**: CSV format validation with user feedback
+- **Progress Indicators**: Upload progress and success/error states
+- **Error Messages**: Clear, actionable error messages
+
+#### Portfolio Management
+- **Data Display**: Clean tabular display of portfolio positions
+- **Action Buttons**: Clear portfolio and refresh functionality
+- **Status Indicators**: Visual feedback for all operations
+- **Responsive Design**: Works on desktop and mobile devices
+
+### 🔧 Technical Stack
+
+#### Backend
+- **FastAPI**: Modern, fast web framework for building APIs
+- **Uvicorn**: ASGI server for FastAPI
+- **Pydantic**: Data validation and serialization
+- **Python Multipart**: File upload handling
+- **Existing Clean Architecture**: All existing business logic preserved
+
+#### Frontend
+- **React 19**: Latest React with concurrent features
+- **TypeScript**: Type-safe JavaScript development
+- **Vite**: Fast build tool and development server
+- **Tailwind CSS**: Utility-first CSS framework
+- **Axios**: HTTP client for API communication
+- **Lucide React**: Modern icon library
+- **React Router**: Client-side routing
+
+### 🎯 Benefits
+
+#### Developer Experience
+- **Full-Stack Development**: Single repository with both frontend and backend
+- **Hot Reloading**: Instant feedback during development
+- **Type Safety**: End-to-end type safety from API to UI
+- **Modern Tooling**: Latest development tools and frameworks
+- **Easy Setup**: One-command project setup and start
+
+#### User Experience
+- **Web Interface**: Modern, responsive web application
+- **Intuitive Upload**: Drag-and-drop file upload experience
+- **Real-time Feedback**: Immediate visual feedback for all operations
+- **Error Handling**: Clear, actionable error messages
+- **Mobile Friendly**: Responsive design works on all devices
+
+#### Architecture Benefits
+- **Separation of Concerns**: Clear separation between frontend and backend
+- **API-First Design**: RESTful API enables multiple client types
+- **Scalability**: Independent scaling of frontend and backend
+- **Maintainability**: Modular architecture with clear boundaries
+- **Future-Ready**: Easy to extend with new features and clients
+
+### 🔮 Future Enhancements
+
+#### Planned Features
+- **Portfolio Analysis UI**: Complete portfolio analysis interface
+- **Ticker Analysis UI**: Individual ticker analysis with charts
+- **Real-time Data**: Live market data updates
+- **Advanced Charts**: Interactive financial charts and visualizations
+- **User Authentication**: User accounts and portfolio persistence
+- **Export Features**: PDF and Excel export capabilities
+
+#### Technical Roadmap
+- **Database Integration**: PostgreSQL for production data storage
+- **Authentication**: JWT-based user authentication
+- **Caching**: Redis for improved performance
+- **Monitoring**: Application performance monitoring
+- **Testing**: Comprehensive test suite for both frontend and backend
+- **Deployment**: Docker containerization and cloud deployment
+
 ## [4.1.2] - 2025-09-21
 
 ### 🏗️ Full-Stack Repository Restructure
