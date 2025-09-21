@@ -418,7 +418,7 @@ class PortfolioController:
         # Define column headers
         headers = [
             "Ticker", "Start $", "End $", "TotRet", "AnnRet", 
-            "Volatility", "Sharpe", "MaxDD", "DivYield", "Momentum"
+            "Volatility", "Sharpe", "MaxDD", "AnnDiv", "DivYield", "Freq", "Momentum"
         ]
         
         # Prepare data rows with color coding
@@ -441,9 +441,11 @@ class PortfolioController:
             max_drawdown_colored = self._color_service.colorize_percentage(
                 metrics.max_drawdown.value, "max_drawdown", "ticker"
             )
+            annualized_dividend_colored = f"${metrics.annualized_dividend.amount:.2f}"
             dividend_yield_colored = self._color_service.colorize_percentage(
                 metrics.dividend_yield.value, "dividend_yield", "ticker"
             )
+            frequency_colored = self._color_frequency(metrics.dividend_frequency)
             momentum_colored = self._color_service.colorize_percentage(
                 metrics.momentum_12_1.value, "momentum_12_1", "ticker"
             )
@@ -457,7 +459,9 @@ class PortfolioController:
                 volatility_colored,
                 sharpe_colored,
                 max_drawdown_colored,
+                annualized_dividend_colored,
                 dividend_yield_colored,
+                frequency_colored,
                 momentum_colored
             ]
             data_rows.append(row_data)
@@ -465,6 +469,21 @@ class PortfolioController:
         # Use TableFormatter to create properly aligned table
         table = TableFormatter.create_table(headers, data_rows)
         print(f"\n{table}")
+    
+    def _color_frequency(self, frequency: str) -> str:
+        """Color code dividend frequency for display."""
+        if frequency == "Monthly":
+            return f"🟢 {frequency}"
+        elif frequency == "Quarterly":
+            return f"🔵 {frequency}"
+        elif frequency == "Semi-Annual":
+            return f"🟡 {frequency}"
+        elif frequency == "Annual":
+            return f"🟠 {frequency}"
+        elif frequency == "Irregular":
+            return f"🔴 {frequency}"
+        else:
+            return f"⚪ {frequency}"
     
     def _display_data_issues(self, missing_tickers: List[str], tickers_without_start_data: List[str]) -> None:
         """Display information about tickers with data issues."""

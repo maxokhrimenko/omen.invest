@@ -15,7 +15,15 @@ This tool helps investors analyze their portfolios by providing:
 
 ## 📋 Features
 
-### 🏪 Warehouse System (NEW in v4.1.0)
+### 🎯 Annualized Dividend Calculation System (NEW in v4.1.1)
+- **Automatic Frequency Detection**: Intelligently detects dividend payment patterns (Monthly, Quarterly, Semi-Annual, Annual, Irregular)
+- **Smart Annualization**: Calculates proper annualized dividends based on detected payment frequency
+- **Enhanced Display**: New table columns showing annualized dividend amount, yield, and payment frequency
+- **Frequency Color Coding**: Visual indicators for different payment frequencies (🟢 Monthly, 🔵 Quarterly, 🟡 Semi-Annual, 🟠 Annual, 🔴 Irregular)
+- **Accurate Yield Calculation**: Uses average price over analysis period for consistent yield calculations
+- **Comparable Metrics**: All dividend yields are now properly annualized for fair comparison across all stocks
+
+### 🏪 Warehouse System (v4.1.0)
 - **Read-Through Caching**: Transparent SQLite-based caching layer for market data
 - **Dividend Absence Caching**: Stores information about periods with no dividends to prevent repeated API calls
 - **Trading-Day Awareness**: Smart gap filling that only fetches missing trading days
@@ -288,11 +296,13 @@ For backwards compatibility, the original scripts are still available:
 - End $
 - TotRet
 - AnnRet
+- Volatility
 - Sharpe
 - MaxDD
-- Max Yield
-- Avg Yield
-- Current Yield
+- AnnDiv (Annualized Dividend)
+- DivYield (Annualized Dividend Yield)
+- Freq (Payment Frequency)
+- Momentum
 ```
 
 ## 🚀 Usage
@@ -318,9 +328,10 @@ For backwards compatibility, the original scripts are still available:
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history and changes.
 
 ## Version
-Current version: 4.1.0 - **Comprehensive Warehouse System with Dividend Absence Caching**
+Current version: 4.1.1 - **Annualized Dividend Calculation System**
 
 ## Features
+- **🎯 Annualized Dividend Calculation**: Smart frequency detection and proper annualization for fair comparison
 - **🏪 Warehouse System**: Read-through caching with SQLite database for massive performance gains
 - **📊 Dividend Absence Caching**: Intelligent caching that eliminates repeated API calls for periods with no dividends
 - **⚡ Performance**: 100x+ faster on subsequent requests through intelligent caching

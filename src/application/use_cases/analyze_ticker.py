@@ -27,6 +27,9 @@ class TickerMetrics:
     var_95: Percentage
     momentum_12_1: Percentage
     dividend_yield: Percentage
+    dividend_amount: Money
+    dividend_frequency: str
+    annualized_dividend: Money
     start_price: Money
     end_price: Money
 
@@ -95,7 +98,8 @@ class AnalyzeTickerUseCase:
                 request.ticker,
                 prices,
                 dividend_history,
-                request.risk_free_rate
+                request.risk_free_rate,
+                request.date_range
             )
             
             return AnalyzeTickerResponse(
@@ -117,7 +121,8 @@ class AnalyzeTickerUseCase:
                           ticker: Ticker,
                           prices: pd.Series,
                           dividends: pd.Series,
-                          risk_free_rate: float) -> TickerMetrics:
+                          risk_free_rate: float,
+                          date_range: DateRange) -> TickerMetrics:
         """Calculate ticker performance metrics."""
         # Calculate returns
         returns = prices.pct_change().dropna()
@@ -168,11 +173,32 @@ class AnalyzeTickerUseCase:
             price_21d = prices.iloc[-21]
             momentum_12_1 = Percentage((price_21d - price_252d) / price_252d * 100)
         
-        # Dividend yield
+        # Dividend yield and amount calculation with proper annualization
         dividend_yield = Percentage(0)
-        if not dividends.empty and start_price.amount > 0:
-            annual_dividends = dividends.sum()
-            dividend_yield = Percentage(annual_dividends / float(start_price.amount) * 100)
+        dividend_amount = Money(0)
+        dividend_frequency = "Unknown"
+        annualized_dividend = Money(0)
+        
+        if not dividends.empty and not prices.empty:
+            # Calculate total dividends received in the period
+            total_dividends = dividends.sum()
+            dividend_amount = Money(total_dividends, start_price.currency)
+            
+            # Detect dividend payment frequency
+            dividend_frequency = self._detect_dividend_frequency(dividends, date_range)
+            
+            # Calculate annualized dividend based on frequency
+            annualized_dividend = self._calculate_annualized_dividend(
+                dividends, dividend_frequency, date_range, start_price.currency
+            )
+            
+            # Calculate annualized dividend yield using average price
+            if annualized_dividend.amount > 0:
+                # Use average price over the period for yield calculation
+                average_price = prices.mean()
+                if average_price > 0:
+                    annualized_yield = (float(annualized_dividend.amount) / float(average_price)) * 100
+                    dividend_yield = Percentage(annualized_yield)
         
         # Beta (placeholder - would need benchmark data)
         beta = 1.0
@@ -189,6 +215,75 @@ class AnalyzeTickerUseCase:
             var_95=var_95,
             momentum_12_1=momentum_12_1,
             dividend_yield=dividend_yield,
+            dividend_amount=dividend_amount,
+            dividend_frequency=dividend_frequency,
+            annualized_dividend=annualized_dividend,
             start_price=start_price,
             end_price=end_price
         )
+    
+    def _detect_dividend_frequency(self, dividends: pd.Series, date_range: DateRange) -> str:
+        """Detect dividend payment frequency based on payment patterns."""
+        if dividends.empty or len(dividends) < 2:
+            return "Unknown"
+        
+        # Calculate days between payments
+        dividend_dates = sorted(dividends.index)
+        intervals = []
+        
+        for i in range(1, len(dividend_dates)):
+            days_between = (dividend_dates[i] - dividend_dates[i-1]).days
+            intervals.append(days_between)
+        
+        if not intervals:
+            return "Unknown"
+        
+        # Calculate average interval
+        avg_interval = sum(intervals) / len(intervals)
+        
+        # Determine frequency based on average interval
+        if avg_interval <= 35:  # ~monthly
+            return "Monthly"
+        elif avg_interval <= 95:  # ~quarterly
+            return "Quarterly"
+        elif avg_interval <= 185:  # ~semi-annually
+            return "Semi-Annual"
+        elif avg_interval <= 370:  # ~annually
+            return "Annual"
+        else:
+            return "Irregular"
+    
+    def _calculate_annualized_dividend(self, dividends: pd.Series, frequency: str, 
+                                     date_range: DateRange, currency: str) -> Money:
+        """Calculate annualized dividend based on detected frequency."""
+        if dividends.empty:
+            return Money(0, currency)
+        
+        # Calculate total dividends in the period
+        total_dividends = dividends.sum()
+        
+        # Calculate period length in years
+        period_days = (date_range.end - date_range.start).days
+        period_years = period_days / 365.25
+        
+        if period_years <= 0:
+            return Money(0, currency)
+        
+        # Calculate annualized dividend based on frequency
+        if frequency == "Monthly":
+            # For monthly dividends, multiply by 12
+            annualized = total_dividends * (12 / len(dividends)) if len(dividends) > 0 else 0
+        elif frequency == "Quarterly":
+            # For quarterly dividends, multiply by 4
+            annualized = total_dividends * (4 / len(dividends)) if len(dividends) > 0 else 0
+        elif frequency == "Semi-Annual":
+            # For semi-annual dividends, multiply by 2
+            annualized = total_dividends * (2 / len(dividends)) if len(dividends) > 0 else 0
+        elif frequency == "Annual":
+            # For annual dividends, use as-is
+            annualized = total_dividends / period_years if period_years > 0 else 0
+        else:
+            # For irregular or unknown frequency, annualize based on period
+            annualized = total_dividends / period_years if period_years > 0 else 0
+        
+        return Money(annualized, currency)

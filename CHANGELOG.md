@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.1] - 2025-09-21
+
+### 🎯 Annualized Dividend Calculation System
+
+This release introduces a comprehensive dividend analysis system that properly handles different payment frequencies and provides accurate annualized dividend metrics for fair comparison across all stocks.
+
+### ✨ Added
+- **Automatic Frequency Detection**: Intelligently detects dividend payment patterns (Monthly, Quarterly, Semi-Annual, Annual, Irregular)
+- **Smart Annualization**: Calculates proper annualized dividends based on detected payment frequency
+- **Enhanced Display**: New table columns showing annualized dividend amount, yield, and payment frequency
+- **Frequency Color Coding**: Visual indicators for different payment frequencies (🟢 Monthly, 🔵 Quarterly, 🟡 Semi-Annual, 🟠 Annual, 🔴 Irregular)
+- **Accurate Yield Calculation**: Uses average price over analysis period for consistent yield calculations
+
+### 🔄 Changed
+- **Dividend Yield Calculation**: Completely redesigned to use proper annualization instead of cumulative period totals
+- **Table Format**: Updated to show "AnnDiv" (Annualized Dividend) and "Freq" (Frequency) columns
+- **TickerMetrics Class**: Added `dividend_frequency` and `annualized_dividend` fields
+- **Calculation Logic**: Now handles different payment frequencies correctly for fair comparison
+
+### 🏗️ Technical Implementation
+- **Frequency Detection Algorithm**: Analyzes payment intervals to determine frequency patterns
+- **Annualization Formulas**: 
+  - Monthly: `total_dividends × (12 / payment_count)`
+  - Quarterly: `total_dividends × (4 / payment_count)`
+  - Semi-Annual: `total_dividends × (2 / payment_count)`
+  - Annual: `total_dividends / period_years`
+  - Irregular: `total_dividends / period_years`
+- **Type Safety**: Proper handling of Decimal and float conversions for calculations
+
+### 📊 Example Results
+| Stock | Frequency | Period Dividends | Annualized Dividend | Annualized Yield |
+|-------|-----------|------------------|-------------------|------------------|
+| PM | Quarterly | $8.00 | $5.33 | 4.07% |
+| JEPI | Monthly | $7.13 | $4.50 | 8.37% |
+| GLPI | Quarterly | $5.36 | $3.06 | 6.77% |
+
+### 🎯 Benefits
+- **Comparable Metrics**: All dividend yields are now properly annualized for fair comparison
+- **Frequency Awareness**: Shows payment frequency to understand dividend patterns
+- **Accurate Calculations**: Handles different payment schedules correctly
+- **Industry Standard**: Follows proper financial calculation methodology
+- **Visual Clarity**: Color-coded frequency indicators for quick understanding
+
 ## [4.1.0] - 2025-09-21
 
 ### 🏪 Comprehensive Warehouse System with Dividend Absence Caching

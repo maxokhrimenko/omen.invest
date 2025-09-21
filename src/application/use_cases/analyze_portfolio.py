@@ -100,14 +100,42 @@ class AnalyzePortfolioUseCase:
             
             self._logger.info(f"Portfolio values calculated for {len(portfolio_values)} data points")
             
+            # Check if we have valid data for analysis
+            if portfolio_values_analysis.empty and portfolio_values.empty:
+                self._logger.warning("No valid portfolio data available for analysis")
+                return AnalyzePortfolioResponse(
+                    metrics=None,
+                    success=False,
+                    message="No valid portfolio data available for analysis",
+                    missing_tickers=missing_tickers,
+                    tickers_without_start_data=tickers_without_start_data
+                )
+            
+            # If we have data but no complete data for analysis, use total data but warn user
+            if (portfolio_values_analysis.empty or portfolio_values_analysis.sum() == 0) and not portfolio_values.empty:
+                self._logger.warning("No complete data available for analysis - using all available data")
+                portfolio_values_analysis = portfolio_values
+                # Also update the missing data to be empty since we're using all data
+                portfolio_values_missing = pd.Series(dtype=float)
+            
             # Calculate metrics using only complete data tickers
             self._logger.debug("Calculating portfolio metrics")
-            metrics = self._calculate_metrics(
-                portfolio_values_analysis,  # Use only complete data for metrics
-                portfolio_values,           # Total portfolio values for display
-                portfolio_values_missing,   # Missing data values for display
-                request.risk_free_rate
-            )
+            try:
+                metrics = self._calculate_metrics(
+                    portfolio_values_analysis,  # Use only complete data for metrics
+                    portfolio_values,           # Total portfolio values for display
+                    portfolio_values_missing,   # Missing data values for display
+                    request.risk_free_rate
+                )
+            except ValueError as e:
+                self._logger.error(f"Portfolio metrics calculation failed: {str(e)}")
+                return AnalyzePortfolioResponse(
+                    metrics=None,
+                    success=False,
+                    message=f"Portfolio metrics calculation failed: {str(e)}",
+                    missing_tickers=missing_tickers,
+                    tickers_without_start_data=tickers_without_start_data
+                )
             
             self._logger.info("Portfolio analysis completed successfully")
             self._logger.debug(f"Portfolio metrics: Total Return: {metrics.total_return}, Sharpe: {metrics.sharpe_ratio:.2f}")
@@ -234,12 +262,21 @@ class AnalyzePortfolioUseCase:
             # Fallback to total values if no complete data
             portfolio_values_analysis = portfolio_values_total
         
+        # Ensure we have data to work with
+        if portfolio_values_analysis.empty:
+            raise ValueError("No portfolio data available for metrics calculation")
+        
         # Calculate returns using only complete data
         returns = portfolio_values_analysis.pct_change().dropna()
         
         # Basic metrics using complete data
         start_value = Money(portfolio_values_analysis.iloc[0])
         end_value_analysis = Money(portfolio_values_analysis.iloc[-1])
+        
+        # Check for division by zero
+        if start_value.amount == 0:
+            raise ValueError("Portfolio start value is zero - cannot calculate returns")
+        
         total_return = Percentage(float((end_value_analysis.amount - start_value.amount) / start_value.amount) * 100)
         
         # Calculate separate end values for display
