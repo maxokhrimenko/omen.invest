@@ -1,6 +1,7 @@
 # Virtual environment
 venv/
 input/*
+logs/*
 # Python
 __pycache__/
 *.py[cod]

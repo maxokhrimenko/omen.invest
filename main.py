@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Portfolio Analysis Tool - Main Entry Point
-Version 4.0.0 - Major Architecture Refactoring
+Version 4.0.2 - Data Validation & Missing Data Detection
 
 This application provides comprehensive portfolio analysis
 with interactive CLI interface following clean architecture principles.
@@ -73,7 +73,7 @@ def main():
     try:
         logger.info("=== PORTFOLIO ANALYSIS TOOL STARTING ===")
         logger.info(f"Session ID: {session_id}")
-        print("🚀 Starting Portfolio Analysis Tool v4.0.0...")
+        print("🚀 Starting Portfolio Analysis Tool v4.0.2...")
         print("📦 Initializing components...")
         
         logger.info("Setting up dependency injection")

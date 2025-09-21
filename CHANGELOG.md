@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.2] - 2025-09-21
+
+### 🔍 Data Validation & Missing Data Detection
+
+This release introduces comprehensive data validation to ensure analysis accuracy and provide clear feedback about data availability issues.
+
+### ✨ Added
+- **Missing Data Detection**: Identifies tickers with no data available at all
+- **Start Date Validation**: Detects tickers without data at analysis start date with 5-day business tolerance
+- **Data Availability Reporting**: Clear warnings about data availability issues in both portfolio and ticker analysis
+- **Business Day Tolerance**: 5-day tolerance accounts for weekends, holidays, and data availability delays
+- **User-Friendly Warnings**: Comprehensive data issues display with actionable recommendations
+- **Enhanced Response Structures**: 
+  - `AnalyzePortfolioResponse` now includes `missing_tickers` and `tickers_without_start_data` fields
+  - `AnalyzeTickerResponse` now includes `has_data_at_start` and `first_available_date` fields
+
+### 🔄 Changed
+- **Portfolio Analysis**: Now validates data availability and reports missing tickers
+- **Ticker Analysis**: Enhanced with start date validation and data availability reporting
+- **Controller Display**: Added `_display_data_issues()` method for comprehensive data warnings
+- **User Experience**: Analysis results now include data availability warnings when applicable
+
+### 🐛 Fixed
+- **Analysis Accuracy**: Prevents misleading results from incomplete data
+- **Data Transparency**: Users now have full visibility into data limitations
+- **Business Day Logic**: Proper handling of weekends and holidays in data validation
+
+### 📊 User Experience Improvements
+- **Clear Data Warnings**: Users see exactly which tickers have data issues
+- **Actionable Recommendations**: Suggestions to adjust analysis parameters or exclude problematic tickers
+- **Transparent Reporting**: Full visibility into how missing data affects analysis accuracy
+
+### 🔧 Technical Details
+- **Data Validation Logic**: `_identify_data_issues()` method in `AnalyzePortfolioUseCase`
+- **Business Day Tolerance**: 5-day tolerance for realistic data availability validation
+- **Enhanced Logging**: Detailed logging of data validation issues
+- **Controller Integration**: Seamless integration of data warnings in user interface
+
 ## [4.0.0] - 2025-09-19
 
 ### 🚀 Major Architecture Refactoring

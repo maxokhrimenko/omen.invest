@@ -291,7 +291,7 @@ For backwards compatibility, the original scripts are still available:
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history and changes.
 
 ## Version
-Current version: 4.0.0 - **Major Refactoring Release**
+Current version: 4.0.2 - **Data Validation & Missing Data Detection**
 
 ## Features
 - Portfolio analysis with consolidated metrics
