@@ -11,6 +11,7 @@ from ...infrastructure.logging.logger_service import get_logger_service
 from ...infrastructure.logging.decorators import log_user_action
 from ...infrastructure.color_metrics_service import ColorMetricsService
 from ...infrastructure.table_formatter import TableFormatter
+from ...infrastructure.repositories.warehouse_market_repository import WarehouseMarketRepository
 
 class PortfolioController:
     def __init__(self, 
@@ -40,9 +41,9 @@ class PortfolioController:
         print("\n📁 Load Portfolio")
         print("─" * 50)
         
-        file_path = input("Enter portfolio file path (default: input/input.csv): ").strip()
+        file_path = input("Enter portfolio file path (default: input/test.csv): ").strip()
         if not file_path:
-            file_path = "input/input.csv"
+            file_path = "input/test.csv"
         
         self._logger.info(f"User selected file path: {file_path}")
         self._logger_service.log_user_action("load_portfolio", {"file_path": file_path})
@@ -240,7 +241,9 @@ class PortfolioController:
         print("\n📊 PORTFOLIO ANALYSIS RESULTS")
         print("=" * 60)
         print(f"💸 Start Value:       {metrics.start_value}")
-        print(f"💰 End Value:         {metrics.end_value}")
+        print(f"💰 End Value Total:   {metrics.end_value}")
+        print(f"📈 End Value Analysis: {metrics.end_value_analysis}")
+        print(f"⚠️  End Value Missing: {metrics.end_value_missing}")
         
         # Color-coded metrics
         total_return_colored = self._color_service.colorize_percentage(
@@ -502,3 +505,43 @@ class PortfolioController:
                   f"({comparison.lowest_risk.volatility})")
         
         print("=" * 80)
+    
+    def display_warehouse_metrics(self, market_repo: WarehouseMarketRepository) -> None:
+        """Display warehouse observability metrics."""
+        if not isinstance(market_repo, WarehouseMarketRepository):
+            print("\n📊 Warehouse metrics not available (not using warehouse repository)")
+            return
+        
+        metrics = market_repo.get_observability_metrics()
+        
+        print("\n📊 WAREHOUSE METRICS")
+        print("=" * 50)
+        print(f"🏪 Warehouse Hits:        {metrics['warehouse_hits']}")
+        print(f"❌ Warehouse Misses:      {metrics['warehouse_misses']}")
+        print(f"🌐 Yahoo API Calls:       {metrics['yahoo_calls']}")
+        print(f"📈 Missing Range Segments: {metrics['missing_range_segments']}")
+        print(f"📅 Calendar Skipped Days:  {metrics['calendar_skipped_days']}")
+        
+        db_size = metrics['database_size_bytes']
+        if db_size > 0:
+            if db_size < 1024:
+                size_str = f"{db_size} B"
+            elif db_size < 1024 * 1024:
+                size_str = f"{db_size / 1024:.1f} KB"
+            else:
+                size_str = f"{db_size / (1024 * 1024):.1f} MB"
+            print(f"💾 Database Size:         {size_str}")
+        else:
+            print(f"💾 Database Size:         0 B")
+        
+        print("=" * 50)
+    
+    @log_user_action("show_warehouse_metrics")
+    def show_warehouse_metrics(self) -> None:
+        """Display warehouse observability metrics."""
+        print("\n🏪 Warehouse Metrics")
+        print("─" * 50)
+        
+        # Get the market repository from the analyze portfolio use case
+        market_repo = self._analyze_portfolio_use_case._market_data_repo
+        self.display_warehouse_metrics(market_repo)

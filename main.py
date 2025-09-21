@@ -6,20 +6,6 @@ Version 4.0.3 - Color-Coded Metrics & Enhanced Display
 This application provides comprehensive portfolio analysis
 with interactive CLI interface following clean architecture principles.
 
-Major changes in v4.0.3:
-- Color-coded metrics based on performance thresholds
-- Table display format for ticker analysis
-- Enhanced table formatting with color code support
-- Context-aware color coding for portfolio vs ticker metrics
-- Professional visual presentation with instant performance feedback
-
-Major changes in v4.0.0:
-- Complete refactoring with Clean Architecture
-- Interactive CLI interface
-- Comprehensive test suite (38 tests)
-- SOLID principles implementation
-- Enhanced error handling and user experience
-- Comprehensive logging system with session management
 """
 
 import sys
@@ -32,7 +18,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from src.presentation.cli.menu import MainMenu
 from src.presentation.controllers.portfolio_controller import PortfolioController
 from src.infrastructure.repositories.csv_portfolio_repository import CsvPortfolioRepository
-from src.infrastructure.repositories.yfinance_market_repository import YFinanceMarketRepository
+from src.infrastructure.repositories.warehouse_market_repository import WarehouseMarketRepository
+from src.infrastructure.config.warehouse_config import WarehouseConfig
 from src.application.use_cases.load_portfolio import LoadPortfolioUseCase
 from src.application.use_cases.analyze_portfolio import AnalyzePortfolioUseCase
 from src.application.use_cases.analyze_ticker import AnalyzeTickerUseCase
@@ -45,7 +32,14 @@ def setup_dependencies():
     """Set up dependency injection container."""
     # Infrastructure layer
     portfolio_repo = CsvPortfolioRepository()
-    market_repo = YFinanceMarketRepository()
+    
+    # Warehouse configuration
+    warehouse_config = WarehouseConfig()
+    market_repo = WarehouseMarketRepository(
+        warehouse_enabled=warehouse_config.is_enabled(),
+        warehouse_db_path=warehouse_config.get_db_path()
+    )
+    
     color_service = ColorMetricsService()
     
     # Application layer

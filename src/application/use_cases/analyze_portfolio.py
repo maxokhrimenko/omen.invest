@@ -30,6 +30,8 @@ class PortfolioMetrics:
     beta: float
     start_value: Money
     end_value: Money
+    end_value_analysis: Money  # Only tickers with complete data
+    end_value_missing: Money   # Only tickers missing data at start
 
 @dataclass
 class AnalyzePortfolioResponse:
@@ -84,8 +86,8 @@ class AnalyzePortfolioUseCase:
             
             # Calculate portfolio value over time
             self._logger.debug("Calculating portfolio values over time")
-            portfolio_values = self._calculate_portfolio_values(
-                request.portfolio, price_history
+            portfolio_values, portfolio_values_analysis, portfolio_values_missing = self._calculate_portfolio_values(
+                request.portfolio, price_history, tickers_without_start_data
             )
             
             if portfolio_values.empty:
@@ -98,10 +100,12 @@ class AnalyzePortfolioUseCase:
             
             self._logger.info(f"Portfolio values calculated for {len(portfolio_values)} data points")
             
-            # Calculate metrics
+            # Calculate metrics using only complete data tickers
             self._logger.debug("Calculating portfolio metrics")
             metrics = self._calculate_metrics(
-                portfolio_values, 
+                portfolio_values_analysis,  # Use only complete data for metrics
+                portfolio_values,           # Total portfolio values for display
+                portfolio_values_missing,   # Missing data values for display
                 request.risk_free_rate
             )
             
@@ -151,23 +155,34 @@ class AnalyzePortfolioUseCase:
     
     def _calculate_portfolio_values(self, 
                                    portfolio: Portfolio, 
-                                   price_history: Dict[Ticker, pd.Series]) -> pd.Series:
-        """Calculate portfolio value over time."""
+                                   price_history: Dict[Ticker, pd.Series],
+                                   tickers_without_start_data: List[str]) -> tuple[pd.Series, pd.Series, pd.Series]:
+        """Calculate portfolio value over time, separating complete and incomplete data tickers."""
         # Align all price series by date
         price_df = pd.DataFrame(price_history)
         if price_df.empty:
-            return pd.Series(dtype=float)
+            return pd.Series(dtype=float), pd.Series(dtype=float), pd.Series(dtype=float)
         
-        # Calculate position values
+        # Calculate position values for all tickers
         portfolio_values = pd.Series(0.0, index=price_df.index)
+        # Calculate position values for complete data tickers only
+        portfolio_values_analysis = pd.Series(0.0, index=price_df.index)
+        # Calculate position values for incomplete data tickers only
+        portfolio_values_missing = pd.Series(0.0, index=price_df.index)
         
         for position in portfolio:
             if position.ticker in price_history:
                 ticker_prices = price_history[position.ticker]
                 position_values = ticker_prices * float(position.quantity)
                 portfolio_values = portfolio_values.add(position_values, fill_value=0)
+                
+                # Separate based on whether ticker has complete data
+                if position.ticker.symbol in tickers_without_start_data:
+                    portfolio_values_missing = portfolio_values_missing.add(position_values, fill_value=0)
+                else:
+                    portfolio_values_analysis = portfolio_values_analysis.add(position_values, fill_value=0)
         
-        return portfolio_values.dropna()
+        return portfolio_values.dropna(), portfolio_values_analysis.dropna(), portfolio_values_missing.dropna()
     
     def _identify_data_issues(self, 
                              tickers: List[Ticker], 
@@ -207,22 +222,34 @@ class AnalyzePortfolioUseCase:
     
     @log_calculation("portfolio_metrics", include_inputs=True, include_outputs=True)
     def _calculate_metrics(self, 
-                          portfolio_values: pd.Series, 
+                          portfolio_values_analysis: pd.Series,  # Only complete data for calculations
+                          portfolio_values_total: pd.Series,     # Total values for display
+                          portfolio_values_missing: pd.Series,   # Missing data values for display
                           risk_free_rate: float) -> PortfolioMetrics:
-        """Calculate portfolio performance metrics."""
-        self._logger.debug(f"Calculating portfolio metrics for {len(portfolio_values)} data points")
-        # Calculate returns
-        returns = portfolio_values.pct_change().dropna()
+        """Calculate portfolio performance metrics using only complete data tickers."""
+        self._logger.debug(f"Calculating portfolio metrics for {len(portfolio_values_analysis)} data points")
         
-        # Basic metrics
-        start_value = Money(portfolio_values.iloc[0])
-        end_value = Money(portfolio_values.iloc[-1])
-        total_return = Percentage(float((end_value.amount - start_value.amount) / start_value.amount) * 100)
+        # Use only complete data for all calculations
+        if portfolio_values_analysis.empty:
+            # Fallback to total values if no complete data
+            portfolio_values_analysis = portfolio_values_total
+        
+        # Calculate returns using only complete data
+        returns = portfolio_values_analysis.pct_change().dropna()
+        
+        # Basic metrics using complete data
+        start_value = Money(portfolio_values_analysis.iloc[0])
+        end_value_analysis = Money(portfolio_values_analysis.iloc[-1])
+        total_return = Percentage(float((end_value_analysis.amount - start_value.amount) / start_value.amount) * 100)
+        
+        # Calculate separate end values for display
+        end_value_total = Money(portfolio_values_total.iloc[-1]) if not portfolio_values_total.empty else Money(0)
+        end_value_missing = Money(portfolio_values_missing.iloc[-1]) if not portfolio_values_missing.empty else Money(0)
         
         # Annualized return
         days = len(returns)
         if days > 0:
-            total_return_ratio = float(end_value.amount / start_value.amount)
+            total_return_ratio = float(end_value_analysis.amount / start_value.amount)
             annualized_return = Percentage(
                 (total_return_ratio ** (252 / days) - 1) * 100
             )
@@ -273,5 +300,7 @@ class AnalyzePortfolioUseCase:
             var_95=var_95,
             beta=beta,
             start_value=start_value,
-            end_value=end_value
+            end_value=end_value_total,  # Total end value for display
+            end_value_analysis=end_value_analysis,  # Only complete data
+            end_value_missing=end_value_missing  # Only missing data
         )

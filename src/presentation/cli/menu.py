@@ -11,6 +11,7 @@ class MainMenu:
             "4": ("Compare Tickers", self._controller.compare_tickers),
             "5": ("Generate Report", self._controller.generate_report),
             "6": ("Settings", self._controller.show_settings),
+            "7": ("Warehouse Metrics", self._controller.show_warehouse_metrics),
             "0": ("Exit", self._exit)
         }
     
@@ -60,6 +61,7 @@ class MainMenu:
             "4": "🔬",
             "5": "📋",
             "6": "⚙️",
+            "7": "🏪",
             "0": "🚪"
         }
         return icons.get(key, "📌")
