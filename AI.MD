@@ -35,7 +35,7 @@ Investment portfolio analysis tool providing comprehensive financial metrics and
 N/A - Personal project
 
 **High-level function of the system in one paragraph.**  
-The Portfolio Analysis Tool is a Python-based CLI application that analyzes investment portfolios using Clean Architecture principles. It loads portfolio data from CSV files, fetches real-time market data via Yahoo Finance API, and calculates comprehensive financial metrics including returns, risk ratios, volatility, and dividend analysis. The system provides both portfolio-level consolidated analysis and individual ticker analysis with interactive CLI interface.
+The Portfolio Analysis Tool is a Python-based CLI application that analyzes investment portfolios using Clean Architecture principles. It loads portfolio data from CSV files, fetches real-time market data via Yahoo Finance API, and calculates comprehensive financial metrics including returns, risk ratios, volatility, and dividend analysis. The system provides both portfolio-level consolidated analysis and individual ticker analysis with interactive CLI interface, featuring color-coded metrics based on performance thresholds, multiple display formats (cards and table views), and professional visual presentation with instant performance feedback.
 
 **Entry points (CLI/Service/Workers):**  
 - `main.py` - Primary CLI application entry point
@@ -161,6 +161,8 @@ Evidence: yfinance_market_repository.py:L1-L135
 | CsvPortfolioRepository | Repository | Load/save portfolios from CSV | load(file_path), save(portfolio, file_path) | pandas | csv_portfolio_repository.py:L9-L74 |
 | YFinanceMarketRepository | Repository | Fetch market data from Yahoo Finance | get_price_history(), get_current_prices(), get_dividend_history() | yfinance | yfinance_market_repository.py:L9-L134 |
 | LoggerService | Service | Centralized logging management | get_logger(), log_performance(), log_user_action(), log_api_call() | logging | logger_service.py:L21-L235 |
+| ColorMetricsService | Service | Color-code financial metrics based on performance thresholds | get_color_for_metric(), colorize_percentage(), colorize_ratio() | None | color_metrics_service.py:L8-L159 |
+| TableFormatter | Utility | Format tables with proper color code handling | create_table(), format_table_row(), strip_ansi_codes() | re | table_formatter.py:L8-L95 |
 | Portfolio | Entity | Portfolio aggregate root | get_tickers(), get_positions(), get_total_value() | Position, Ticker | portfolio.py:L6-L43 |
 | Ticker | Entity | Stock ticker symbol | symbol property | None | ticker.py:L1-L27 |
 | Position | Entity | Portfolio position | get_value(price) | Ticker, Money | position.py:L6-L37 |

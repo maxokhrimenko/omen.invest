@@ -62,8 +62,10 @@ portfolio-analysis-tool/
 │   │   │   ├── __init__.py
 │   │   │   ├── logger_service.py  # Centralized logging service
 │   │   │   └── decorators.py      # Logging decorators
-│   │   ├── services/              # External service integrations
-│   │   │   └── __init__.py
+│   │   ├── color_metrics_service.py # Color-coding service for metrics
+│   │   ├── table_formatter.py     # Table formatting utility
+│   │   └── services/              # External service integrations
+│   │       └── __init__.py
 │   │   ├── config/                # Configuration management
 │   │   │   ├── __init__.py
 │   │   │   └── settings.py        # Settings service
@@ -450,6 +452,96 @@ class AnalyzeTickerResponse:
 - **User Awareness**: Clear understanding of data limitations
 - **Informed Decisions**: Users can adjust analysis parameters accordingly
 - **Transparency**: Full visibility into data availability issues
+
+## 🎨 Color-Coded Metrics System
+
+### Overview
+The application includes a comprehensive color-coding system that provides instant visual feedback on metric performance based on predefined thresholds from METRICS_MEMORANDUM.md.
+
+### Architecture Components
+
+#### MetricsColorService Interface
+**Location**: `src/application/interfaces/metrics_color_service.py`
+
+**Purpose**: Defines the contract for color-coding financial metrics.
+
+**Key Methods**:
+- `get_color_for_metric()`: Returns color code for specific metric values
+- `get_level_for_metric()`: Returns performance level (Bad/Normal/Excellent)
+- `colorize_text()`: Applies color to text strings
+- `colorize_percentage()`: Colorizes percentage values
+- `colorize_ratio()`: Colorizes ratio values
+
+#### ColorMetricsService Implementation
+**Location**: `src/infrastructure/color_metrics_service.py`
+
+**Purpose**: Concrete implementation of color-coding service with context-aware thresholds.
+
+**Features**:
+- **Context-Aware Thresholds**: Different rules for portfolio vs ticker metrics
+- **Special Metric Handling**: Proper logic for metrics where lower values are better
+- **ANSI Color Support**: Full terminal color compatibility
+- **Extensible Design**: Easy addition of new metrics and thresholds
+
+#### TableFormatter Utility
+**Location**: `src/infrastructure/table_formatter.py`
+
+**Purpose**: Advanced table formatting that properly handles ANSI color codes.
+
+**Key Features**:
+- **ANSI Code Stripping**: Removes color codes for width calculations
+- **Dynamic Column Sizing**: Automatic width calculation based on content
+- **Proper Alignment**: Centers content while accounting for color codes
+- **Flexible Formatting**: Supports various table layouts and separators
+
+### Color Coding Thresholds
+
+#### Portfolio Metrics (Consolidated)
+- **Total Return**: Red <10%, Yellow 10-30%, Green >30%
+- **Annualized Return**: Red <5%, Yellow 5-15%, Green >15%
+- **Sharpe Ratio**: Red <0.5, Yellow 0.5-1.5, Green >1.5
+- **Sortino Ratio**: Red <1.0, Yellow 1.0-2.0, Green >2.0
+- **Calmar Ratio**: Red <0.5, Yellow 0.5-1.0, Green >1.0
+- **Max Drawdown**: Red >-30%, Yellow -30% to -15%, Green >-15%
+- **Volatility**: Red >20%, Yellow 10-20%, Green <10%
+- **VaR (95%)**: Red >-2%, Yellow -2% to -1%, Green >-1%
+- **Beta**: Red >1.3, Yellow 0.7-1.3, Green <0.7
+
+#### Ticker Metrics (Individual)
+- **Annualized Return**: Red <5%, Yellow 5-20%, Green >20%
+- **Sharpe Ratio**: Red <0.5, Yellow 0.5-1.5, Green >1.5
+- **Sortino Ratio**: Red <0.8, Yellow 0.8-2.0, Green >2.0
+- **Max Drawdown**: Red >-50%, Yellow -50% to -30%, Green >-30%
+- **Volatility**: Red >50%, Yellow 30-50%, Green <30%
+- **Beta**: Red >1.5, Yellow 0.5-1.5, Green <0.5
+- **VaR (95%)**: Red >-4%, Yellow -4% to -2%, Green >-2%
+- **Momentum (12-1)**: Red <0%, Yellow 0-20%, Green >20%
+- **Dividend Yield**: Red <1%, Yellow 1-4%, Green >4%
+- **Maximum Yield**: Red <2%, Yellow 2-6%, Green >6%
+
+### Display Format Options
+
+#### Cards Format
+- **Purpose**: Detailed individual display for each ticker
+- **Features**: Comprehensive metrics with color coding
+- **Use Case**: Detailed analysis and comparison
+
+#### Table Format
+- **Purpose**: Compact tabular display of all tickers
+- **Features**: Color-coded metrics in organized columns
+- **Use Case**: Quick overview and comparison
+
+### Integration Points
+
+#### PortfolioController Integration
+- **Dependency Injection**: Color service injected into controller
+- **Display Methods**: All display methods use color service
+- **Format Selection**: Users can choose between cards and table formats
+
+#### SOLID Principles Compliance
+- **Single Responsibility**: Color service has single responsibility
+- **Open/Closed**: Extensible for new metrics and thresholds
+- **Dependency Inversion**: Controller depends on color service abstraction
 
 ## 🧪 Testing Strategy
 

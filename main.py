@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """
 Portfolio Analysis Tool - Main Entry Point
-Version 4.0.2 - Data Validation & Missing Data Detection
+Version 4.0.3 - Color-Coded Metrics & Enhanced Display
 
 This application provides comprehensive portfolio analysis
 with interactive CLI interface following clean architecture principles.
+
+Major changes in v4.0.3:
+- Color-coded metrics based on performance thresholds
+- Table display format for ticker analysis
+- Enhanced table formatting with color code support
+- Context-aware color coding for portfolio vs ticker metrics
+- Professional visual presentation with instant performance feedback
 
 Major changes in v4.0.0:
 - Complete refactoring with Clean Architecture
@@ -31,6 +38,7 @@ from src.application.use_cases.analyze_portfolio import AnalyzePortfolioUseCase
 from src.application.use_cases.analyze_ticker import AnalyzeTickerUseCase
 from src.application.use_cases.compare_tickers import CompareTickersUseCase
 from src.infrastructure.logging.logger_service import initialize_logging
+from src.infrastructure.color_metrics_service import ColorMetricsService
 
 
 def setup_dependencies():
@@ -38,6 +46,7 @@ def setup_dependencies():
     # Infrastructure layer
     portfolio_repo = CsvPortfolioRepository()
     market_repo = YFinanceMarketRepository()
+    color_service = ColorMetricsService()
     
     # Application layer
     load_portfolio_use_case = LoadPortfolioUseCase(portfolio_repo)
@@ -50,7 +59,8 @@ def setup_dependencies():
         load_portfolio_use_case,
         analyze_portfolio_use_case,
         analyze_ticker_use_case,
-        compare_tickers_use_case
+        compare_tickers_use_case,
+        color_service
     )
     
     return controller
@@ -73,7 +83,7 @@ def main():
     try:
         logger.info("=== PORTFOLIO ANALYSIS TOOL STARTING ===")
         logger.info(f"Session ID: {session_id}")
-        print("🚀 Starting Portfolio Analysis Tool v4.0.2...")
+        print("🚀 Starting Portfolio Analysis Tool v4.0.3...")
         print("📦 Initializing components...")
         
         logger.info("Setting up dependency injection")

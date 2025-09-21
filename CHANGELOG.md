@@ -5,6 +5,85 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.3] - 2025-09-21
+
+### 🎨 Color-Coded Metrics & Enhanced Display
+
+This release introduces comprehensive color-coding for all financial metrics based on performance thresholds, along with improved table formatting and display options.
+
+### ✨ Added
+- **Color-Coded Metrics System**: Complete color-coding implementation based on METRICS_MEMORANDUM.md thresholds
+- **MetricsColorService**: Dedicated service for color-coding financial metrics with context-aware thresholds
+- **Table Display Format**: New table view option for ticker analysis alongside existing cards format
+- **TableFormatter Utility**: Advanced table formatting that properly handles ANSI color codes
+- **Display Format Selection**: Users can choose between cards and table formats for ticker analysis
+- **Context-Aware Color Coding**: Different thresholds for portfolio vs ticker metrics
+- **Special Metric Handling**: Proper color logic for metrics where lower values are better (max_drawdown, volatility, etc.)
+
+### 🔄 Changed
+- **Ticker Analysis Display**: Enhanced with color-coded metrics and format selection
+- **Portfolio Analysis Display**: All consolidated metrics now color-coded
+- **Table Formatting**: Fixed alignment issues caused by ANSI color codes
+- **User Interface**: Added display format selection in ticker analysis menu
+- **Controller Architecture**: Integrated color service with dependency injection
+
+### 🎯 Color Coding Implementation
+
+#### Portfolio Metrics (Consolidated):
+- **Total Return**: Red <10%, Yellow 10-30%, Green >30%
+- **Annualized Return**: Red <5%, Yellow 5-15%, Green >15%
+- **Sharpe Ratio**: Red <0.5, Yellow 0.5-1.5, Green >1.5
+- **Sortino Ratio**: Red <1.0, Yellow 1.0-2.0, Green >2.0
+- **Calmar Ratio**: Red <0.5, Yellow 0.5-1.0, Green >1.0
+- **Max Drawdown**: Red >-30%, Yellow -30% to -15%, Green >-15%
+- **Volatility**: Red >20%, Yellow 10-20%, Green <10%
+- **VaR (95%)**: Red >-2%, Yellow -2% to -1%, Green >-1%
+- **Beta**: Red >1.3, Yellow 0.7-1.3, Green <0.7
+
+#### Ticker Metrics (Individual):
+- **Annualized Return**: Red <5%, Yellow 5-20%, Green >20%
+- **Sharpe Ratio**: Red <0.5, Yellow 0.5-1.5, Green >1.5
+- **Sortino Ratio**: Red <0.8, Yellow 0.8-2.0, Green >2.0
+- **Max Drawdown**: Red >-50%, Yellow -50% to -30%, Green >-30%
+- **Volatility**: Red >50%, Yellow 30-50%, Green <30%
+- **Beta**: Red >1.5, Yellow 0.5-1.5, Green <0.5
+- **VaR (95%)**: Red >-4%, Yellow -4% to -2%, Green >-2%
+- **Momentum (12-1)**: Red <0%, Yellow 0-20%, Green >20%
+- **Dividend Yield**: Red <1%, Yellow 1-4%, Green >4%
+- **Maximum Yield**: Red <2%, Yellow 2-6%, Green >6%
+
+### 🛠️ Technical Architecture
+
+#### New Components:
+- **`MetricsColorService`**: Interface and implementation for color-coding metrics
+- **`TableFormatter`**: Utility for proper table formatting with color codes
+- **Color Code System**: ANSI escape sequences with proper terminal compatibility
+- **Dynamic Column Sizing**: Automatic column width calculation based on content
+
+#### SOLID Principles:
+- **Single Responsibility**: Dedicated color service with single responsibility
+- **Open/Closed**: Extensible color system for new metrics
+- **Dependency Inversion**: Controller depends on color service abstraction
+
+### 🐛 Fixed
+- **Table Alignment**: Fixed column misalignment caused by ANSI color codes
+- **Display Width Calculation**: Proper handling of color codes in width calculations
+- **Max Drawdown Logic**: Corrected color logic for negative values
+- **Column Sizing**: Dynamic column sizing based on actual content width
+
+### 📊 User Experience Improvements
+- **Visual Clarity**: Instant visual feedback on metric performance
+- **Format Flexibility**: Choice between detailed cards and compact table views
+- **Consistent Formatting**: Properly aligned tables with color coding
+- **Professional Appearance**: Clean, readable output with color-coded insights
+
+### 🔧 Technical Details
+- **ANSI Color Support**: Full terminal color compatibility
+- **Regex Pattern Matching**: Efficient ANSI code detection and removal
+- **Dynamic Width Calculation**: Real-time column sizing based on content
+- **Context-Aware Thresholds**: Different color rules for portfolio vs ticker metrics
+- **Extensible Design**: Easy addition of new metrics and color rules
+
 ## [4.0.2] - 2025-09-21
 
 ### 🔍 Data Validation & Missing Data Detection

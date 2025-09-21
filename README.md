@@ -7,30 +7,33 @@ A comprehensive Python-based tool for analyzing investment portfolios, built wit
 ## 🎯 Overview
 
 This tool helps investors analyze their portfolios by providing:
-- Overall portfolio performance metrics
+- Overall portfolio performance metrics with color-coded indicators
 - Individual stock analysis with dividend tracking
-- Risk-adjusted return calculations
-- Dividend yield analysis with color-coded output
+- Risk-adjusted return calculations with visual performance feedback
+- Multiple display formats (cards and table views)
+- Professional color-coded output based on performance thresholds
 
 ## 📋 Features
 
 ### Portfolio-Level Analysis
 - Total portfolio value tracking
-- Overall return calculation
-- Annualized return computation
-- Sharpe ratio calculation
-- Maximum drawdown analysis
+- Overall return calculation with color-coded performance indicators
+- Annualized return computation with visual feedback
+- Sharpe ratio calculation with performance thresholds
+- Maximum drawdown analysis with risk indicators
 - Trading days tracking
 - **Missing data detection and validation**
+- **Color-coded metrics based on METRICS_MEMORANDUM.md thresholds**
 
 ### Per-Ticker Analysis
-- Individual stock performance metrics
-- Dividend yield tracking and analysis
-- Color-coded yield indicators
+- Individual stock performance metrics with color coding
+- Dividend yield tracking and analysis with visual indicators
+- **Multiple display formats**: Cards (detailed) and Table (compact) views
 - Historical dividend data analysis
 - Expected dividend calculations
-- Risk metrics per ticker
+- Risk metrics per ticker with performance color coding
 - **Data availability validation with business day tolerance**
+- **Context-aware color coding**: Different thresholds for portfolio vs ticker metrics
 
 ### Data Validation & Quality Assurance
 - **Missing Data Detection**: Identifies tickers with no data available
@@ -38,6 +41,21 @@ This tool helps investors analyze their portfolios by providing:
 - **User-Friendly Warnings**: Clear messages about data availability issues
 - **Analysis Impact Reporting**: Shows how missing data affects analysis accuracy
 - **Transparent Reporting**: Full visibility into data limitations and recommendations
+
+### Color-Coded Metrics System
+- **Performance-Based Color Coding**: Red (Bad), Yellow (Normal), Green (Excellent)
+- **Context-Aware Thresholds**: Different color rules for portfolio vs individual ticker metrics
+- **Comprehensive Coverage**: All financial metrics color-coded based on METRICS_MEMORANDUM.md
+- **Visual Performance Feedback**: Instant visual assessment of metric performance
+- **Professional Presentation**: Clean, readable output with color-coded insights
+- **Terminal Compatible**: Full ANSI color code support for most terminals
+
+### Display Format Options
+- **Cards Format**: Detailed individual cards for each ticker with comprehensive metrics
+- **Table Format**: Compact table view with all tickers in rows and metrics in columns
+- **Format Selection**: Users can choose their preferred display format
+- **Proper Alignment**: Advanced table formatting that handles color codes correctly
+- **Dynamic Sizing**: Automatic column width calculation based on content
 
 ### Comprehensive Logging System
 - **Session-based logging**: Complete logs for each application session
@@ -291,14 +309,16 @@ For backwards compatibility, the original scripts are still available:
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history and changes.
 
 ## Version
-Current version: 4.0.2 - **Data Validation & Missing Data Detection**
+Current version: 4.0.3 - **Color-Coded Metrics & Enhanced Display**
 
 ## Features
-- Portfolio analysis with consolidated metrics
-- Per-ticker analysis with dividend tracking
-- Color-coded yield indicators
+- Portfolio analysis with consolidated metrics and color-coded performance indicators
+- Per-ticker analysis with dividend tracking and visual feedback
+- Multiple display formats (cards and table views)
+- Comprehensive color-coded metrics based on performance thresholds
+- Advanced table formatting with proper color code handling
 - CSV-based portfolio data input
-- Comprehensive error handling
+- Comprehensive error handling and data validation
 
 ## 📚 Documentation
 

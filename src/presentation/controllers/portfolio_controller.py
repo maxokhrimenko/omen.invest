@@ -9,17 +9,21 @@ from ...domain.entities.ticker import Ticker
 from ...domain.value_objects.date_range import DateRange
 from ...infrastructure.logging.logger_service import get_logger_service
 from ...infrastructure.logging.decorators import log_user_action
+from ...infrastructure.color_metrics_service import ColorMetricsService
+from ...infrastructure.table_formatter import TableFormatter
 
 class PortfolioController:
     def __init__(self, 
                  load_portfolio_use_case: LoadPortfolioUseCase,
                  analyze_portfolio_use_case: AnalyzePortfolioUseCase,
                  analyze_ticker_use_case: AnalyzeTickerUseCase,
-                 compare_tickers_use_case: CompareTickersUseCase):
+                 compare_tickers_use_case: CompareTickersUseCase,
+                 color_service: ColorMetricsService = None):
         self._load_portfolio_use_case = load_portfolio_use_case
         self._analyze_portfolio_use_case = analyze_portfolio_use_case
         self._analyze_ticker_use_case = analyze_ticker_use_case
         self._compare_tickers_use_case = compare_tickers_use_case
+        self._color_service = color_service or ColorMetricsService()
         self._current_portfolio: Optional[Portfolio] = None
         self._default_start_date = "2024-03-01"
         self._risk_free_rate = 0.03
@@ -107,10 +111,21 @@ class PortfolioController:
         
         choice = input("\nEnter your choice (1-2): ").strip()
         
-        if choice == "1":
-            self._analyze_all_tickers()
-        elif choice == "2":
-            self._analyze_specific_ticker()
+        if choice in ["1", "2"]:
+            print("\nSelect display format:")
+            print("1. Cards format (current)")
+            print("2. Table format")
+            
+            format_choice = input("Enter format choice (1-2, default: 1): ").strip()
+            if not format_choice:
+                format_choice = "1"
+            
+            display_format = "cards" if format_choice == "1" else "table"
+            
+            if choice == "1":
+                self._analyze_all_tickers(display_format)
+            elif choice == "2":
+                self._analyze_specific_ticker(display_format)
         else:
             print("❌ Invalid choice.")
     
@@ -221,23 +236,60 @@ class PortfolioController:
         print("Tickers:", ", ".join([t.symbol for t in self._current_portfolio.get_tickers()]))
     
     def _display_portfolio_metrics(self, metrics) -> None:
-        """Display portfolio analysis results."""
+        """Display portfolio analysis results with color coding."""
         print("\n📊 PORTFOLIO ANALYSIS RESULTS")
         print("=" * 60)
         print(f"💸 Start Value:       {metrics.start_value}")
         print(f"💰 End Value:         {metrics.end_value}")
-        print(f"🔺 Total Return:      {metrics.total_return}")
-        print(f"📈 Annualized Return: {metrics.annualized_return}")
-        print(f"📊 Volatility:        {metrics.volatility}")
-        print(f"📏 Sharpe Ratio:      {metrics.sharpe_ratio:.2f}")
-        print(f"📉 Max Drawdown:      {metrics.max_drawdown}")
-        print(f"📈 Sortino Ratio:     {metrics.sortino_ratio:.2f}")
-        print(f"📊 Calmar Ratio:      {metrics.calmar_ratio:.2f}")
-        print(f"⚠️  VaR (95%):        {metrics.var_95}")
-        print(f"β  Beta:             {metrics.beta:.2f}")
+        
+        # Color-coded metrics
+        total_return_colored = self._color_service.colorize_percentage(
+            metrics.total_return.value, "total_return", "portfolio"
+        )
+        print(f"🔺 Total Return:      {total_return_colored}")
+        
+        annualized_return_colored = self._color_service.colorize_percentage(
+            metrics.annualized_return.value, "annualized_return", "portfolio"
+        )
+        print(f"📈 Annualized Return: {annualized_return_colored}")
+        
+        volatility_colored = self._color_service.colorize_percentage(
+            metrics.volatility.value, "volatility", "portfolio"
+        )
+        print(f"📊 Volatility:        {volatility_colored}")
+        
+        sharpe_colored = self._color_service.colorize_ratio(
+            metrics.sharpe_ratio, "sharpe_ratio", "portfolio"
+        )
+        print(f"📏 Sharpe Ratio:      {sharpe_colored}")
+        
+        max_drawdown_colored = self._color_service.colorize_percentage(
+            metrics.max_drawdown.value, "max_drawdown", "portfolio"
+        )
+        print(f"📉 Max Drawdown:      {max_drawdown_colored}")
+        
+        sortino_colored = self._color_service.colorize_ratio(
+            metrics.sortino_ratio, "sortino_ratio", "portfolio"
+        )
+        print(f"📈 Sortino Ratio:     {sortino_colored}")
+        
+        calmar_colored = self._color_service.colorize_ratio(
+            metrics.calmar_ratio, "calmar_ratio", "portfolio"
+        )
+        print(f"📊 Calmar Ratio:      {calmar_colored}")
+        
+        var_colored = self._color_service.colorize_percentage(
+            metrics.var_95.value, "var_95", "portfolio"
+        )
+        print(f"⚠️  VaR (95%):        {var_colored}")
+        
+        beta_colored = self._color_service.colorize_ratio(
+            metrics.beta, "beta", "portfolio"
+        )
+        print(f"β  Beta:             {beta_colored}")
         print("=" * 60)
     
-    def _analyze_all_tickers(self) -> None:
+    def _analyze_all_tickers(self, display_format: str = "cards") -> None:
         """Analyze all tickers in portfolio."""
         date_range = self._get_date_range()
         
@@ -261,9 +313,9 @@ class PortfolioController:
                     print(f"⚠️  Failed to analyze {ticker.symbol}: {response.message}")
         
         if results:
-            self._display_ticker_results(results)
+            self._display_ticker_results(results, display_format)
     
-    def _analyze_specific_ticker(self) -> None:
+    def _analyze_specific_ticker(self, display_format: str = "cards") -> None:
         """Analyze a specific ticker."""
         tickers = self._current_portfolio.get_tickers()
         
@@ -287,7 +339,7 @@ class PortfolioController:
                 response = self._analyze_ticker_use_case.execute(request)
                 
                 if response.success and response.metrics:
-                    self._display_ticker_results([response.metrics])
+                    self._display_ticker_results([response.metrics], display_format)
                 else:
                     if not response.has_data_at_start and response.first_available_date:
                         print(f"❌ {selected_ticker.symbol}: No data at start date. First available: {response.first_available_date}")
@@ -298,7 +350,7 @@ class PortfolioController:
         except ValueError:
             print("❌ Please enter a valid number.")
     
-    def _display_ticker_results(self, results) -> None:
+    def _display_ticker_results(self, results, display_format: str = "cards") -> None:
         """Display ticker analysis results."""
         print(f"\n📈 TICKER ANALYSIS RESULTS ({len(results)} tickers)")
         print("=" * 80)
@@ -306,18 +358,110 @@ class PortfolioController:
         # Sort by annualized return
         sorted_results = sorted(results, key=lambda r: r.annualized_return.value, reverse=True)
         
-        for metrics in sorted_results:
-            print(f"\n🏷️  {metrics.ticker.symbol}")
+        if display_format == "table":
+            self._display_ticker_results_table(sorted_results)
+        else:
+            self._display_ticker_results_cards(sorted_results)
+        
+        print("=" * 80)
+    
+    def _display_ticker_results_cards(self, results) -> None:
+        """Display ticker analysis results in cards format with color coding."""
+        for metrics in results:
+            # Colorize ticker symbol
+            ticker_colored = self._color_service.colorize_ticker_symbol(metrics.ticker.symbol)
+            print(f"\n🏷️  {ticker_colored}")
             print(f"   💸 Start Price:        {metrics.start_price}")
             print(f"   💰 End Price:          {metrics.end_price}")
-            print(f"   🔺 Total Return:       {metrics.total_return}")
-            print(f"   📈 Annualized Return:  {metrics.annualized_return}")
-            print(f"   📊 Volatility:         {metrics.volatility}")
-            print(f"   📏 Sharpe Ratio:       {metrics.sharpe_ratio:.2f}")
-            print(f"   📉 Max Drawdown:       {metrics.max_drawdown}")
-            print(f"   💰 Dividend Yield:     {metrics.dividend_yield}")
-            print(f"   📊 Momentum (12-1):    {metrics.momentum_12_1}")
-        print("=" * 80)
+            
+            # Color-coded metrics
+            total_return_colored = self._color_service.colorize_percentage(
+                metrics.total_return.value, "annualized_return", "ticker"
+            )
+            print(f"   🔺 Total Return:       {total_return_colored}")
+            
+            annualized_return_colored = self._color_service.colorize_percentage(
+                metrics.annualized_return.value, "annualized_return", "ticker"
+            )
+            print(f"   📈 Annualized Return:  {annualized_return_colored}")
+            
+            volatility_colored = self._color_service.colorize_percentage(
+                metrics.volatility.value, "volatility", "ticker"
+            )
+            print(f"   📊 Volatility:         {volatility_colored}")
+            
+            sharpe_colored = self._color_service.colorize_ratio(
+                metrics.sharpe_ratio, "sharpe_ratio", "ticker"
+            )
+            print(f"   📏 Sharpe Ratio:       {sharpe_colored}")
+            
+            max_drawdown_colored = self._color_service.colorize_percentage(
+                metrics.max_drawdown.value, "max_drawdown", "ticker"
+            )
+            print(f"   📉 Max Drawdown:       {max_drawdown_colored}")
+            
+            dividend_yield_colored = self._color_service.colorize_percentage(
+                metrics.dividend_yield.value, "dividend_yield", "ticker"
+            )
+            print(f"   💰 Dividend Yield:     {dividend_yield_colored}")
+            
+            momentum_colored = self._color_service.colorize_percentage(
+                metrics.momentum_12_1.value, "momentum_12_1", "ticker"
+            )
+            print(f"   📊 Momentum (12-1):    {momentum_colored}")
+    
+    def _display_ticker_results_table(self, results) -> None:
+        """Display ticker analysis results in table format with color coding."""
+        # Define column headers
+        headers = [
+            "Ticker", "Start $", "End $", "TotRet", "AnnRet", 
+            "Volatility", "Sharpe", "MaxDD", "DivYield", "Momentum"
+        ]
+        
+        # Prepare data rows with color coding
+        data_rows = []
+        for metrics in results:
+            # Colorize each metric
+            ticker_colored = self._color_service.colorize_ticker_symbol(metrics.ticker.symbol)
+            total_return_colored = self._color_service.colorize_percentage(
+                metrics.total_return.value, "annualized_return", "ticker"
+            )
+            annualized_return_colored = self._color_service.colorize_percentage(
+                metrics.annualized_return.value, "annualized_return", "ticker"
+            )
+            volatility_colored = self._color_service.colorize_percentage(
+                metrics.volatility.value, "volatility", "ticker"
+            )
+            sharpe_colored = self._color_service.colorize_ratio(
+                metrics.sharpe_ratio, "sharpe_ratio", "ticker"
+            )
+            max_drawdown_colored = self._color_service.colorize_percentage(
+                metrics.max_drawdown.value, "max_drawdown", "ticker"
+            )
+            dividend_yield_colored = self._color_service.colorize_percentage(
+                metrics.dividend_yield.value, "dividend_yield", "ticker"
+            )
+            momentum_colored = self._color_service.colorize_percentage(
+                metrics.momentum_12_1.value, "momentum_12_1", "ticker"
+            )
+            
+            row_data = [
+                ticker_colored,
+                f"${metrics.start_price.amount:.2f}",
+                f"${metrics.end_price.amount:.2f}",
+                total_return_colored,
+                annualized_return_colored,
+                volatility_colored,
+                sharpe_colored,
+                max_drawdown_colored,
+                dividend_yield_colored,
+                momentum_colored
+            ]
+            data_rows.append(row_data)
+        
+        # Use TableFormatter to create properly aligned table
+        table = TableFormatter.create_table(headers, data_rows)
+        print(f"\n{table}")
     
     def _display_data_issues(self, missing_tickers: List[str], tickers_without_start_data: List[str]) -> None:
         """Display information about tickers with data issues."""
