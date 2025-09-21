@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.2] - 2025-09-21
+
+### 🏗️ Full-Stack Repository Restructure
+
+This release restructures the entire repository to support full-stack development with clear separation between backend, frontend, and database components.
+
+### ✨ Added
+- **Frontend Directory Structure**: Complete frontend folder structure with modern web development setup
+- **Database Directory**: Organized database files in dedicated directory
+- **Shared Resources**: Common types, schemas, and utilities for both frontend and backend
+- **Enhanced Documentation**: Comprehensive documentation for full-stack architecture
+- **Build Scripts**: Development and deployment script directories
+- **Configuration Management**: Centralized configuration files
+
+### 🔄 Changed
+- **Repository Structure**: Reorganized from backend-only to full-stack architecture
+- **Input Data Location**: Moved input files to root directory for better accessibility
+- **Documentation Updates**: Updated all documentation to reflect new structure
+- **Path References**: Updated all file paths to work with new directory structure
+
+### 📁 New Directory Structure
+```
+omen.invest/
+├── backend/                    # Backend API and Services
+├── frontend/                   # Frontend Application (Ready for development)
+├── database/                   # Database and Data Storage
+├── shared/                     # Shared Resources
+├── docs/                       # Documentation
+├── scripts/                    # Build and deployment scripts
+├── input/                      # Input data files
+└── config/                     # Configuration files
+```
+
+### 🎯 Benefits
+- **Scalable Development**: Independent development of frontend and backend
+- **Clear Separation**: Well-defined boundaries between components
+- **Future-Ready**: Prepared for modern web development
+- **Maintainable**: Logical organization for easier maintenance
+- **Deployable**: Each component can be deployed independently
+
+### 🔧 Technical Details
+- **Backend**: Python with Clean Architecture (unchanged functionality)
+- **Frontend**: Modern web framework ready (React/Vue/Angular)
+- **Database**: SQLite warehouse with caching
+- **Shared**: Common types and utilities
+- **Documentation**: Comprehensive technical documentation
+
 ## [4.1.1] - 2025-09-21
 
 ### 🎯 Annualized Dividend Calculation System

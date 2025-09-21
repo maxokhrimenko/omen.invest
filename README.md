@@ -1,8 +1,18 @@
 # 📈 Investment Portfolio Analysis Tool
 
-A comprehensive Python-based tool for analyzing investment portfolios, built with clean architecture principles. Provides both consolidated portfolio metrics and detailed per-ticker analysis with an interactive CLI interface.
+A comprehensive full-stack application for analyzing investment portfolios, built with clean architecture principles. The system consists of a Python backend with clean architecture, a planned frontend interface, and a robust database layer.
 
-> **🚀 Recently Refactored**: This application has been completely refactored to follow SOLID principles and clean architecture patterns, making it more maintainable, testable, and extensible.
+> **🚀 Version 4.1.2 - Full-Stack Repository Restructure**: This application has been restructured as a full-stack service with clear separation between backend, frontend, and database components, preparing for scalable development and deployment.
+
+## 🏗️ Architecture Overview
+
+The application is structured as a full-stack service with clear component separation:
+
+- **Backend** (`/backend/`): Python-based API and business logic with Clean Architecture
+- **Frontend** (`/frontend/`): Modern web interface (planned)
+- **Database** (`/database/`): SQLite warehouse with caching and data storage
+- **Shared** (`/shared/`): Common types, schemas, and utilities
+- **Documentation** (`/docs/`): Comprehensive technical documentation
 
 ## 🎯 Overview
 
@@ -89,52 +99,41 @@ This application follows **Clean Architecture** principles with clear separation
 ### 📦 Project Structure
 
 ```
-src/
-├── domain/                 # Business logic and rules
-│   ├── entities/          # Core business objects
-│   │   ├── ticker.py     # Ticker symbol entity
-│   │   ├── position.py   # Position in portfolio
-│   │   └── portfolio.py  # Portfolio aggregate
-│   └── value_objects/     # Immutable value types
-│       ├── money.py      # Money with currency
-│       ├── percentage.py # Percentage values
-│       └── date_range.py # Date range handling
-├── application/           # Use cases and business workflows
-│   ├── use_cases/        # Business use cases
-│   │   ├── load_portfolio.py
-│   │   ├── analyze_portfolio.py
-│   │   ├── analyze_ticker.py
-│   │   └── compare_tickers.py
-│   └── interfaces/       # Repository interfaces
-│       └── repositories.py
-├── infrastructure/       # External concerns
-│   ├── repositories/     # Data access implementations
-│   │   ├── csv_portfolio_repository.py
-│   │   └── yfinance_market_repository.py
-│   ├── logging/          # Comprehensive logging system
-│   │   ├── logger_service.py    # Centralized logging service
-│   │   └── decorators.py        # Logging decorators
-│   └── config/          # Configuration management
-│       └── settings.py
-└── presentation/         # User interface
-    ├── cli/             # Command-line interface
-    │   └── menu.py
-    └── controllers/     # Application controllers
-        └── portfolio_controller.py
-
-tests/
-├── unit/                # Unit tests
-└── integration/         # Integration tests
-
-admin/
-└── logs_clear.py       # Log management script
-
-logs/                   # Log storage
-├── sessions/           # Session-specific logs
-└── total/              # All logs across sessions
-
-config/
-└── settings.yaml       # Application configuration
+omen.invest/
+├── backend/                    # Backend API and Services
+│   ├── src/                   # Backend source code
+│   │   ├── domain/            # Domain layer (Clean Architecture)
+│   │   ├── application/       # Application layer
+│   │   ├── infrastructure/    # Infrastructure layer
+│   │   └── presentation/      # Presentation layer
+│   ├── tests/                 # Backend tests
+│   ├── admin/                 # Administrative tools
+│   ├── logs/                  # Backend logs
+│   ├── main.py                # Backend entry point
+│   └── requirements.txt       # Backend dependencies
+├── frontend/                  # Frontend Application (Planned)
+│   ├── src/                   # Frontend source code
+│   ├── public/                # Public static files
+│   ├── tests/                 # Frontend tests
+│   └── package.json           # Frontend dependencies
+├── database/                  # Database and Data Storage
+│   ├── warehouse/             # SQLite warehouse database
+│   ├── migrations/            # Database migrations (Future)
+│   └── seeds/                 # Database seeds (Future)
+├── shared/                    # Shared Resources
+│   ├── types/                 # Shared TypeScript types
+│   ├── schemas/               # API schemas and contracts
+│   ├── utils/                 # Shared utility functions
+│   └── constants/             # Shared constants
+├── docs/                      # Documentation
+│   ├── AI.MD                  # AI/LLM documentation
+│   ├── ARCHITECTURE.md        # Technical architecture
+│   ├── METRICS_MEMORANDUM.md  # Financial metrics definitions
+│   └── structure.md           # Repository structure
+├── scripts/                   # Build and deployment scripts
+├── input/                     # Input data files
+├── config/                    # Configuration files
+└── README.md                  # Main project documentation
 ```
 
 ### 🎯 Key Benefits of This Architecture
@@ -156,22 +155,27 @@ config/
 - Python 3.8 or higher
 - Internet connection for market data
 
-### Installation
+### Backend Installation
 
-1. **Clone or download** this repository
+1. **Navigate to backend directory**:
+   ```bash
+   cd backend
+   ```
+
 2. **Create and activate virtual environment**:
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
+
 3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-### Usage
+### Backend Usage
 
-1. **Prepare your portfolio** in `input/input.csv` with the following format:
+1. **Prepare your portfolio** in `input/test.csv` with the following format:
    ```csv
    ticker,position
    AAPL,10
@@ -181,6 +185,7 @@ config/
 
 2. **Run the interactive application**:
    ```bash
+   cd backend
    python main.py
    ```
 
