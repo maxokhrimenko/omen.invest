@@ -9,7 +9,7 @@ from ...domain.entities.ticker import Ticker
 from ...domain.value_objects.date_range import DateRange
 from ...infrastructure.logging.logger_service import get_logger_service
 from ...infrastructure.logging.decorators import log_user_action
-from ...infrastructure.color_metrics_service import ColorMetricsService
+from ...infrastructure.color_metrics_service import MetricsService
 from ...infrastructure.table_formatter import TableFormatter
 from ...infrastructure.repositories.warehouse_market_repository import WarehouseMarketRepository
 
@@ -19,12 +19,12 @@ class PortfolioController:
                  analyze_portfolio_use_case: AnalyzePortfolioUseCase,
                  analyze_ticker_use_case: AnalyzeTickerUseCase,
                  compare_tickers_use_case: CompareTickersUseCase,
-                 color_service: ColorMetricsService = None):
+                 color_service: MetricsService = None):
         self._load_portfolio_use_case = load_portfolio_use_case
         self._analyze_portfolio_use_case = analyze_portfolio_use_case
         self._analyze_ticker_use_case = analyze_ticker_use_case
         self._compare_tickers_use_case = compare_tickers_use_case
-        self._color_service = color_service or ColorMetricsService()
+        self._color_service = color_service or MetricsService()
         self._current_portfolio: Optional[Portfolio] = None
         self._default_start_date = "2024-03-01"
         self._risk_free_rate = 0.03
@@ -55,7 +55,7 @@ class PortfolioController:
             self._current_portfolio = response.portfolio
             self._logger.info(f"Portfolio loaded successfully: {response.message}")
             print(f"✅ {response.message}")
-            self._display_portfolio_summary()
+            self._show_portfolio_summary()
         else:
             self._logger.error(f"Portfolio load failed: {response.message}")
             print(f"❌ {response.message}")
@@ -81,12 +81,12 @@ class PortfolioController:
         response = self._analyze_portfolio_use_case.execute(request)
         
         if response.success and response.metrics:
-            self._display_portfolio_metrics(response.metrics)
-            self._display_data_issues(response.missing_tickers, response.tickers_without_start_data)
+            self._show_portfolio_metrics(response.metrics)
+            self._show_data_issues(response.missing_tickers, response.tickers_without_start_data)
         else:
             print(f"❌ {response.message}")
             if hasattr(response, 'missing_tickers') or hasattr(response, 'tickers_without_start_data'):
-                self._display_data_issues(
+                self._show_data_issues(
                     getattr(response, 'missing_tickers', []), 
                     getattr(response, 'tickers_without_start_data', [])
                 )
@@ -156,7 +156,7 @@ class PortfolioController:
         response = self._compare_tickers_use_case.execute(request)
         
         if response.success and response.comparison:
-            self._display_ticker_comparison(response.comparison)
+            self._show_ticker_comparison(response.comparison)
         else:
             print(f"❌ {response.message}")
     
@@ -227,7 +227,7 @@ class PortfolioController:
         
         return DateRange(start_date, end_date)
     
-    def _display_portfolio_summary(self) -> None:
+    def _show_portfolio_summary(self) -> None:
         """Display portfolio summary."""
         if not self._current_portfolio:
             return
@@ -236,7 +236,7 @@ class PortfolioController:
         print(f"Total positions: {len(self._current_portfolio)}")
         print("Tickers:", ", ".join([t.symbol for t in self._current_portfolio.get_tickers()]))
     
-    def _display_portfolio_metrics(self, metrics) -> None:
+    def _show_portfolio_metrics(self, metrics) -> None:
         """Display portfolio analysis results with color coding."""
         print("\n📊 PORTFOLIO ANALYSIS RESULTS")
         print("=" * 60)
@@ -316,7 +316,7 @@ class PortfolioController:
                     print(f"⚠️  Failed to analyze {ticker.symbol}: {response.message}")
         
         if results:
-            self._display_ticker_results(results, display_format)
+            self._show_ticker_results(results, display_format)
     
     def _analyze_specific_ticker(self, display_format: str = "cards") -> None:
         """Analyze a specific ticker."""
@@ -342,7 +342,7 @@ class PortfolioController:
                 response = self._analyze_ticker_use_case.execute(request)
                 
                 if response.success and response.metrics:
-                    self._display_ticker_results([response.metrics], display_format)
+                    self._show_ticker_results([response.metrics], display_format)
                 else:
                     if not response.has_data_at_start and response.first_available_date:
                         print(f"❌ {selected_ticker.symbol}: No data at start date. First available: {response.first_available_date}")
@@ -353,7 +353,7 @@ class PortfolioController:
         except ValueError:
             print("❌ Please enter a valid number.")
     
-    def _display_ticker_results(self, results, display_format: str = "cards") -> None:
+    def _show_ticker_results(self, results, display_format: str = "cards") -> None:
         """Display ticker analysis results."""
         print(f"\n📈 TICKER ANALYSIS RESULTS ({len(results)} tickers)")
         print("=" * 80)
@@ -362,13 +362,13 @@ class PortfolioController:
         sorted_results = sorted(results, key=lambda r: r.annualized_return.value, reverse=True)
         
         if display_format == "table":
-            self._display_ticker_results_table(sorted_results)
+            self._show_ticker_results_table(sorted_results)
         else:
-            self._display_ticker_results_cards(sorted_results)
+            self._show_ticker_results_cards(sorted_results)
         
         print("=" * 80)
     
-    def _display_ticker_results_cards(self, results) -> None:
+    def _show_ticker_results_cards(self, results) -> None:
         """Display ticker analysis results in cards format with color coding."""
         for metrics in results:
             # Colorize ticker symbol
@@ -413,7 +413,7 @@ class PortfolioController:
             )
             print(f"   📊 Momentum (12-1):    {momentum_colored}")
     
-    def _display_ticker_results_table(self, results) -> None:
+    def _show_ticker_results_table(self, results) -> None:
         """Display ticker analysis results in table format with color coding."""
         # Define column headers
         headers = [
@@ -485,7 +485,7 @@ class PortfolioController:
         else:
             return f"⚪ {frequency}"
     
-    def _display_data_issues(self, missing_tickers: List[str], tickers_without_start_data: List[str]) -> None:
+    def _show_data_issues(self, missing_tickers: List[str], tickers_without_start_data: List[str]) -> None:
         """Display information about tickers with data issues."""
         if missing_tickers or tickers_without_start_data:
             print("\n⚠️  DATA AVAILABILITY ISSUES")
@@ -502,7 +502,7 @@ class PortfolioController:
             
             print("=" * 60)
     
-    def _display_ticker_comparison(self, comparison) -> None:
+    def _show_ticker_comparison(self, comparison) -> None:
         """Display ticker comparison results."""
         print(f"\n🔬 TICKER COMPARISON RESULTS")
         print("=" * 80)

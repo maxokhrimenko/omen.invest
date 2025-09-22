@@ -9,8 +9,8 @@ from ...domain.value_objects.date_range import DateRange
 from ...domain.value_objects.money import Money
 from ...domain.value_objects.percentage import Percentage
 from ...infrastructure.logging.logger_service import get_logger_service
-from ...infrastructure.logging.performance_monitor import get_performance_monitor
-from ...infrastructure.services.parallel_calculation_service import get_parallel_calculation_service
+from ...infrastructure.logging.performance_monitor import get_monitor
+from ...infrastructure.services.parallel_calculation_service import get_calculation_service
 
 @dataclass
 class AnalyzeTickerRequest:
@@ -64,8 +64,8 @@ class AnalyzeTickerUseCase:
         self._market_data_repo = market_data_repo
         self._logger_service = get_logger_service()
         self._logger = self._logger_service.get_logger("application")
-        self._performance_monitor = get_performance_monitor()
-        self._parallel_calculation_service = get_parallel_calculation_service()
+        self._monitor = get_monitor()
+        self._calculation_service = get_calculation_service()
     
     def execute(self, request: AnalyzeTickerRequest) -> AnalyzeTickerResponse:
         try:
@@ -122,7 +122,7 @@ class AnalyzeTickerUseCase:
             )
             
             # Calculate metrics
-            metrics = self._calculate_metrics(
+            metrics = self._calc_metrics(
                 request.ticker,
                 prices,
                 dividend_history,
@@ -149,51 +149,51 @@ class AnalyzeTickerUseCase:
     def execute_batch(self, request: AnalyzeTickersRequest) -> AnalyzeTickersResponse:
         """Execute multiple ticker analysis with smart batching and performance monitoring."""
         start_time = time.time()
-        self._performance_monitor.start_timing("batch_analysis")
+        self._monitor.start_timing("batch_analysis")
         
         try:
             self._logger.info(f"Starting batch analysis for {len(request.tickers)} tickers")
             self._logger.info(f"Date range: {request.date_range.start} to {request.date_range.end}")
             
             # Step 1: Batch fetch all data (3 calls instead of 3 * N calls)
-            self._performance_monitor.start_timing("price_data_fetch")
+            self._monitor.start_timing("price_data_fetch")
             all_price_data = self._market_data_repo.get_price_history_batch(
                 request.tickers, request.date_range
             )
             price_fetch_time = self._performance_monitor.end_timing("price_data_fetch")
             
-            self._performance_monitor.start_timing("dividend_data_fetch")
+            self._monitor.start_timing("dividend_data_fetch")
             all_dividend_data = self._market_data_repo.get_dividend_history_batch(
                 request.tickers, request.date_range
             )
             dividend_fetch_time = self._performance_monitor.end_timing("dividend_data_fetch")
             
             # Fetch benchmark data once (shared across all tickers)
-            self._performance_monitor.start_timing("benchmark_data_fetch")
+            self._monitor.start_timing("benchmark_data_fetch")
             benchmark_data = self._market_data_repo.get_benchmark_data(
                 "^GSPC", request.date_range
             )
             benchmark_fetch_time = self._performance_monitor.end_timing("benchmark_data_fetch")
             
             # Step 2: Process all tickers using parallel calculation
-            self._performance_monitor.start_timing("calculations")
+            self._monitor.start_timing("calculations")
             
             # Use parallel calculation service for better performance
-            ticker_metrics, failed_tickers = self._parallel_calculation_service.calculate_ticker_metrics_parallel(
+            ticker_metrics, failed_tickers = self._calculation_service.calculate_ticker_metrics_parallel(
                 tickers=request.tickers,
                 all_price_data=all_price_data,
                 all_dividend_data=all_dividend_data,
                 risk_free_rate=request.risk_free_rate,
                 date_range=request.date_range,
                 benchmark_data=benchmark_data,
-                calculation_func=lambda ticker, prices, dividends, risk_free_rate, date_range, benchmark_data: self._calculate_metrics(ticker, prices, dividends, risk_free_rate, date_range, benchmark_data)
+                calculation_func=lambda ticker, prices, dividends, risk_free_rate, date_range, benchmark_data: self._calc_metrics(ticker, prices, dividends, risk_free_rate, date_range, benchmark_data)
             )
             
             calculation_time = self._performance_monitor.end_timing("calculations")
             total_time = self._performance_monitor.end_timing("batch_analysis")
             
             # Log detailed performance metrics
-            self._performance_monitor.log_batch_performance(
+            self._monitor.log_batch_performance(
                 ticker_count=len(request.tickers),
                 total_time=total_time,
                 price_fetch_time=price_fetch_time,
@@ -203,7 +203,7 @@ class AnalyzeTickerUseCase:
             )
             
             # Log performance summary
-            self._performance_monitor.log_performance_summary(
+            self._monitor.log_performance_summary(
                 operation="batch_ticker_analysis",
                 ticker_count=len(request.tickers),
                 total_time=total_time,
@@ -230,7 +230,7 @@ class AnalyzeTickerUseCase:
                 processing_time_seconds=total_time
             )
     
-    def _calculate_var_95(self, returns: pd.Series) -> Percentage:
+    def _calc_var_95(self, returns: pd.Series) -> Percentage:
         """Calculate VaR 95% with proper validation and error handling."""
         if len(returns) < 5:
             # Insufficient data for reliable VaR calculation
@@ -261,7 +261,7 @@ class AnalyzeTickerUseCase:
         
         return Percentage(var_95_raw)
     
-    def _calculate_beta(self, ticker: Ticker, returns: pd.Series, 
+    def _calc_beta(self, ticker: Ticker, returns: pd.Series, 
                        benchmark_returns: pd.Series) -> float:
         """Calculate Beta for a ticker against benchmark."""
         if len(returns) < 5 or len(benchmark_returns) < 5:
@@ -299,7 +299,7 @@ class AnalyzeTickerUseCase:
         self._logger.debug(f"Calculated Beta for {ticker.symbol}: {beta:.3f}")
         return beta
     
-    def _calculate_metrics(self,
+    def _calc_metrics(self,
                           ticker: Ticker,
                           prices: pd.Series,
                           dividends: pd.Series,
@@ -351,7 +351,7 @@ class AnalyzeTickerUseCase:
         # VaR (95%) - Historical simulation method with validation
         # For VaR 95%, we take the 5th percentile of returns (worst 5% of outcomes)
         # This represents the maximum expected loss with 95% confidence
-        var_95 = self._calculate_var_95(returns)
+        var_95 = self._calc_var_95(returns)
         
         # Momentum 12-1 (skip last month)
         momentum_12_1 = Percentage(0)
@@ -375,7 +375,7 @@ class AnalyzeTickerUseCase:
             dividend_frequency = self._detect_dividend_frequency(dividends, date_range)
             
             # Calculate annualized dividend based on frequency
-            annualized_dividend = self._calculate_annualized_dividend(
+            annualized_dividend = self._calc_annualized_dividend(
                 dividends, dividend_frequency, date_range, start_price.currency
             )
             
@@ -390,7 +390,7 @@ class AnalyzeTickerUseCase:
         # Beta calculation against S&P 500
         if benchmark_data is not None and hasattr(benchmark_data, 'empty') and not benchmark_data.empty:
             benchmark_returns = benchmark_data.pct_change().dropna()
-            beta = self._calculate_beta(ticker, returns, benchmark_returns)
+            beta = self._calc_beta(ticker, returns, benchmark_returns)
         else:
             self._logger.warning(f"No benchmark data available for Beta calculation for {ticker.symbol}")
             beta = 1.0  # Default to market beta
@@ -445,7 +445,7 @@ class AnalyzeTickerUseCase:
         else:
             return "Irregular"
     
-    def _calculate_annualized_dividend(self, dividends: pd.Series, frequency: str, 
+    def _calc_annualized_dividend(self, dividends: pd.Series, frequency: str, 
                                      date_range: DateRange, currency: str) -> Money:
         """Calculate annualized dividend based on detected frequency."""
         if dividends.empty:

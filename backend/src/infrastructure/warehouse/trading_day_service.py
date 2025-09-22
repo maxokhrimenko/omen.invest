@@ -6,15 +6,14 @@ from ..logging.logger_service import get_logger_service
 from ..logging.decorators import log_operation
 
 
-class TradingDayService:
+class TradingService:
     """Service for determining trading days based on actual market data patterns."""
     
     def __init__(self):
-        self._logger_service = get_logger_service()
-        self._logger = self._logger_service.get_logger("infrastructure")
+        self._logger = get_logger_service()
     
     @log_operation("trading_days", include_args=True, include_result=True)
-    def get_trading_days_in_range(self, date_range: DateRange) -> Set[str]:
+    def get_trading_days(self, date_range: DateRange) -> Set[str]:
         """
         Get trading days in the given range.
         
@@ -39,7 +38,7 @@ class TradingDayService:
         return trading_days
     
     @log_operation("trading_days", include_args=True, include_result=True)
-    def filter_actual_trading_days(self, ticker: str, potential_trading_days: Set[str], 
+    def filter_trading_days(self, ticker: str, potential_trading_days: Set[str], 
                                  actual_data_dates: Set[str]) -> Set[str]:
         """
         Filter potential trading days to only include those where we actually have data.

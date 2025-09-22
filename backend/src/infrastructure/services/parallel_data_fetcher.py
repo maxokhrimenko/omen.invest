@@ -10,7 +10,7 @@ import threading
 from typing import List, Dict, Any, Optional, Tuple, Callable
 from dataclasses import dataclass
 from ..logging.logger_service import get_logger_service
-from ..logging.performance_monitor import get_performance_monitor
+from ..logging.performance_monitor import get_monitor
 
 
 @dataclass
@@ -34,19 +34,18 @@ class DataFetchResult:
     task_type: str = ""
 
 
-class ParallelDataFetcher:
+class DataFetcher:
     """Service for managing parallel data fetching operations."""
     
     def __init__(self, max_workers: int = None):
         """
-        Initialize the parallel data fetcher service.
+        Initialize the data fetcher service.
         
         Args:
             max_workers: Maximum number of worker threads. If None, uses optimal count.
         """
-        self._logger_service = get_logger_service()
-        self._logger = self._logger_service.get_logger("infrastructure")
-        self._performance_monitor = get_performance_monitor()
+        self._logger = get_logger_service()
+        self._monitor = get_monitor()
         
         # Determine optimal number of workers for I/O-bound operations
         if max_workers is None:
@@ -57,7 +56,7 @@ class ParallelDataFetcher:
         self.max_workers = max_workers
         self._thread_local = threading.local()
         
-        self._logger.info(f"ParallelDataFetcher initialized with {max_workers} workers")
+        self._logger.info(f"DataFetcher initialized with {max_workers} workers")
     
     def fetch_price_data_parallel(
         self, 
@@ -77,7 +76,7 @@ class ParallelDataFetcher:
             Tuple of (data_by_ticker, failed_ticker_symbols)
         """
         self._logger.info(f"Starting parallel price data fetch for {len(tickers)} tickers")
-        self._performance_monitor.start_timing("parallel_price_fetch")
+        self._monitor.start_timing("parallel_price_fetch")
         
         # Create fetch tasks
         tasks = []
@@ -138,7 +137,7 @@ class ParallelDataFetcher:
             Tuple of (data_by_ticker, failed_ticker_symbols)
         """
         self._logger.info(f"Starting parallel dividend data fetch for {len(tickers)} tickers")
-        self._performance_monitor.start_timing("parallel_dividend_fetch")
+        self._monitor.start_timing("parallel_dividend_fetch")
         
         # Create fetch tasks
         tasks = []
@@ -262,18 +261,18 @@ class ParallelDataFetcher:
         """Get performance metrics for the parallel data fetcher service."""
         return {
             "max_workers": self.max_workers,
-            "active_timings": self._performance_monitor.get_active_timings(),
+            "active_timings": self._monitor.get_active_timings(),
             "service_type": "parallel_data_fetcher"
         }
 
 
 # Global instance
-_parallel_data_fetcher: Optional[ParallelDataFetcher] = None
+_data_fetcher: Optional[DataFetcher] = None
 
 
-def get_parallel_data_fetcher() -> ParallelDataFetcher:
-    """Get or create the global parallel data fetcher service instance."""
-    global _parallel_data_fetcher
-    if _parallel_data_fetcher is None:
-        _parallel_data_fetcher = ParallelDataFetcher()
-    return _parallel_data_fetcher
+def get_data_fetcher() -> DataFetcher:
+    """Get or create the global data fetcher service instance."""
+    global _data_fetcher
+    if _data_fetcher is None:
+        _data_fetcher = DataFetcher()
+    return _data_fetcher

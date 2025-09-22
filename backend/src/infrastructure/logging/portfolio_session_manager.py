@@ -16,7 +16,7 @@ from typing import Optional, Dict, Any
 from pathlib import Path
 
 
-class PortfolioSessionManager:
+class SessionManager:
     """Manages portfolio sessions and their associated logging."""
     
     def __init__(self, logs_dir: str = "logs"):
@@ -25,7 +25,7 @@ class PortfolioSessionManager:
         self.frontend_logs_dir.mkdir(parents=True, exist_ok=True)
         
         # Active portfolio sessions: {portfolio_uuid: session_info}
-        self._active_sessions: Dict[str, Dict[str, Any]] = {}
+        self._sessions: Dict[str, Dict[str, Any]] = {}
         self._loggers: Dict[str, logging.Logger] = {}
     
     def start_portfolio_session(self, portfolio_name: str = None) -> str:
@@ -45,7 +45,7 @@ class PortfolioSessionManager:
         logger = self._create_portfolio_logger(portfolio_uuid, session_info["log_file"])
         
         # Store session info
-        self._active_sessions[portfolio_uuid] = session_info
+        self._sessions[portfolio_uuid] = session_info
         self._loggers[portfolio_uuid] = logger
         
         # Log session start
@@ -169,19 +169,19 @@ class PortfolioSessionManager:
 
 
 # Global portfolio session manager instance
-_portfolio_session_manager: Optional[PortfolioSessionManager] = None
+_session_manager: Optional[SessionManager] = None
 
 
-def get_portfolio_session_manager() -> PortfolioSessionManager:
-    """Get the global portfolio session manager instance."""
-    global _portfolio_session_manager
-    if _portfolio_session_manager is None:
-        _portfolio_session_manager = PortfolioSessionManager()
-    return _portfolio_session_manager
+def get_session_manager() -> SessionManager:
+    """Get the global session manager instance."""
+    global _session_manager
+    if _session_manager is None:
+        _session_manager = SessionManager()
+    return _session_manager
 
 
-def initialize_portfolio_session_manager(logs_dir: str = "logs") -> PortfolioSessionManager:
-    """Initialize the global portfolio session manager."""
-    global _portfolio_session_manager
-    _portfolio_session_manager = PortfolioSessionManager(logs_dir)
-    return _portfolio_session_manager
+def initialize_session_manager(logs_dir: str = "logs") -> SessionManager:
+    """Initialize the global session manager."""
+    global _session_manager
+    _session_manager = SessionManager(logs_dir)
+    return _session_manager

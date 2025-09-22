@@ -32,7 +32,7 @@ from src.application.use_cases.analyze_portfolio import (
 )
 from src.application.use_cases.analyze_ticker import AnalyzeTickerUseCase, AnalyzeTickerRequest, AnalyzeTickersRequest
 from src.application.use_cases.compare_tickers import CompareTickersUseCase
-from src.infrastructure.color_metrics_service import ColorMetricsService
+from src.infrastructure.color_metrics_service import MetricsService
 from src.infrastructure.logging.logger_service import initialize_logging, get_logger_service
 # Portfolio session manager will be imported locally in get_portfolio_session_manager()
 from src.domain.entities.portfolio import Portfolio
@@ -170,7 +170,7 @@ def get_controller() -> PortfolioController:
             warehouse_db_path=warehouse_config.get_db_path()
         )
         
-        color_service = ColorMetricsService()
+        color_service = MetricsService()
         
         load_portfolio_use_case = LoadPortfolioUseCase(portfolio_repo)
         analyze_portfolio_use_case = AnalyzePortfolioUseCase(market_repo)

@@ -12,7 +12,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from contextlib import contextmanager
 from datetime import datetime
 from ..logging.logger_service import get_logger_service
-from ..logging.performance_monitor import get_performance_monitor
+from ..logging.performance_monitor import get_monitor
 
 
 class ConnectionPool:
@@ -67,15 +67,14 @@ class ConnectionPool:
             self._pool.clear()
 
 
-class WarehouseOptimizer:
+class WarehouseService:
     """Service for optimizing warehouse database operations."""
     
     def __init__(self, db_path: str, max_connections: int = 10):
         self.db_path = db_path
-        self.connection_pool = ConnectionPool(db_path, max_connections)
-        self._logger_service = get_logger_service()
-        self._logger = self._logger_service.get_logger("infrastructure")
-        self._performance_monitor = get_performance_monitor()
+        self._pool = ConnectionPool(db_path, max_connections)
+        self._logger = get_logger_service()
+        self._monitor = get_monitor()
         
         # Query cache for frequently used queries
         self._query_cache = {}
@@ -135,7 +134,7 @@ class WarehouseOptimizer:
         if not tickers:
             return {}
         
-        self._performance_monitor.start_timing("optimized_price_fetch")
+        self._monitor.start_timing("optimized_price_fetch")
         
         ticker_symbols = [t.symbol for t in tickers]
         placeholders = ','.join(['?'] * len(ticker_symbols))
@@ -183,7 +182,7 @@ class WarehouseOptimizer:
         if not tickers:
             return {}
         
-        self._performance_monitor.start_timing("optimized_dividend_fetch")
+        self._monitor.start_timing("optimized_dividend_fetch")
         
         ticker_symbols = [t.symbol for t in tickers]
         placeholders = ','.join(['?'] * len(ticker_symbols))
@@ -273,7 +272,7 @@ class WarehouseOptimizer:
         if not data:
             return
         
-        self._performance_monitor.start_timing(f"batch_insert_{table_name}")
+        self._monitor.start_timing(f"batch_insert_{table_name}")
         
         # Determine column count from first row
         if not data:
@@ -299,29 +298,29 @@ class WarehouseOptimizer:
     def get_performance_metrics(self) -> Dict[str, Any]:
         """Get performance metrics for the warehouse optimizer."""
         return {
-            "max_connections": self.connection_pool.max_connections,
-            "active_connections": len(self.connection_pool._pool),
-            "active_timings": self._performance_monitor.get_active_timings(),
+            "max_connections": self._pool.max_connections,
+            "active_connections": len(self._pool._pool),
+            "active_timings": self._monitor.get_active_timings(),
             "service_type": "warehouse_optimizer"
         }
     
     def close(self):
         """Close the warehouse optimizer and all connections."""
-        self.connection_pool.close_all()
-        self._logger.info("WarehouseOptimizer closed")
+        self._pool.close_all()
+        self._logger.info("WarehouseService closed")
 
 
 # Global instance
-_warehouse_optimizer: Optional[WarehouseOptimizer] = None
+_warehouse_service: Optional[WarehouseService] = None
 
 
-def get_warehouse_optimizer(db_path: str = None) -> WarehouseOptimizer:
-    """Get or create the global warehouse optimizer service instance."""
-    global _warehouse_optimizer
-    if _warehouse_optimizer is None:
+def get_warehouse_service(db_path: str = None) -> WarehouseService:
+    """Get or create the global warehouse service instance."""
+    global _warehouse_service
+    if _warehouse_service is None:
         if db_path is None:
             from ..config.warehouse_config import WarehouseConfig
             config = WarehouseConfig()
             db_path = config.get_db_path()
-        _warehouse_optimizer = WarehouseOptimizer(db_path)
-    return _warehouse_optimizer
+        _warehouse_service = WarehouseService(db_path)
+    return _warehouse_service
