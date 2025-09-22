@@ -1,10 +1,10 @@
 # 📊 Investment Metrics Memorandum
 
-This document explains all metrics used in the portfolio analysis tool, their calculations, and interpretation thresholds.
+This document explains all metrics used in the portfolio analysis tool, their calculations, and thresholds.
 
 ## 1. CONSOLIDATED PORTFOLIO METRICS
 
-These metrics are calculated for the entire portfolio as a whole. The thresholds assume a multi-asset portfolio comparable with a balanced global 60/40 or similar. If your mandate is very different, you may need to adjust the cut-offs.
+These metrics are calculated for the entire portfolio as a whole. The thresholds assume a multi-asset portfolio comparable with a balanced global 60/40 or similar. If your mandate is different, you may need to adjust the cut-offs.
 
 ### Return Metrics
 
@@ -110,7 +110,7 @@ These metrics are calculated for individual securities. The cut-offs assume deve
   - Bad: < 0.8
   - Normal: 0.8 - 2.0
   - Excellent: > 2.0
-- **Note**: Slightly looser "yellow" band than portfolio
+- **Note**: Looser "yellow" band than portfolio
 
 ### Risk Metrics
 
@@ -178,7 +178,7 @@ These metrics are calculated for individual securities. The cut-offs assume deve
 
 ### Important Caveats
 
-1. **Dividend Yields**: Very high (> 8%) yields can signal distress. Consider adding a "Too High" red band above ~8%.
+1. **Dividend Yields**: High (> 8%) yields can signal distress. Consider adding a "Too High" red band above ~8%.
 
 2. **Market Context**: These thresholds are designed for developed-market equities. Adjust for:
    - Fixed income securities
@@ -186,7 +186,7 @@ These metrics are calculated for individual securities. The cut-offs assume deve
    - Cryptocurrencies
    - Alternative assets
 
-3. **Time Period**: Longer analysis windows provide more reliable metrics, especially for:
+3. **Time Period**: Analysis windows provide more reliable metrics, especially for:
    - Volatility
    - Maximum drawdown
    - Beta calculations

@@ -1,9 +1,9 @@
 import React, { useRef } from 'react';
-import CompactPortfolioMetrics from './CompactPortfolioMetrics';
+import PortfolioMetricsCompact from './PortfolioMetricsCompact';
 import PortfolioChart from './PortfolioChart';
 import type { PortfolioMetrics } from '../../hooks/usePortfolioAnalysis';
 
-interface RedesignedPortfolioMetricsProps {
+interface PortfolioMetricsProps {
   metrics: PortfolioMetrics;
   timeSeriesData: {
     portfolioValues: Record<string, number>;
@@ -12,7 +12,7 @@ interface RedesignedPortfolioMetricsProps {
   };
 }
 
-const RedesignedPortfolioMetrics: React.FC<RedesignedPortfolioMetricsProps> = ({ 
+const PortfolioMetrics: React.FC<PortfolioMetricsProps> = ({ 
   metrics, 
   timeSeriesData 
 }) => {
@@ -52,7 +52,7 @@ const RedesignedPortfolioMetrics: React.FC<RedesignedPortfolioMetricsProps> = ({
         <div className="w-2/5">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
           <div ref={metricsRef}>
-            <CompactPortfolioMetrics metrics={metrics} />
+            <PortfolioMetricsCompact metrics={metrics} />
           </div>
         </div>
 
@@ -75,4 +75,4 @@ const RedesignedPortfolioMetrics: React.FC<RedesignedPortfolioMetricsProps> = ({
   );
 };
 
-export default RedesignedPortfolioMetrics;
+export default PortfolioMetrics;

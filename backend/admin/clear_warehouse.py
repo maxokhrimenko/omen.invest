@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Warehouse Clear Script - Administrative tool for clearing warehouse data.
-Version 4.3.0 - Advanced Portfolio Analysis & Visualization
+Version 4.4.3 - Portfolio Analysis & Visualization
 
 This script provides functionality to:
 - Clear all warehouse data

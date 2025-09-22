@@ -161,12 +161,12 @@ class PortfolioController:
             print(f"❌ {response.message}")
     
     def generate_report(self) -> None:
-        """Generate comprehensive report."""
+        """Generate report."""
         if not self._current_portfolio:
             print("❌ No portfolio loaded. Please load a portfolio first.")
             return
         
-        print("\n📋 Generating Comprehensive Report")
+        print("\n📋 Generating Report")
         print("─" * 50)
         
         # Run portfolio analysis

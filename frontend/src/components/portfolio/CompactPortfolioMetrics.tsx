@@ -2,11 +2,11 @@ import React from 'react';
 import { TrendingUp, TrendingDown, Shield, AlertTriangle, Target, BarChart3 } from 'lucide-react';
 import type { PortfolioMetrics } from '../../hooks/usePortfolioAnalysis';
 
-interface CompactPortfolioMetricsProps {
+interface PortfolioMetricsCompactProps {
   metrics: PortfolioMetrics;
 }
 
-const CompactPortfolioMetrics: React.FC<CompactPortfolioMetricsProps> = ({ metrics }) => {
+const PortfolioMetricsCompact: React.FC<PortfolioMetricsCompactProps> = ({ metrics }) => {
   const getMetricColor = (value: string, thresholds: { good: number; bad: number }) => {
     const numValue = parseFloat(value.replace(/[%,$]/g, ''));
     if (numValue >= thresholds.good) return 'text-green-600 bg-green-50 border-green-200';
@@ -117,4 +117,4 @@ const CompactPortfolioMetrics: React.FC<CompactPortfolioMetricsProps> = ({ metri
   );
 };
 
-export default CompactPortfolioMetrics;
+export default PortfolioMetricsCompact;

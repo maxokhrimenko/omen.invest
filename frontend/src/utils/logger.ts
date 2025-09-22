@@ -1,6 +1,6 @@
 /**
- * Structured logging service for frontend
- * Provides consistent logging format and correlation with backend
+ * Logging service for frontend
+ * Provides logging format and correlation with backend
  */
 
 export const LogLevel = {

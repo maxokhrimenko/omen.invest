@@ -1,5 +1,5 @@
 """
-Warehouse optimizer service for database performance improvements.
+Warehouse optimizer service for database performance.
 
 This service provides optimization capabilities for warehouse operations
 including query optimization, connection pooling, and caching strategies.

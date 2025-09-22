@@ -3,7 +3,7 @@ import { Play, Loader2, AlertCircle, Clock } from 'lucide-react';
 import type { DateRange } from './DateRangeSelector';
 import { calculateAnalysisTimeout, formatTimeout } from '../../utils/timeoutCalculator';
 
-interface AnalysisTriggerProps {
+interface AnalysisButtonProps {
   onAnalyze: (startDate: string, endDate: string) => Promise<void>;
   onClearResults: () => void;
   isLoading: boolean;
@@ -13,7 +13,7 @@ interface AnalysisTriggerProps {
   tickerCount?: number;
 }
 
-const AnalysisTrigger: React.FC<AnalysisTriggerProps> = ({
+const AnalysisButton: React.FC<AnalysisButtonProps> = ({
   onAnalyze,
   onClearResults,
   isLoading,
@@ -139,4 +139,4 @@ const AnalysisTrigger: React.FC<AnalysisTriggerProps> = ({
   );
 };
 
-export default AnalysisTrigger;
+export default AnalysisButton;

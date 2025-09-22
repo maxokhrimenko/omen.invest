@@ -1,5 +1,5 @@
 """
-Performance monitoring utilities for detailed timing and analysis.
+Performance monitoring utilities for timing and analysis.
 """
 
 import time
@@ -8,7 +8,7 @@ from ..logging.logger_service import get_logger_service
 
 
 class PerformanceMonitor:
-    """Performance monitoring service for detailed timing and analysis."""
+    """Performance monitoring service for timing and analysis."""
     
     def __init__(self):
         self._timings: Dict[str, float] = {}

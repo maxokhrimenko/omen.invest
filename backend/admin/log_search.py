@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Log Search Utility - Search and filter log files
-Version 4.3.0 - Advanced Portfolio Analysis & Visualization
+Version 4.4.3 - Portfolio Analysis & Visualization
 
 This script provides functionality to:
 - Search logs by text, log level, or log ID

@@ -1,12 +1,12 @@
 import React from 'react';
 import { AlertTriangle, ChevronDown, ChevronUp, Calendar, TrendingUp } from 'lucide-react';
-import type { DataAvailabilityWarnings as DataAvailabilityWarningsType } from '../../hooks/usePortfolioAnalysis';
+import type { DataWarnings as DataWarningsType } from '../../hooks/usePortfolioAnalysis';
 
-interface DataAvailabilityWarningsProps {
-  warnings: DataAvailabilityWarningsType;
+interface DataWarningsProps {
+  warnings: DataWarningsType;
 }
 
-const DataAvailabilityWarnings: React.FC<DataAvailabilityWarningsProps> = ({ warnings }) => {
+const DataWarnings: React.FC<DataWarningsProps> = ({ warnings }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
 
   const toggleCollapse = () => {
@@ -30,7 +30,7 @@ const DataAvailabilityWarnings: React.FC<DataAvailabilityWarningsProps> = ({ war
         
         <div className="ml-4 flex-1">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-amber-900">Data Availability Notice</h3>
+            <h3 className="text-lg font-semibold text-amber-900">Data Notice</h3>
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -38,7 +38,7 @@ const DataAvailabilityWarnings: React.FC<DataAvailabilityWarningsProps> = ({ war
                 toggleCollapse();
               }}
               className="text-amber-400 hover:text-amber-600 transition-colors p-1 rounded-md hover:bg-amber-100 flex items-center gap-1"
-              aria-label={isCollapsed ? "Expand data availability notice" : "Collapse data availability notice"}
+              aria-label={isCollapsed ? "Expand data notice" : "Collapse data notice"}
               type="button"
             >
               {isCollapsed ? (
@@ -132,4 +132,4 @@ const DataAvailabilityWarnings: React.FC<DataAvailabilityWarningsProps> = ({ war
   );
 };
 
-export default DataAvailabilityWarnings;
+export default DataWarnings;

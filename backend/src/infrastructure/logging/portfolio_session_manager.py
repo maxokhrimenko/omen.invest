@@ -176,7 +176,12 @@ def get_portfolio_session_manager() -> PortfolioSessionManager:
     """Get the global portfolio session manager instance."""
     global _portfolio_session_manager
     if _portfolio_session_manager is None:
-        _portfolio_session_manager = PortfolioSessionManager()
+        # Use absolute path to project root logs directory
+        import os
+        # Get the project root directory (5 levels up from this file)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+        logs_dir = os.path.join(project_root, "logs")
+        _portfolio_session_manager = PortfolioSessionManager(logs_dir)
     return _portfolio_session_manager
 
 

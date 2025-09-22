@@ -32,7 +32,7 @@ class LoggerService:
     def _setup_directories(self):
         """Create necessary log directories."""
         os.makedirs(self.logs_dir, exist_ok=True)
-        os.makedirs(os.path.join(self.logs_dir, "sessions"), exist_ok=True)
+        os.makedirs(os.path.join(self.logs_dir, "backend"), exist_ok=True)
         os.makedirs(os.path.join(self.logs_dir, "frontend"), exist_ok=True)
         os.makedirs(os.path.join(self.logs_dir, "total"), exist_ok=True)
     
@@ -47,18 +47,20 @@ class LoggerService:
         )
     
     def start_session(self) -> str:
-        """Start a new logging session."""
-        self.session_id = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        """Start a new backend logging session."""
+        # Generate session ID with timestamp (same pattern as frontend)
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        self.session_id = f"backend-{timestamp}"
         self.session_start_time = datetime.now()
         
         # Create session-specific logger
         session_logger = self._create_logger(
             name="session",
-            log_file=os.path.join(self.logs_dir, "sessions", f"session-{self.session_id}.log")
+            log_file=os.path.join(self.logs_dir, "backend", f"backend-{timestamp}.log")
         )
         
         # Log session start
-        session_logger.info(f"=== SESSION STARTED: {self.session_id} ===")
+        session_logger.info(f"=== BACKEND SESSION STARTED: {self.session_id} ===")
         session_logger.info(f"Session started at: {self.session_start_time}")
         
         return self.session_id
@@ -94,6 +96,29 @@ class LoggerService:
         frontend_logger.info(f"Frontend session started at: {datetime.now()}")
         
         return request_id
+    
+    def start_backend_session(self, session_name: str = None) -> str:
+        """Start a new backend logging session with optional name."""
+        # Generate session ID with timestamp (same pattern as frontend)
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        if session_name:
+            session_id = f"backend-{session_name}-{timestamp}"
+        else:
+            session_id = f"backend-{timestamp}"
+        
+        # Create backend session-specific logger
+        backend_logger = self._create_logger(
+            name="backend-session",
+            log_file=os.path.join(self.logs_dir, "backend", f"{session_id}.log")
+        )
+        
+        # Log backend session start
+        backend_logger.info(f"=== BACKEND SESSION STARTED: {session_id} ===")
+        backend_logger.info(f"Backend session started at: {datetime.now()}")
+        if session_name:
+            backend_logger.info(f"Session name: {session_name}")
+        
+        return session_id
     
     def get_frontend_logger(self, request_id: str) -> logging.Logger:
         """Get a logger for a specific frontend request session."""
@@ -133,7 +158,7 @@ class LoggerService:
                 not any(isinstance(h, logging.FileHandler) and 
                        f"session-{self.session_id}.log" in h.baseFilename 
                        for h in self._loggers[name].handlers)):
-                session_log_file = os.path.join(self.logs_dir, "sessions", f"session-{self.session_id}.log")
+                session_log_file = os.path.join(self.logs_dir, "backend", f"session-{self.session_id}.log")
                 session_handler = logging.FileHandler(session_log_file, mode='a', encoding='utf-8')
                 session_handler.setLevel(logging.DEBUG)
                 session_formatter = logging.Formatter(
@@ -344,7 +369,12 @@ def get_logger_service() -> LoggerService:
     """Get the global logger service instance."""
     global _logger_service
     if _logger_service is None:
-        _logger_service = LoggerService()
+        # Use absolute path to project root logs directory
+        import os
+        # Get the project root directory (5 levels up from this file)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+        logs_dir = os.path.join(project_root, "logs")
+        _logger_service = LoggerService(logs_dir)
     return _logger_service
 
 

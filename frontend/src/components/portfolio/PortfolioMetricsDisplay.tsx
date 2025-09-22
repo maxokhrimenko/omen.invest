@@ -1,142 +1,24 @@
-import React from 'react';
-import { TrendingUp, TrendingDown, Shield, AlertTriangle, Target, BarChart3 } from 'lucide-react';
+import React, { useRef } from 'react';
+import PortfolioMetricsCompact from './PortfolioMetricsCompact';
+import PortfolioChart from './PortfolioChart';
 import type { PortfolioMetrics } from '../../hooks/usePortfolioAnalysis';
 
 interface PortfolioMetricsDisplayProps {
   metrics: PortfolioMetrics;
+  timeSeriesData: {
+    portfolioValues: Record<string, number>;
+    sp500Values: Record<string, number>;
+    nasdaqValues: Record<string, number>;
+  };
 }
 
-const PortfolioMetricsDisplay: React.FC<PortfolioMetricsDisplayProps> = ({ metrics }) => {
+const PortfolioMetricsDisplay: React.FC<PortfolioMetricsDisplayProps> = ({ 
+  metrics, 
+  timeSeriesData 
+}) => {
+  const metricsRef = useRef<HTMLDivElement>(null);
 
-  const getTotalReturnColor = (value: string) => {
-    const numValue = parseFloat(value.replace(/[%,$]/g, ''));
-    if (numValue < 10) return 'text-red-600 bg-red-50 border-red-200'; // Bad
-    if (numValue > 30) return 'text-green-600 bg-green-50 border-green-200'; // Good
-    return 'text-yellow-600 bg-yellow-50 border-yellow-200'; // Caution (10-30%)
-  };
-
-  const getAnnualizedReturnColor = (value: string) => {
-    const numValue = parseFloat(value.replace(/[%,$]/g, ''));
-    if (numValue < 5) return 'text-red-600 bg-red-50 border-red-200'; // Bad
-    if (numValue > 15) return 'text-green-600 bg-green-50 border-green-200'; // Good
-    return 'text-yellow-600 bg-yellow-50 border-yellow-200'; // Caution (5-15%)
-  };
-
-  const getVolatilityColor = (value: string) => {
-    const numValue = parseFloat(value.replace(/[%,$]/g, ''));
-    if (numValue > 20) return 'text-red-600 bg-red-50 border-red-200'; // Bad
-    if (numValue < 10) return 'text-green-600 bg-green-50 border-green-200'; // Good
-    return 'text-yellow-600 bg-yellow-50 border-yellow-200'; // Caution (10-20%)
-  };
-
-  const getMaxDrawdownColor = (value: string) => {
-    const numValue = Math.abs(parseFloat(value.replace(/[%,$]/g, '')));
-    if (numValue > 30) return 'text-red-600 bg-red-50 border-red-200'; // Bad (< -30%)
-    if (numValue < 15) return 'text-green-600 bg-green-50 border-green-200'; // Good (> -15%)
-    return 'text-yellow-600 bg-yellow-50 border-yellow-200'; // Caution (-30% to -15%)
-  };
-
-
-  const getBetaColor = (value: string) => {
-    const numValue = parseFloat(value.replace(/[%,$]/g, ''));
-    if (numValue > 1.3) return 'text-red-600 bg-red-50 border-red-200'; // High Beta (aggressive)
-    if (numValue < 0.7) return 'text-green-600 bg-green-50 border-green-200'; // Low Beta (defensive)
-    return 'text-yellow-600 bg-yellow-50 border-yellow-200'; // Market-like Beta
-  };
-
-  const getVaRColor = (value: string) => {
-    const numValue = Math.abs(parseFloat(value.replace(/[%,$]/g, '')));
-    if (numValue > 2.0) return 'text-red-600 bg-red-50 border-red-200'; // High Risk
-    if (numValue < 1.0) return 'text-green-600 bg-green-50 border-green-200'; // Low Risk
-    return 'text-yellow-600 bg-yellow-50 border-yellow-200'; // Moderate Risk
-  };
-
-  const getSharpeColor = (value: string) => {
-    const numValue = parseFloat(value.replace(/[%,$]/g, ''));
-    if (numValue < 0.5) return 'text-red-600 bg-red-50 border-red-200'; // Bad
-    if (numValue > 1.5) return 'text-green-600 bg-green-50 border-green-200'; // Good
-    return 'text-yellow-600 bg-yellow-50 border-yellow-200'; // Caution (0.5-1.5)
-  };
-
-  const getSortinoColor = (value: string) => {
-    const numValue = parseFloat(value.replace(/[%,$]/g, ''));
-    if (numValue < 1.0) return 'text-red-600 bg-red-50 border-red-200'; // Bad
-    if (numValue > 2.0) return 'text-green-600 bg-green-50 border-green-200'; // Good
-    return 'text-yellow-600 bg-yellow-50 border-yellow-200'; // Caution (1.0-2.0)
-  };
-
-  const getCalmarColor = (value: string) => {
-    const numValue = parseFloat(value.replace(/[%,$]/g, ''));
-    if (numValue < 0.5) return 'text-red-600 bg-red-50 border-red-200'; // Bad
-    if (numValue > 1.0) return 'text-green-600 bg-green-50 border-green-200'; // Good
-    return 'text-yellow-600 bg-yellow-50 border-yellow-200'; // Caution (0.5-1.0)
-  };
-
-  const metricCards = [
-    {
-      title: 'Total Return',
-      value: metrics.totalReturn,
-      icon: TrendingUp,
-      color: getTotalReturnColor(metrics.totalReturn),
-      description: 'Overall portfolio return for the period'
-    },
-    {
-      title: 'Annualized Return',
-      value: metrics.annualizedReturn,
-      icon: BarChart3,
-      color: getAnnualizedReturnColor(metrics.annualizedReturn),
-      description: 'Return adjusted for time period'
-    },
-    {
-      title: 'Volatility',
-      value: metrics.volatility,
-      icon: AlertTriangle,
-      color: getVolatilityColor(metrics.volatility),
-      description: 'Standard deviation of returns'
-    },
-    {
-      title: 'Sharpe Ratio',
-      value: metrics.sharpeRatio,
-      icon: Target,
-      color: getSharpeColor(metrics.sharpeRatio),
-      description: 'Risk-adjusted return measure'
-    },
-    {
-      title: 'Max Drawdown',
-      value: metrics.maxDrawdown,
-      icon: TrendingDown,
-      color: getMaxDrawdownColor(metrics.maxDrawdown),
-      description: 'Maximum peak-to-trough decline'
-    },
-    {
-      title: 'Sortino Ratio',
-      value: metrics.sortinoRatio,
-      icon: Shield,
-      color: getSortinoColor(metrics.sortinoRatio),
-      description: 'Downside risk-adjusted return'
-    },
-    {
-      title: 'Calmar Ratio',
-      value: metrics.calmarRatio,
-      icon: Target,
-      color: getCalmarColor(metrics.calmarRatio),
-      description: 'Return vs max drawdown'
-    },
-    {
-      title: 'VaR (95%)',
-      value: metrics.var95,
-      icon: AlertTriangle,
-      color: getVaRColor(metrics.var95),
-      description: 'Value at Risk (95% confidence)'
-    },
-    {
-      title: 'Beta',
-      value: metrics.beta,
-      icon: BarChart3,
-      color: getBetaColor(metrics.beta),
-      description: 'Market sensitivity measure'
-    }
-  ];
+  const parsedStartValue = parseFloat(metrics.startValue.replace(/[$,]/g, ''));
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
@@ -164,24 +46,30 @@ const PortfolioMetricsDisplay: React.FC<PortfolioMetricsDisplayProps> = ({ metri
         </div>
       </div>
 
-      {/* Metrics Grid - 3 columns, 3 rows */}
-      <div className="grid grid-cols-3 gap-4">
-        {metricCards.map((metric, index) => {
-          const Icon = metric.icon;
-          return (
-            <div
-              key={index}
-              className={`p-5 rounded-lg border-2 transition-all duration-200 hover:shadow-md ${metric.color}`}
-            >
-              <div className="flex items-center mb-4">
-                <Icon className="w-6 h-6 mr-3" />
-                <h3 className="text-base font-semibold">{metric.title}</h3>
-              </div>
-              <div className="text-3xl font-bold mb-3">{metric.value}</div>
-              <p className="text-sm opacity-80 leading-relaxed">{metric.description}</p>
-            </div>
-          );
-        })}
+      {/* Main Content: 40% Metrics + 60% Chart */}
+      <div className="flex gap-6">
+        {/* Left side: Compact Metrics (40%) */}
+        <div className="w-2/5">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
+          <div ref={metricsRef}>
+            <PortfolioMetricsCompact metrics={metrics} />
+          </div>
+        </div>
+
+        {/* Right side: Chart (60%) */}
+        <div className="w-3/5 flex flex-col">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Comparison</h3>
+          <div 
+            className="border border-gray-200 rounded-lg flex-1 min-h-[400px] flex flex-col"
+          >
+            <PortfolioChart
+              portfolioValues={timeSeriesData.portfolioValues}
+              sp500Values={timeSeriesData.sp500Values}
+              nasdaqValues={timeSeriesData.nasdaqValues}
+              startValue={parsedStartValue}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

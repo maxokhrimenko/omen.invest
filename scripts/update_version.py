@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Version Update Script for Omen Invest Application
+Version Update Script for Altidus Application
 
 This script reads the version from the central VERSION file and updates
 all version references throughout the application.
@@ -193,7 +193,7 @@ def main():
         print("\nTo update version, run:")
         print(f"python scripts/update_version.py <new_version>")
         print("\nExample:")
-        print(f"python scripts/update_version.py 4.4.0")
+        print(f"python scripts/update_version.py 4.4.3")
 
 if __name__ == "__main__":
     main()

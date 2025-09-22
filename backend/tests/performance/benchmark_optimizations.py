@@ -1,8 +1,8 @@
 """
 Performance benchmark script for portfolio analysis optimizations.
 
-This script compares the performance of the original sequential implementation
-with the new parallel implementation to measure improvements.
+This script compares the performance of the sequential implementation
+with the parallel implementation to measure improvements.
 """
 
 import time
@@ -217,8 +217,8 @@ class PerformanceBenchmark:
         self.logger.info(f"Benchmark results saved to logs/{filename}")
     
     def run_full_benchmark(self):
-        """Run a comprehensive benchmark suite."""
-        self.logger.info("Starting comprehensive benchmark suite")
+        """Run a benchmark suite."""
+        self.logger.info("Starting benchmark suite")
         
         # Test different ticker counts
         ticker_counts = [5, 10, 20, 50]

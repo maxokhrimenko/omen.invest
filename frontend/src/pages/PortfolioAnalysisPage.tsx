@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3, Calendar, X, Loader2 } from 'lucide-react';
 import DateRangeSelector from '../components/portfolio/DateRangeSelector';
-import AnalysisTrigger from '../components/portfolio/AnalysisTrigger';
-import RedesignedPortfolioMetrics from '../components/portfolio/RedesignedPortfolioMetrics';
+import AnalysisButton from '../components/portfolio/AnalysisButton';
+import PortfolioMetricsDisplay from '../components/portfolio/PortfolioMetricsDisplay';
 import TickerAnalysisDisplay from '../components/portfolio/TickerAnalysisDisplay';
-import DataAvailabilityWarnings from '../components/portfolio/DataAvailabilityWarnings';
+import DataWarnings from '../components/portfolio/DataWarnings';
 import MetricsLegend from '../components/portfolio/MetricsLegend';
 import { usePortfolioAnalysis } from '../hooks/usePortfolioAnalysis';
 import { apiService } from '../services/api';
@@ -168,7 +168,7 @@ const PortfolioAnalysisPage: React.FC = () => {
             
             {/* Block 2: Analysis Button */}
             <div className="w-48">
-              <AnalysisTrigger
+              <AnalysisButton
                 onAnalyze={handleAnalysis}
                 onClearResults={handleClearAnalysis}
                 isLoading={isLoading}
@@ -184,13 +184,13 @@ const PortfolioAnalysisPage: React.FC = () => {
         {/* Analysis Results */}
         {analysisResults && (
           <div className="space-y-6">
-            {/* Data Availability Warnings */}
-            {analysisResults.dataAvailabilityWarnings && (
-              <DataAvailabilityWarnings warnings={analysisResults.dataAvailabilityWarnings} />
+            {/* Data Warnings */}
+            {analysisResults.dataWarnings && (
+              <DataWarnings warnings={analysisResults.dataWarnings} />
             )}
 
             {/* Portfolio Metrics */}
-            <RedesignedPortfolioMetrics 
+            <PortfolioMetricsDisplay 
               metrics={analysisResults.portfolioMetrics} 
               timeSeriesData={analysisResults.timeSeriesData}
             />

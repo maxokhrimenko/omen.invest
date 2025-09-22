@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Log Rotation Script - Manages log file rotation and cleanup
-Version 4.3.0 - Advanced Portfolio Analysis & Visualization
+Version 4.4.3 - Portfolio Analysis & Visualization
 
 This script provides functionality to:
 - Rotate log files based on size and age

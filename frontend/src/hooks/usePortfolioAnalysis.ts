@@ -38,7 +38,7 @@ export interface TickerMetrics {
   endPrice: string;
 }
 
-export interface DataAvailabilityWarnings {
+export interface DataWarnings {
   missingTickers: string[];
   tickersWithoutStartData: string[];
   firstAvailableDates: { [ticker: string]: string };
@@ -47,7 +47,7 @@ export interface DataAvailabilityWarnings {
 export interface AnalysisResults {
   portfolioMetrics: PortfolioMetrics;
   tickerMetrics: TickerMetrics[];
-  dataAvailabilityWarnings: DataAvailabilityWarnings;
+  dataWarnings: DataWarnings;
   analysisDate: string;
   dateRange: DateRange;
   timeSeriesData: {
@@ -65,8 +65,6 @@ export const usePortfolioAnalysis = () => {
 
   // No localStorage caching - rely on warehouse system for data persistence
   // This ensures fresh data and eliminates cache inconsistency issues
-
-  // No localStorage caching - rely on warehouse system for data persistence
   const saveAnalysisResults = useCallback((results: AnalysisResults) => {
     // Analysis results are not cached - always fetch fresh data from warehouse
   }, []);
@@ -77,7 +75,7 @@ export const usePortfolioAnalysis = () => {
     setError(null);
   }, []);
 
-  // Force clear cache and reload fresh data (no-op since we don't use cache)
+  // Clear cache and reload data (no-op since we don't use cache)
   const clearCacheAndReload = useCallback(() => {
     console.log('Cache clearing not needed - using warehouse system for data persistence');
     setAnalysisResults(null);
@@ -121,7 +119,7 @@ export const usePortfolioAnalysis = () => {
       const analysisResults: AnalysisResults = {
         portfolioMetrics: portfolioResponse.data,
         tickerMetrics: tickerResponse,
-        dataAvailabilityWarnings: {
+        dataWarnings: {
           missingTickers: portfolioResponse.warnings.missingTickers,
           tickersWithoutStartData: portfolioResponse.warnings.tickersWithoutStartData,
           firstAvailableDates: portfolioResponse.warnings.firstAvailableDates || {}

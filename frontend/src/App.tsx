@@ -23,9 +23,9 @@ const DashboardPage = ({ portfolio, setPortfolio }: { portfolio: any, setPortfol
   // Update page title based on portfolio state
   useEffect(() => {
     if (portfolio) {
-      document.title = `Omen Screen - ${portfolio.tickers.length} Tickers | ${portfolio.positions.length} Positions`;
+      document.title = `Altidus - ${portfolio.tickers.length} Tickers | ${portfolio.positions.length} Positions`;
     } else {
-      document.title = 'Omen Screen - Deep Portfolio Analysis';
+      document.title = 'Altidus - Deep Portfolio Analysis';
     }
   }, [portfolio]);
 
@@ -111,7 +111,7 @@ const DashboardPage = ({ portfolio, setPortfolio }: { portfolio: any, setPortfol
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Portfolio Management</h1>
-          <p className="text-xl text-gray-600">Upload and manage your investment portfolio</p>
+          <p className="text-xl text-gray-600">Upload and manage your portfolio</p>
         </div>
 
         {/* Status Messages */}
@@ -180,7 +180,7 @@ const DashboardPage = ({ portfolio, setPortfolio }: { portfolio: any, setPortfol
 
               {/* CSV Format Info */}
               <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-blue-900 mb-3">CSV Format Requirements</h3>
+                <h3 className="text-lg font-semibold text-blue-900 mb-3">CSV Format</h3>
                 <div className="text-sm text-blue-800 space-y-2">
                   <p>• First row should contain headers: <code className="bg-blue-100 px-2 py-1 rounded">ticker,position</code></p>
                   <p>• Each row should contain a ticker symbol and position amount</p>
@@ -257,7 +257,7 @@ const DashboardPage = ({ portfolio, setPortfolio }: { portfolio: any, setPortfol
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Position Details</h3>
-                <p className="text-sm text-gray-600 mt-1">Individual ticker positions and weights</p>
+                <p className="text-sm text-gray-600 mt-1">Ticker positions and weights</p>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -371,15 +371,17 @@ const Sidebar = ({ portfolio }: { portfolio: any }) => {
     <div className="w-72 bg-white border-r border-gray-200 h-screen">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-4">
-          <div className="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden">
+          <div className="w-12 h-12 flex items-center justify-center">
             <Logo />
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">Omen Screen</h1>
-            <p className="text-sm text-gray-500 mt-1">Deep portfolio analysis</p>
+            <h1 className="text-xl font-bold text-gray-900 leading-tight">
+              Altidus
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">Bought the peak,<br />lost it all in a week</p>
             <div className="mt-2">
               <span className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 whitespace-nowrap">
-                v4.4.2
+                v4.4.3
               </span>
             </div>
           </div>
@@ -487,13 +489,13 @@ const MainLayout = () => {
   useEffect(() => {
     switch (location.pathname) {
       case '/':
-        document.title = 'Omen Screen - Portfolio Management';
+        document.title = 'Altidus - Portfolio Management';
         break;
       case '/portfolio/analysis':
-        document.title = 'Omen Screen - Analysis Dashboard';
+        document.title = 'Altidus - Analysis Dashboard';
         break;
       default:
-        document.title = 'Omen Screen - Deep Portfolio Analysis';
+        document.title = 'Altidus - Portfolio Analysis';
     }
   }, [location.pathname]);
 

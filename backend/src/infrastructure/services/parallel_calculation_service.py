@@ -1,7 +1,7 @@
 """
-Parallel calculation service for efficient ticker analysis.
+Parallel calculation service for ticker analysis.
 
-This service provides parallel processing capabilities for CPU-intensive
+This service provides parallel processing capabilities for
 financial calculations while maintaining error isolation and resource management.
 """
 
@@ -37,7 +37,7 @@ class CalculationResult:
 
 
 class ParallelCalculationService:
-    """Service for managing parallel financial calculations."""
+    """Service for parallel financial calculations."""
     
     def __init__(self, max_workers: int = None):
         """

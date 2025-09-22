@@ -1,7 +1,7 @@
 /**
- * Shared timeout calculation utilities for portfolio analysis.
+ * Timeout calculation utilities for portfolio analysis.
  * 
- * This module provides consistent timeout calculation across backend and frontend
+ * This module provides timeout calculation across backend and frontend
  * based on portfolio size and date range.
  */
 
@@ -17,7 +17,7 @@ export interface TimeoutBreakdown {
 }
 
 /**
- * Calculate dynamic timeout for portfolio analysis based on ticker count and date range.
+ * Calculate timeout for portfolio analysis based on ticker count and date range.
  * 
  * @param tickerCount Number of tickers in the portfolio
  * @param startDate Analysis start date (YYYY-MM-DD format)
@@ -42,7 +42,7 @@ export function calculateAnalysisTimeout(
     const dateRangeDays = Math.ceil((endDt.getTime() - startDt.getTime()) / (1000 * 60 * 60 * 24));
     const dateRangeYears = Math.max(1, dateRangeDays / 365.25); // Minimum 1 year
     
-    // Calculate dynamic timeout
+    // Calculate timeout
     // Formula: base_timeout + (ticker_count * date_range_years * seconds_per_ticker_per_year)
     const dynamicTimeout = baseTimeout + (tickerCount * dateRangeYears * secondsPerTickerPerYear);
     
@@ -62,7 +62,7 @@ export function calculateAnalysisTimeout(
 }
 
 /**
- * Get detailed breakdown of timeout calculation for debugging.
+ * Get breakdown of timeout calculation for debugging.
  * 
  * @param tickerCount Number of tickers in the portfolio
  * @param startDate Analysis start date (YYYY-MM-DD format)

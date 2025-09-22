@@ -8,9 +8,9 @@ const MetricsLegend: React.FC = () => {
       description: 'Overall portfolio return for the analysis period',
       formula: '(End Value / Start Value) - 1',
       thresholds: [
-        { range: '< 10%', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '10% - 30%', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '> 30%', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '< 10%', color: 'bg-red-100 text-red-800', level: 'Low' },
+        { range: '10% - 30%', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '> 30%', color: 'bg-green-100 text-green-800', level: 'High' }
       ],
       icon: TrendingUp
     },
@@ -19,9 +19,9 @@ const MetricsLegend: React.FC = () => {
       description: 'Return adjusted for time period',
       formula: '(1 + Total Return)^(252/days) - 1',
       thresholds: [
-        { range: '< 5%', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '5% - 15%', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '> 15%', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '< 5%', color: 'bg-red-100 text-red-800', level: 'Low' },
+        { range: '5% - 15%', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '> 15%', color: 'bg-green-100 text-green-800', level: 'High' }
       ],
       icon: BarChart3
     },
@@ -30,9 +30,9 @@ const MetricsLegend: React.FC = () => {
       description: 'Standard deviation of daily returns',
       formula: 'std_daily_return × √252',
       thresholds: [
-        { range: '> 20%', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '10% - 20%', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '< 10%', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '> 20%', color: 'bg-red-100 text-red-800', level: 'High' },
+        { range: '10% - 20%', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '< 10%', color: 'bg-green-100 text-green-800', level: 'Low' }
       ],
       icon: AlertTriangle
     },
@@ -41,9 +41,9 @@ const MetricsLegend: React.FC = () => {
       description: 'Risk-adjusted return measure',
       formula: '√252 × (mean - rf) / std',
       thresholds: [
-        { range: '< 0.5', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '0.5 - 1.5', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '> 1.5', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '< 0.5', color: 'bg-red-100 text-red-800', level: 'Low' },
+        { range: '0.5 - 1.5', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '> 1.5', color: 'bg-green-100 text-green-800', level: 'High' }
       ],
       icon: Target
     },
@@ -52,9 +52,9 @@ const MetricsLegend: React.FC = () => {
       description: 'Maximum peak-to-trough decline',
       formula: 'min((current - max) / max)',
       thresholds: [
-        { range: '< -30%', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '-30% to -15%', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '> -15%', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '< -30%', color: 'bg-red-100 text-red-800', level: 'High' },
+        { range: '-30% to -15%', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '> -15%', color: 'bg-green-100 text-green-800', level: 'Low' }
       ],
       icon: TrendingDown
     },
@@ -63,9 +63,9 @@ const MetricsLegend: React.FC = () => {
       description: 'Downside risk-adjusted return',
       formula: '√252 × (mean - rf) / std_downside',
       thresholds: [
-        { range: '< 1.0', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '1.0 - 2.0', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '> 2.0', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '< 1.0', color: 'bg-red-100 text-red-800', level: 'Low' },
+        { range: '1.0 - 2.0', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '> 2.0', color: 'bg-green-100 text-green-800', level: 'High' }
       ],
       icon: Shield
     },
@@ -74,9 +74,9 @@ const MetricsLegend: React.FC = () => {
       description: 'Return vs maximum drawdown',
       formula: 'Annualized Return / |Max Drawdown|',
       thresholds: [
-        { range: '< 0.5', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '0.5 - 1.0', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '> 1.0', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '< 0.5', color: 'bg-red-100 text-red-800', level: 'Low' },
+        { range: '0.5 - 1.0', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '> 1.0', color: 'bg-green-100 text-green-800', level: 'High' }
       ],
       icon: Target
     },
@@ -85,9 +85,9 @@ const MetricsLegend: React.FC = () => {
       description: 'Value at Risk - max expected loss',
       formula: '-(1.645 × std - mean) × 100',
       thresholds: [
-        { range: '> 2.0%', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '1.0% - 2.0%', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '< 1.0%', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '> 2.0%', color: 'bg-red-100 text-red-800', level: 'High' },
+        { range: '1.0% - 2.0%', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '< 1.0%', color: 'bg-green-100 text-green-800', level: 'Low' }
       ],
       icon: AlertTriangle
     },
@@ -96,9 +96,9 @@ const MetricsLegend: React.FC = () => {
       description: 'Market sensitivity vs S&P 500',
       formula: 'cov(portfolio, benchmark) / var(benchmark)',
       thresholds: [
-        { range: '> 1.3', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '0.7 - 1.3', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '< 0.7', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '> 1.3', color: 'bg-red-100 text-red-800', level: 'High' },
+        { range: '0.7 - 1.3', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '< 0.7', color: 'bg-green-100 text-green-800', level: 'Low' }
       ],
       icon: BarChart3
     }
@@ -109,36 +109,36 @@ const MetricsLegend: React.FC = () => {
       name: 'Annualized Return',
       description: 'Individual ticker return',
       thresholds: [
-        { range: '< 5%', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '5% - 20%', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '> 20%', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '< 5%', color: 'bg-red-100 text-red-800', level: 'Low' },
+        { range: '5% - 20%', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '> 20%', color: 'bg-green-100 text-green-800', level: 'High' }
       ]
     },
     {
       name: 'Volatility',
       description: 'Individual ticker volatility',
       thresholds: [
-        { range: '> 50%', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '30% - 50%', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '< 30%', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '> 50%', color: 'bg-red-100 text-red-800', level: 'High' },
+        { range: '30% - 50%', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '< 30%', color: 'bg-green-100 text-green-800', level: 'Low' }
       ]
     },
     {
       name: 'Max Drawdown',
       description: 'Individual ticker max drawdown',
       thresholds: [
-        { range: '< -50%', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '-50% to -30%', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '> -30%', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '< -50%', color: 'bg-red-100 text-red-800', level: 'High' },
+        { range: '-50% to -30%', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '> -30%', color: 'bg-green-100 text-green-800', level: 'Low' }
       ]
     },
     {
       name: 'Dividend Yield',
       description: 'Annualized dividend yield',
       thresholds: [
-        { range: '< 1%', color: 'bg-red-100 text-red-800', level: 'Bad' },
-        { range: '1% - 4%', color: 'bg-yellow-100 text-yellow-800', level: 'Caution' },
-        { range: '> 4%', color: 'bg-green-100 text-green-800', level: 'Good' }
+        { range: '< 1%', color: 'bg-red-100 text-red-800', level: 'Low' },
+        { range: '1% - 4%', color: 'bg-yellow-100 text-yellow-800', level: 'Medium' },
+        { range: '> 4%', color: 'bg-green-100 text-green-800', level: 'High' }
       ]
     }
   ];
@@ -155,7 +155,7 @@ const MetricsLegend: React.FC = () => {
     <div className="max-w-6xl mx-auto">
       {/* Description */}
       <div className="text-center mb-6">
-        <p className="text-gray-600">Understanding portfolio performance metrics and their interpretations</p>
+        <p className="text-gray-600">Portfolio performance metrics and interpretations</p>
       </div>
 
       {/* Portfolio Metrics Grid */}
@@ -251,7 +251,7 @@ const MetricsLegend: React.FC = () => {
         <div className="flex items-start">
           <Info className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
           <div>
-            <h3 className="font-semibold text-blue-900 mb-2">Important Notes</h3>
+            <h3 className="font-semibold text-blue-900 mb-2">Notes</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-blue-800">
               <div>• Thresholds based on developed-market equities</div>
               <div>• Different asset classes need adjusted thresholds</div>

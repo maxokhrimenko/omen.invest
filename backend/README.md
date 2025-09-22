@@ -1,10 +1,10 @@
-# 🚀 Portfolio Analysis Tool - Backend
+# Portfolio Analysis Tool - Backend
 
 ## Overview
 
-This is the backend component of the Portfolio Analysis Tool, providing comprehensive financial analysis capabilities through a clean architecture implementation.
+This is the backend component of the Portfolio Analysis Tool, providing financial analysis capabilities through clean architecture implementation.
 
-## 🏗️ Architecture
+## Architecture
 
 The backend follows Clean Architecture principles with clear separation of concerns:
 
@@ -13,7 +13,7 @@ The backend follows Clean Architecture principles with clear separation of conce
 - **Infrastructure Layer**: External systems and data access
 - **Presentation Layer**: CLI interface and controllers
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -56,7 +56,7 @@ pytest tests/unit/
 pytest tests/integration/
 ```
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 backend/
@@ -83,7 +83,7 @@ backend/
 └── requirements.txt              # Dependencies
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -96,16 +96,16 @@ Logs are stored in the `logs/` directory:
 - `logs/sessions/`: Session-specific logs
 - `logs/total/`: All logs across sessions
 
-## 📊 Features
+## Features
 
-- **Portfolio Analysis**: Comprehensive financial metrics calculation
+- **Portfolio Analysis**: Financial metrics calculation
 - **Ticker Analysis**: Individual stock analysis with dividend calculations
-- **Warehouse Caching**: 100x+ performance improvement for repeated requests
+- **Warehouse Caching**: Performance improvement for repeated requests
 - **Data Validation**: Missing data detection and reporting
 - **Color-Coded Metrics**: Visual performance indicators
-- **Comprehensive Logging**: Detailed operation tracking
+- **Logging**: Operation tracking
 
-## 🛠️ Development
+## Development
 
 ### Adding New Features
 
@@ -118,17 +118,17 @@ Logs are stored in the `logs/` directory:
 ### Code Quality
 
 - Follow PEP 8 style guidelines
-- Write comprehensive tests
+- Write tests
 - Use type hints
 - Document public APIs
 
-## 📚 Documentation
+## Documentation
 
 - [Architecture Documentation](../docs/ARCHITECTURE.md)
 - [AI Documentation](../docs/AI.MD)
 - [Metrics Memorandum](../docs/METRICS_MEMORANDUM.md)
 
-## 🔄 API Integration
+## API Integration
 
 The backend is designed to support future API integration:
 
@@ -137,7 +137,7 @@ The backend is designed to support future API integration:
 - Authentication (planned)
 - Rate limiting (planned)
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 

@@ -1,9 +1,9 @@
 # Version Usage Documentation
 
-This document tracks where version information is used throughout the Omen Invest application.
+This document tracks where version information is used throughout the Altidus application.
 
 ## Current Version
-**4.3.0** - Advanced Portfolio Analysis & Visualization
+**4.4.3** - Portfolio Analysis & Visualization
 
 ## Version File Location
 - **Central Version File**: `/VERSION` (root directory)
@@ -16,7 +16,7 @@ This document tracks where version information is used throughout the Omen Inves
 #### Frontend Package Configuration
 - **File**: `frontend/package.json`
 - **Line**: 4
-- **Usage**: `"version": "4.3.0"`
+- **Usage**: `"version": "4.4.3"`
 - **Purpose**: NPM package version for frontend application
 
 #### Frontend Package Lock
@@ -32,7 +32,7 @@ This document tracks where version information is used throughout the Omen Inves
 - **Code**:
   ```tsx
   <span className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 whitespace-nowrap">
-    v4.3.0
+    v4.4.3
   </span>
   ```
 - **Purpose**: User-visible version display in application sidebar
@@ -43,8 +43,8 @@ This document tracks where version information is used throughout the Omen Inves
 - **File**: `backend/main.py`
 - **Lines**: 4, 84
 - **Usage**: 
-  - Docstring: `Version 4.3.0 - Advanced Portfolio Analysis & Visualization`
-  - Print statement: `print("🚀 Starting Portfolio Analysis Tool v4.3.0...")`
+  - Docstring: `Version 4.4.3 - Advanced Portfolio Analysis & Visualization`
+  - Print statement: `print("🚀 Starting Portfolio Analysis Tool v4.4.3...")`
 - **Purpose**: Application startup version display and documentation
 
 #### Backend API
@@ -59,14 +59,14 @@ This document tracks where version information is used throughout the Omen Inves
 - **File**: `README.md`
 - **Lines**: 5, 425
 - **Usage**:
-  - Header: `> **🚀 Version 4.3.0 - Advanced Portfolio Analysis & Visualization**`
-  - Footer: `Current version: 4.3.0 - **Advanced Portfolio Analysis & Visualization**`
+  - Header: `> **🚀 Version 4.4.3 - Advanced Portfolio Analysis & Visualization**`
+  - Footer: `Current version: 4.4.3 - **Advanced Portfolio Analysis & Visualization**`
 - **Purpose**: Documentation version display
 
 #### Changelog
 - **File**: `CHANGELOG.md`
 - **Line**: 8
-- **Usage**: `## [4.3.0] - 2025-09-22`
+- **Usage**: `## [4.4.3] - 2025-09-22`
 - **Purpose**: Version history tracking
 
 ### 4. Development Scripts
@@ -95,11 +95,11 @@ When updating the version, the following files need to be updated:
 ## Version Consistency
 
 ### Current Status
-- ✅ Frontend package.json: 4.3.0
-- ✅ Frontend sidebar: 4.3.0
-- ✅ Backend main.py: 4.3.0
-- ✅ README.md: 4.3.0
-- ✅ CHANGELOG.md: 4.3.0
+- ✅ Frontend package.json: 4.4.3
+- ✅ Frontend sidebar: 4.4.3
+- ✅ Backend main.py: 4.4.3
+- ✅ README.md: 4.4.3
+- ✅ CHANGELOG.md: 4.4.3
 - ⚠️ Backend API: 1.0.0 (different versioning scheme)
 
 ### Recommendations

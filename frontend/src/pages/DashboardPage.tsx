@@ -20,7 +20,7 @@ const DashboardPage: React.FC = () => {
     {
       icon: BarChart3,
       title: 'Portfolio Analysis',
-      description: 'Get comprehensive analysis of your portfolio performance',
+      description: 'Get analysis of your portfolio performance',
       link: '/portfolio/analysis',
       color: 'bg-green-500'
     },
@@ -59,10 +59,10 @@ const DashboardPage: React.FC = () => {
       {/* Welcome Section */}
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Welcome to Omen Screen
+          Welcome to Altidus
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Upload your portfolio and get comprehensive analysis with detailed metrics, 
+          Upload your portfolio and get analysis with metrics, 
           performance insights, and risk assessment.
         </p>
       </div>
@@ -140,7 +140,7 @@ const DashboardPage: React.FC = () => {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Analyze Performance</h3>
             <p className="text-gray-600">
-              Get comprehensive analysis including returns, risk metrics, and comparisons
+              Get analysis including returns, risk metrics, and comparisons
             </p>
           </div>
           

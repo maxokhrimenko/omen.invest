@@ -1,8 +1,8 @@
-# 📈 Investment Portfolio Analysis Tool
+# 📈 Altidus - Investment Portfolio Analysis Tool
 
 A comprehensive full-stack application for analyzing investment portfolios, built with clean architecture principles. The system consists of a FastAPI backend with clean architecture, a React frontend interface, and a robust database layer.
 
-> **🚀 Version 4.4.2 - Parallel Processing & Warehouse Optimization System**: This release introduces a comprehensive parallel processing architecture with advanced warehouse optimizations, delivering 3-5x performance improvements through multi-threaded calculations and intelligent data fetching.
+> **🚀 Version 4.4.3 - Parallel Processing & Warehouse Optimization System**: This release introduces a comprehensive parallel processing architecture with advanced warehouse optimizations, delivering 3-5x performance improvements through multi-threaded calculations and intelligent data fetching.
 
 ## 🏗️ Architecture Overview
 
@@ -25,7 +25,7 @@ This tool helps investors analyze their portfolios by providing:
 
 ## 📋 Features
 
-### 🚀 Parallel Processing & Warehouse Optimization (NEW in v4.4.2)
+### 🚀 Parallel Processing & Warehouse Optimization (NEW in v4.4.3)
 - **Parallel Calculation Service**: Multi-threaded financial calculations with intelligent worker management (3-5x faster)
 - **Parallel Data Fetcher**: Concurrent data fetching for warehouse operations and external API calls (2-4x faster)
 - **Warehouse Optimizer**: Database optimization with connection pooling and query performance enhancements (50%+ improvement)
@@ -438,7 +438,7 @@ For backwards compatibility, the original scripts are still available:
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history and changes.
 
 ## Version
-Current version: 4.3.0 - **Advanced Portfolio Analysis & Visualization**
+Current version: 4.4.3 - **Portfolio Analysis & Visualization**
 
 ## Features
 - **📊 Interactive Visualizations**: Recharts-based performance charts with benchmark comparisons
