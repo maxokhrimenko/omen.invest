@@ -62,7 +62,7 @@ export function calculateAnalysisTimeout(
 }
 
 /**
- * Get detailed breakdown of timeout calculation for debugging.
+ * Get breakdown of timeout calculation for debugging.
  * 
  * @param tickerCount Number of tickers in the portfolio
  * @param startDate Analysis start date (YYYY-MM-DD format)

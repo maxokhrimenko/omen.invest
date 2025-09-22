@@ -20,7 +20,7 @@ const DashboardPage: React.FC = () => {
     {
       icon: BarChart3,
       title: 'Portfolio Analysis',
-      description: 'Get comprehensive analysis of your portfolio performance',
+      description: 'Get analysis of your portfolio performance',
       link: '/portfolio/analysis',
       color: 'bg-green-500'
     },
@@ -33,7 +33,7 @@ const DashboardPage: React.FC = () => {
     }
   ];
 
-  const quickStats = [
+  const stats = [
     {
       label: 'Total Positions',
       value: '0',
@@ -62,14 +62,14 @@ const DashboardPage: React.FC = () => {
           Welcome to Omen Screen
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Upload your portfolio and get comprehensive analysis with detailed metrics, 
+          Upload your portfolio and get analysis with metrics, 
           performance insights, and risk assessment.
         </p>
       </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {quickStats.map((stat, index) => {
+        {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div key={index} className="bg-white p-6 rounded-lg border border-gray-200">
@@ -140,7 +140,7 @@ const DashboardPage: React.FC = () => {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Analyze Performance</h3>
             <p className="text-gray-600">
-              Get comprehensive analysis including returns, risk metrics, and comparisons
+              Get analysis including returns, risk metrics, and comparisons
             </p>
           </div>
           
