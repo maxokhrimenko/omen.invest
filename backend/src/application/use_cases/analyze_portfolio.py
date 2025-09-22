@@ -40,6 +40,7 @@ class AnalyzePortfolioResponse:
     message: str
     missing_tickers: List[str] = None
     tickers_without_start_data: List[str] = None
+    first_available_dates: Optional[Dict[str, str]] = None
     portfolio_values_over_time: Optional[Dict[str, float]] = None
     sp500_values_over_time: Optional[Dict[str, float]] = None
     nasdaq_values_over_time: Optional[Dict[str, float]] = None
@@ -72,7 +73,7 @@ class AnalyzePortfolioUseCase:
             )
             
             # Identify missing tickers and tickers without start data
-            missing_tickers, tickers_without_start_data = self._identify_data_issues(
+            missing_tickers, tickers_without_start_data, first_available_dates = self._identify_data_issues(
                 request.portfolio.get_tickers(), 
                 price_history, 
                 request.date_range.start
@@ -86,6 +87,7 @@ class AnalyzePortfolioUseCase:
                     message="No price data available for portfolio analysis",
                     missing_tickers=missing_tickers,
                     tickers_without_start_data=tickers_without_start_data,
+                    first_available_dates=first_available_dates,
                     portfolio_values_over_time={},
                     sp500_values_over_time={},
                     nasdaq_values_over_time={}
@@ -111,6 +113,7 @@ class AnalyzePortfolioUseCase:
                     message="Unable to calculate portfolio values",
                     missing_tickers=[],
                     tickers_without_start_data=[],
+                    first_available_dates={},
                     portfolio_values_over_time={},
                     sp500_values_over_time={},
                     nasdaq_values_over_time={}
@@ -127,6 +130,7 @@ class AnalyzePortfolioUseCase:
                     message="No valid portfolio data available for analysis",
                     missing_tickers=missing_tickers,
                     tickers_without_start_data=tickers_without_start_data,
+                    first_available_dates=first_available_dates,
                     portfolio_values_over_time={},
                     sp500_values_over_time={},
                     nasdaq_values_over_time={}
@@ -225,6 +229,7 @@ class AnalyzePortfolioUseCase:
                 message="Portfolio analysis completed successfully",
                 missing_tickers=missing_tickers,
                 tickers_without_start_data=tickers_without_start_data,
+                first_available_dates=first_available_dates,
                 portfolio_values_over_time=portfolio_values_dict,
                 sp500_values_over_time=sp500_values_dict,
                 nasdaq_values_over_time=nasdaq_values_dict
@@ -249,6 +254,7 @@ class AnalyzePortfolioUseCase:
                 message=f"Portfolio analysis failed: {str(e)}",
                 missing_tickers=[],
                 tickers_without_start_data=[],
+                first_available_dates={},
                 portfolio_values_over_time={},
                 sp500_values_over_time={},
                 nasdaq_values_over_time={}
@@ -288,15 +294,14 @@ class AnalyzePortfolioUseCase:
     def _identify_data_issues(self, 
                              tickers: List[Ticker], 
                              price_history: Dict[Ticker, pd.Series], 
-                             start_date: str) -> tuple[List[str], List[str]]:
+                             start_date: str) -> tuple[List[str], List[str], Dict[str, str]]:
         """Identify tickers with missing data or no data at start date."""
         missing_tickers = []
         tickers_without_start_data = []
+        first_available_dates = {}
         
         start_timestamp = pd.Timestamp(start_date)
-        # Allow up to 5 business days tolerance for start date (to account for weekends/holidays)
-        tolerance_days = 5
-        max_allowed_start = start_timestamp + pd.Timedelta(days=tolerance_days)
+        
         
         for ticker in tickers:
             if ticker not in price_history:
@@ -308,18 +313,28 @@ class AnalyzePortfolioUseCase:
                     missing_tickers.append(ticker.symbol)
                     self._logger.warning(f"Empty price data for {ticker.symbol}")
                 else:
-                    # Check if there's data within reasonable tolerance of the start date
-                    available_dates = prices.index
-                    first_available = available_dates[0]
+                    first_available = prices.index[0]
                     
-                    # If first available data is more than tolerance_days after start date, consider it missing
-                    if first_available > max_allowed_start:
+                    # Check if data starts after the requested start date
+                    if first_available > start_timestamp:
                         tickers_without_start_data.append(ticker.symbol)
-                        self._logger.warning(f"No data within {tolerance_days} days of start date {start_date} for {ticker.symbol} (first data: {first_available.date()})")
+                        first_available_dates[ticker.symbol] = first_available.strftime('%Y-%m-%d')
+                        days_late = (first_available - start_timestamp).days
+                        self._logger.warning(f"Data starts after requested start date for {ticker.symbol}: {first_available.strftime('%Y-%m-%d')} (requested: {start_date}, {days_late} days late)")
                     else:
-                        self._logger.debug(f"Data available for {ticker.symbol} within tolerance (first data: {first_available.date()})")
+                        # Additional check for extremely poor data coverage
+                        # This catches cases where data exists but is insufficient for analysis
+                        estimated_trading_days = 1250  # Approximate for 5-year period
+                        data_coverage_ratio = len(prices) / max(estimated_trading_days, 1)
+                        
+                        if len(prices) < 10 or data_coverage_ratio < 0.1:
+                            tickers_without_start_data.append(ticker.symbol)
+                            first_available_dates[ticker.symbol] = first_available.strftime('%Y-%m-%d')
+                            self._logger.warning(f"Insufficient data coverage for {ticker.symbol}: {len(prices)} data points, coverage ratio: {data_coverage_ratio:.2%}")
+                        else:
+                            self._logger.debug(f"Sufficient data for {ticker.symbol}: starts {first_available.strftime('%Y-%m-%d')}, {len(prices)} data points, coverage ratio: {data_coverage_ratio:.2%}")
         
-        return missing_tickers, tickers_without_start_data
+        return missing_tickers, tickers_without_start_data, first_available_dates
     
     def _calculate_var_95(self, returns: pd.Series) -> Percentage:
         """Calculate VaR 95% with proper validation and error handling."""

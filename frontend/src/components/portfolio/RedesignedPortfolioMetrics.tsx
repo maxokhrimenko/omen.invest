@@ -18,15 +18,7 @@ const RedesignedPortfolioMetrics: React.FC<RedesignedPortfolioMetricsProps> = ({
 }) => {
   const metricsRef = useRef<HTMLDivElement>(null);
 
-  // Debug logging
-  console.log('RedesignedPortfolioMetrics Debug:', {
-    metrics: metrics.startValue,
-    timeSeriesData: {
-      portfolioValues: Object.keys(timeSeriesData.portfolioValues).length,
-      sp500Values: Object.keys(timeSeriesData.sp500Values).length,
-      nasdaqValues: Object.keys(timeSeriesData.nasdaqValues).length
-    }
-  });
+  const parsedStartValue = parseFloat(metrics.startValue.replace(/[$,]/g, ''));
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
@@ -68,13 +60,13 @@ const RedesignedPortfolioMetrics: React.FC<RedesignedPortfolioMetricsProps> = ({
         <div className="w-3/5 flex flex-col">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Comparison</h3>
           <div 
-            className="border border-gray-200 rounded-lg flex-1 min-h-[400px]"
+            className="border border-gray-200 rounded-lg flex-1 min-h-[400px] flex flex-col"
           >
             <PortfolioChart
               portfolioValues={timeSeriesData.portfolioValues}
               sp500Values={timeSeriesData.sp500Values}
               nasdaqValues={timeSeriesData.nasdaqValues}
-              startValue={parseFloat(metrics.startValue.replace(/[$,]/g, ''))}
+              startValue={parsedStartValue}
             />
           </div>
         </div>

@@ -2,6 +2,7 @@ import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import type { ApiError, ApiConfig } from '../types/api';
 import type { Portfolio, PortfolioUploadResponse, PortfolioAnalysis, TickerAnalysis } from '../types/portfolio';
 import { calculateAnalysisTimeout, formatTimeout } from '../utils/timeoutCalculator';
+import { logger } from '../utils/logger';
 
 class ApiService {
   private api: AxiosInstance;
@@ -20,11 +21,17 @@ class ApiService {
     // Request interceptor
     this.api.interceptors.request.use(
       (config) => {
-        console.log(`Making ${config.method?.toUpperCase()} request to ${config.url}`);
+        logger.logApiCall(
+          config.method?.toUpperCase() || 'UNKNOWN',
+          config.url || 'unknown',
+          undefined,
+          undefined,
+          { requestId: Math.random().toString(36).substr(2, 9) }
+        );
         return config;
       },
       (error) => {
-        console.error('Request error:', error);
+        logger.error('Request error', error);
         return Promise.reject(error);
       }
     );
@@ -32,11 +39,21 @@ class ApiService {
     // Response interceptor
     this.api.interceptors.response.use(
       (response: AxiosResponse) => {
-        console.log(`Response received from ${response.config.url}:`, response.status);
+        logger.logApiCall(
+          response.config.method?.toUpperCase() || 'UNKNOWN',
+          response.config.url || 'unknown',
+          response.status,
+          undefined,
+          { requestId: Math.random().toString(36).substr(2, 9) }
+        );
         return response;
       },
       (error) => {
-        console.error('Response error:', error);
+        logger.error('Response error', error, {
+          url: error.config?.url,
+          status: error.response?.status,
+          method: error.config?.method
+        });
         const apiError: ApiError = {
           message: error.response?.data?.message || error.message || 'An unexpected error occurred',
           status: error.response?.status,

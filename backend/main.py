@@ -61,8 +61,12 @@ def setup_dependencies():
 
 def main():
     """Main application entry point."""
-    # Initialize logging system
-    logger_service = initialize_logging("logs")
+    # Initialize logging system with absolute path to project root logs directory
+    import os
+    # Get the project root directory (parent of backend directory)
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    logs_dir = os.path.join(project_root, "logs")
+    logger_service = initialize_logging(logs_dir)
     session_id = logger_service.start_session()
     
     # Register cleanup function
@@ -77,7 +81,7 @@ def main():
     try:
         logger.info("=== PORTFOLIO ANALYSIS TOOL STARTING ===")
         logger.info(f"Session ID: {session_id}")
-        print("🚀 Starting Portfolio Analysis Tool v4.3.0...")
+        print("🚀 Starting Portfolio Analysis Tool v4.4.0...")
         print("📦 Initializing components...")
         
         logger.info("Setting up dependency injection")

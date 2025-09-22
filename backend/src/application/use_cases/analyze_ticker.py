@@ -2,12 +2,14 @@ from dataclasses import dataclass
 from typing import Optional, List
 import pandas as pd
 import numpy as np
+import time
 from ..interfaces.repositories import MarketDataRepository
 from ...domain.entities.ticker import Ticker
 from ...domain.value_objects.date_range import DateRange
 from ...domain.value_objects.money import Money
 from ...domain.value_objects.percentage import Percentage
 from ...infrastructure.logging.logger_service import get_logger_service
+from ...infrastructure.logging.performance_monitor import get_performance_monitor
 
 @dataclass
 class AnalyzeTickerRequest:
@@ -42,11 +44,26 @@ class AnalyzeTickerResponse:
     has_data_at_start: bool = True
     first_available_date: Optional[str] = None
 
+@dataclass
+class AnalyzeTickersRequest:
+    tickers: List[Ticker]
+    date_range: DateRange
+    risk_free_rate: float = 0.03
+
+@dataclass
+class AnalyzeTickersResponse:
+    ticker_metrics: List[TickerMetrics]
+    failed_tickers: List[str]
+    success: bool
+    message: str
+    processing_time_seconds: float
+
 class AnalyzeTickerUseCase:
     def __init__(self, market_data_repo: MarketDataRepository):
         self._market_data_repo = market_data_repo
         self._logger_service = get_logger_service()
         self._logger = self._logger_service.get_logger("application")
+        self._performance_monitor = get_performance_monitor()
     
     def execute(self, request: AnalyzeTickerRequest) -> AnalyzeTickerResponse:
         try:
@@ -125,6 +142,103 @@ class AnalyzeTickerUseCase:
                 metrics=None,
                 success=False,
                 message=f"Analysis failed for {request.ticker.symbol}: {str(e)}"
+            )
+    
+    def execute_batch(self, request: AnalyzeTickersRequest) -> AnalyzeTickersResponse:
+        """Execute multiple ticker analysis with smart batching and performance monitoring."""
+        start_time = time.time()
+        self._performance_monitor.start_timing("batch_analysis")
+        
+        try:
+            self._logger.info(f"Starting batch analysis for {len(request.tickers)} tickers")
+            self._logger.info(f"Date range: {request.date_range.start} to {request.date_range.end}")
+            
+            # Step 1: Batch fetch all data (3 calls instead of 3 * N calls)
+            self._performance_monitor.start_timing("price_data_fetch")
+            all_price_data = self._market_data_repo.get_price_history_batch(
+                request.tickers, request.date_range
+            )
+            price_fetch_time = self._performance_monitor.end_timing("price_data_fetch")
+            
+            self._performance_monitor.start_timing("dividend_data_fetch")
+            all_dividend_data = self._market_data_repo.get_dividend_history_batch(
+                request.tickers, request.date_range
+            )
+            dividend_fetch_time = self._performance_monitor.end_timing("dividend_data_fetch")
+            
+            # Fetch benchmark data once (shared across all tickers)
+            self._performance_monitor.start_timing("benchmark_data_fetch")
+            benchmark_data = self._market_data_repo.get_benchmark_data(
+                "^GSPC", request.date_range
+            )
+            benchmark_fetch_time = self._performance_monitor.end_timing("benchmark_data_fetch")
+            
+            # Step 2: Process all tickers using existing calculation logic
+            self._performance_monitor.start_timing("calculations")
+            ticker_metrics = []
+            failed_tickers = []
+            
+            for ticker in request.tickers:
+                try:
+                    # Get data for this ticker
+                    price_data = all_price_data.get(ticker, pd.Series(dtype='float64'))
+                    dividend_data = all_dividend_data.get(ticker, pd.Series(dtype='float64'))
+                    
+                    if price_data.empty or len(price_data) < 2:
+                        failed_tickers.append(ticker.symbol)
+                        continue
+                    
+                    # Use existing calculation logic
+                    metrics = self._calculate_metrics(
+                        ticker, price_data, dividend_data, 
+                        request.risk_free_rate, request.date_range, benchmark_data
+                    )
+                    
+                    ticker_metrics.append(metrics)
+                    
+                except Exception as e:
+                    self._logger.error(f"Failed to analyze ticker {ticker.symbol}: {str(e)}")
+                    failed_tickers.append(ticker.symbol)
+            
+            calculation_time = self._performance_monitor.end_timing("calculations")
+            total_time = self._performance_monitor.end_timing("batch_analysis")
+            
+            # Log detailed performance metrics
+            self._performance_monitor.log_batch_performance(
+                ticker_count=len(request.tickers),
+                total_time=total_time,
+                price_fetch_time=price_fetch_time,
+                dividend_fetch_time=dividend_fetch_time,
+                benchmark_fetch_time=benchmark_fetch_time,
+                calculation_time=calculation_time
+            )
+            
+            # Log performance summary
+            self._performance_monitor.log_performance_summary(
+                operation="batch_ticker_analysis",
+                ticker_count=len(request.tickers),
+                total_time=total_time,
+                success_count=len(ticker_metrics),
+                failed_count=len(failed_tickers)
+            )
+            
+            return AnalyzeTickersResponse(
+                ticker_metrics=ticker_metrics,
+                failed_tickers=failed_tickers,
+                success=True,
+                message=f"Analyzed {len(ticker_metrics)} tickers in {total_time:.2f} seconds",
+                processing_time_seconds=total_time
+            )
+            
+        except Exception as e:
+            total_time = self._performance_monitor.end_timing("batch_analysis")
+            self._logger.error(f"Batch analysis failed: {str(e)}")
+            return AnalyzeTickersResponse(
+                ticker_metrics=[],
+                failed_tickers=[t.symbol for t in request.tickers],
+                success=False,
+                message=f"Batch analysis failed: {str(e)}",
+                processing_time_seconds=total_time
             )
     
     def _calculate_var_95(self, returns: pd.Series) -> Percentage:

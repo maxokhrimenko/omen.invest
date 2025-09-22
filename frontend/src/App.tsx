@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Upload, BarChart3, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, BarChart3, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
 import PortfolioAnalysisPage from './pages/PortfolioAnalysisPage';
 import { apiService } from './services/api';
 import Logo from './components/Logo';
+import ErrorBoundary from './components/ErrorBoundary';
+import { logger } from './utils/logger';
 
 
 const DashboardPage = ({ portfolio, setPortfolio }: { portfolio: any, setPortfolio: (portfolio: any) => void }) => {
@@ -30,6 +32,11 @@ const DashboardPage = ({ portfolio, setPortfolio }: { portfolio: any, setPortfol
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      logger.logUserAction('file_selected', { 
+        fileName: file.name, 
+        fileSize: file.size, 
+        fileType: file.type 
+      });
       setUploadedFile(file);
       setSuccess(`File "${file.name}" selected successfully!`);
       // Process CSV immediately after file selection
@@ -323,6 +330,43 @@ const Sidebar = ({ portfolio }: { portfolio: any }) => {
     return location.pathname.startsWith(path);
   };
 
+  const menuItems = [
+    {
+      path: '/',
+      label: 'Portfolio Management',
+      icon: Upload,
+      badge: null,
+      disabled: false
+    },
+    {
+      path: '/portfolio/analysis',
+      label: 'Portfolio Analysis',
+      icon: BarChart3,
+      badge: { text: 'new', color: 'red' },
+      disabled: !portfolio
+    },
+    {
+      path: '/tickers/analysis',
+      label: 'Tickers Analysis',
+      icon: TrendingUp,
+      badge: { text: 'soon', color: 'purple' },
+      disabled: true
+    }
+  ];
+
+  const getBadgeClasses = (badge: any) => {
+    if (!badge) return '';
+    const baseClasses = 'inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium whitespace-nowrap min-w-fit';
+    switch (badge.color) {
+      case 'red':
+        return `${baseClasses} bg-red-100 text-red-800`;
+      case 'purple':
+        return `${baseClasses} bg-purple-100 text-purple-800`;
+      default:
+        return `${baseClasses} bg-gray-100 text-gray-800`;
+    }
+  };
+
   return (
     <div className="w-72 bg-white border-r border-gray-200 h-screen">
       <div className="p-6 border-b border-gray-200">
@@ -330,41 +374,66 @@ const Sidebar = ({ portfolio }: { portfolio: any }) => {
           <div className="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden">
             <Logo />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900">Omen Screen</h1>
             <p className="text-sm text-gray-500 mt-1">Deep portfolio analysis</p>
+            <div className="mt-2">
+              <span className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 whitespace-nowrap">
+                v4.4.0
+              </span>
+            </div>
           </div>
         </div>
       </div>
       
       <nav className="p-4 space-y-2">
-        <Link
-          to="/"
-          className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-            isActive('/')
-              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-              : 'text-gray-700 hover:bg-gray-50'
-          }`}
-        >
-          <Upload className="w-5 h-5 mr-3" />
-          <span className="font-medium">Portfolio Management</span>
-        </Link>
-        
-        
-        <Link
-          to={portfolio ? "/portfolio/analysis" : "#"}
-          className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-            !portfolio
-              ? 'text-gray-400 cursor-not-allowed opacity-50'
-              : isActive('/portfolio/analysis')
-              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-              : 'text-gray-700 hover:bg-gray-50'
-          }`}
-          onClick={!portfolio ? (e) => e.preventDefault() : undefined}
-        >
-          <BarChart3 className={`w-5 h-5 mr-3 ${!portfolio ? 'text-gray-400' : ''}`} />
-          <span className="font-medium">Portfolio Analysis</span>
-        </Link>
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.path);
+          const isDisabled = item.disabled;
+          
+          const menuItem = (
+            <div
+              className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
+                isDisabled
+                  ? 'text-gray-400 cursor-not-allowed opacity-50'
+                  : active
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Icon className={`w-5 h-5 mr-3 ${
+                isDisabled 
+                  ? 'text-gray-400' 
+                  : active 
+                  ? 'text-blue-600' 
+                  : 'text-gray-400'
+              }`} />
+              <div className="flex-1 flex items-center justify-between min-w-0">
+                <span className="font-medium truncate">{item.label}</span>
+                {item.badge && (
+                  <span className={`${getBadgeClasses(item.badge)} ml-2 flex-shrink-0`}>
+                    {item.badge.text}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+          
+          if (isDisabled) {
+            return (
+              <div key={item.path} onClick={(e) => e.preventDefault()}>
+                {menuItem}
+              </div>
+            );
+          }
+          
+          return (
+            <Link key={item.path} to={item.path}>
+              {menuItem}
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );
@@ -443,9 +512,11 @@ const MainLayout = () => {
 
 function App() {
   return (
-    <Router>
-      <MainLayout />
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <MainLayout />
+      </Router>
+    </ErrorBoundary>
   );
 }
 

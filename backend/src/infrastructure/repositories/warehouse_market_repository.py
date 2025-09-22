@@ -98,40 +98,38 @@ class WarehouseMarketRepository(MarketDataRepository):
     
     def _get_ticker_price_history(self, ticker: Ticker, date_range: DateRange) -> pd.Series:
         """Get price history for a single ticker with warehouse caching."""
-        self._logger.debug(f"Processing ticker {ticker.symbol}")
+        self._logger.debug(f"Processing ticker {ticker.symbol} for range {date_range.start} to {date_range.end}")
         
-        # Step 1: Check warehouse coverage
-        coverage = self.warehouse_service.get_coverage(ticker, date_range)
-        
-        # Step 2: Determine trading days in the requested range
-        potential_trading_days = self.trading_day_service.get_trading_days_in_range(date_range)
-        
-        # Step 3: Check if we have sufficient coverage
-        # We need to be smarter about this - we should check if we have data for
-        # the actual trading days that exist in the market, not just potential trading days
-        
-        # First, try to get data from warehouse to see what we have
+        # Step 1: First, try to get data from warehouse to see what we have
         existing_data = self.warehouse_service.get_price_data(ticker, date_range)
         
         if not existing_data.empty:
-            # We have some data in warehouse, check if it covers the requested range adequately
+            # We have data in warehouse for the requested range
             existing_dates = {date.strftime('%Y-%m-%d') for date in existing_data.index}
             
-            # If we have data for most of the potential trading days (allowing for holidays),
-            # and the data spans the requested range, use the warehouse
+            # Step 2: Determine trading days in the requested range
+            potential_trading_days = self.trading_day_service.get_trading_days_in_range(date_range)
+            
+            # Step 3: Check if we have sufficient coverage
             coverage_ratio = len(existing_dates.intersection(potential_trading_days)) / len(potential_trading_days)
             
+            self._logger.debug(f"Warehouse data for {ticker.symbol}: {len(existing_data)} data points, {len(existing_dates)} unique dates")
+            self._logger.debug(f"Potential trading days: {len(potential_trading_days)}, Coverage ratio: {coverage_ratio:.1%}")
+            
             if coverage_ratio >= 0.8:  # At least 80% coverage
-                self._logger.debug(f"Sufficient data available in warehouse for {ticker.symbol} (coverage: {coverage_ratio:.1%})")
+                self._logger.info(f"✅ Using warehouse data for {ticker.symbol} (coverage: {coverage_ratio:.1%})")
                 self.warehouse_hits += 1
-                missing_ranges = []  # No missing ranges needed
+                return existing_data  # Return the data directly, no need to fetch more
             else:
+                self._logger.info(f"⚠️ Insufficient coverage in warehouse for {ticker.symbol} (coverage: {coverage_ratio:.1%}) - will fetch missing data")
                 # Calculate missing ranges using potential trading days
                 missing_ranges = self.warehouse_service.get_missing_ranges(
                     ticker, date_range, potential_trading_days
                 )
         else:
-            # No data in warehouse, calculate missing ranges
+            # No data in warehouse for this range, calculate missing ranges
+            self._logger.info(f"❌ No data in warehouse for {ticker.symbol} in range {date_range.start} to {date_range.end} - will fetch from Yahoo")
+            potential_trading_days = self.trading_day_service.get_trading_days_in_range(date_range)
             missing_ranges = self.warehouse_service.get_missing_ranges(
                 ticker, date_range, potential_trading_days
             )
@@ -141,7 +139,7 @@ class WarehouseMarketRepository(MarketDataRepository):
             self.warehouse_misses += 1
             self.missing_range_segments += len(missing_ranges)
             
-            # Step 5: Fetch missing data from Yahoo - batch multiple ranges into single call
+            # Step 4: Fetch missing data from Yahoo - batch multiple ranges into single call
             if len(missing_ranges) > 1:
                 # If multiple ranges, try to batch them into a single call
                 min_date = min(start for start, end in missing_ranges)
@@ -183,7 +181,7 @@ class WarehouseMarketRepository(MarketDataRepository):
                 else:
                     self._logger.warning(f"No data returned from Yahoo for {ticker.symbol} in range {start_date} to {end_date}")
         
-        # Step 6: Read complete requested range from warehouse
+        # Step 5: Read complete requested range from warehouse
         final_data = self.warehouse_service.get_price_data(ticker, date_range)
         
         if final_data.empty:
@@ -268,6 +266,63 @@ class WarehouseMarketRepository(MarketDataRepository):
             "database_size_bytes": self.warehouse_service.get_database_size() if self.warehouse_enabled else 0
         }
     
+    @log_operation("warehouse_market", include_args=True, include_result=True)
+    def get_price_history_batch(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
+        """Get price history for multiple tickers with warehouse caching."""
+        if not self.warehouse_enabled:
+            self._logger.info("Warehouse disabled, using direct Yahoo Finance for batch")
+            return self.yahoo_repo.get_price_history(tickers, date_range)
+        
+        self._logger.info(f"Warehouse-enabled batch price history fetch for {len(tickers)} tickers")
+        self._logger.info(f"Date range: {date_range.start} to {date_range.end}")
+        
+        result = {}
+        
+        # Check warehouse coverage for all tickers
+        missing_tickers = []
+        warehouse_data = {}
+        
+        for ticker in tickers:
+            try:
+                ticker_result = self._get_ticker_price_history(ticker, date_range)
+                if not ticker_result.empty:
+                    warehouse_data[ticker] = ticker_result
+                else:
+                    missing_tickers.append(ticker)
+            except Exception as e:
+                self._logger.error(f"Error processing ticker {ticker.symbol}: {str(e)}")
+                missing_tickers.append(ticker)
+        
+        # Fetch missing data from Yahoo in batch
+        if missing_tickers:
+            self._logger.info(f"Fetching {len(missing_tickers)} missing tickers from Yahoo")
+            try:
+                yahoo_result = self.yahoo_repo.get_price_history(missing_tickers, date_range)
+                for ticker in missing_tickers:
+                    if ticker in yahoo_result and not yahoo_result[ticker].empty:
+                        warehouse_data[ticker] = yahoo_result[ticker]
+                        # Store in warehouse for future use
+                        self.warehouse_service.store_price_data(ticker, yahoo_result[ticker])
+            except Exception as yahoo_error:
+                self._logger.error(f"Yahoo batch fetch failed: {str(yahoo_error)}")
+        
+        return warehouse_data
+
+    @log_operation("warehouse_market", include_args=True, include_result=True)
+    def get_dividend_history_batch(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
+        """Get dividend history for multiple tickers with warehouse caching."""
+        if not self.warehouse_enabled:
+            self._logger.info("Warehouse disabled, using direct Yahoo Finance for batch dividends")
+            return {ticker: self.yahoo_repo.get_dividend_history(ticker, date_range) for ticker in tickers}
+        
+        self._logger.info(f"Warehouse-enabled batch dividend history fetch for {len(tickers)} tickers")
+        
+        result = {}
+        for ticker in tickers:
+            result[ticker] = self.get_dividend_history(ticker, date_range)
+        
+        return result
+
     def reset_metrics(self):
         """Reset observability metrics."""
         self.warehouse_hits = 0

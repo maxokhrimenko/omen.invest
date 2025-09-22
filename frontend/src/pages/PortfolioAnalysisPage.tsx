@@ -24,6 +24,7 @@ const PortfolioAnalysisPage: React.FC = () => {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [showLegend, setShowLegend] = useState(false);
   
+  
   const {
     analysisResults,
     isLoading,
@@ -201,14 +202,27 @@ const PortfolioAnalysisPage: React.FC = () => {
 
         {/* Legend Sidebar */}
         {showLegend && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowLegend(false);
+              }
+            }}
+          >
             <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] flex flex-col">
               {/* Fixed Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
                 <h2 className="text-2xl font-semibold text-gray-900">Metrics Legend</h2>
                 <button
-                  onClick={() => setShowLegend(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowLegend(false);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-md hover:bg-gray-100 cursor-pointer"
+                  aria-label="Close legend"
+                  type="button"
                 >
                   <X className="w-6 h-6" />
                 </button>

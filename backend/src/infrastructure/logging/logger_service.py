@@ -38,9 +38,9 @@ class LoggerService:
     
     def _setup_logging(self):
         """Setup logging configuration."""
-        # Disable root logger console output - LOGS ONLY GO TO FILES
+        # Configure root logger with minimal console output and file logging
         logging.basicConfig(
-            level=logging.CRITICAL,  # Set to CRITICAL to suppress all console output
+            level=logging.INFO,  # Allow INFO and above for console
             format='%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S',
             handlers=[]  # No handlers for root logger
@@ -145,7 +145,7 @@ class LoggerService:
         return self._loggers[name]
     
     def _create_logger(self, name: str, log_file: Optional[str] = None) -> logging.Logger:
-        """Create a logger with file handler only (NO console output)."""
+        """Create a logger with both console and file handlers."""
         logger = logging.getLogger(name)
         logger.setLevel(logging.DEBUG)
         
@@ -153,7 +153,19 @@ class LoggerService:
         for handler in logger.handlers[:]:
             logger.removeHandler(handler)
         
-        # NO CONSOLE HANDLER - LOGS ONLY GO TO FILES
+        # Generate unique log ID for this logger instance
+        import uuid
+        log_id = str(uuid.uuid4())[:8]
+        
+        # Console handler with minimal output and log ID
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_formatter = logging.Formatter(
+            f'[%(levelname)s] %(message)s (ID: {log_id})',
+            datefmt='%H:%M:%S'
+        )
+        console_handler.setFormatter(console_formatter)
+        logger.addHandler(console_handler)
         
         # File handler for total logs
         if log_file:
@@ -169,7 +181,7 @@ class LoggerService:
         
         file_handler.setLevel(logging.DEBUG)
         file_formatter = logging.Formatter(
-            '%(asctime)s | %(levelname)-8s | %(name)-20s | %(funcName)-20s:%(lineno)-4d | %(message)s',
+            f'%(asctime)s | %(levelname)-8s | %(name)-20s | %(funcName)-20s:%(lineno)-4d | LOG_ID:{log_id} | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
         file_handler.setFormatter(file_formatter)

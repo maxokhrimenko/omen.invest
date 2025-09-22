@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { DateRange } from '../components/portfolio/DateRangeSelector';
 import { apiService } from '../services/api';
+import { logger } from '../utils/logger';
 
 export interface PortfolioMetrics {
   totalReturn: string;
@@ -108,7 +109,12 @@ export const usePortfolioAnalysis = () => {
     setError(null);
 
     try {
-      console.log('Starting portfolio analysis...', { startDate, endDate, tickerCount });
+      logger.info('Starting portfolio analysis', { 
+        operation: 'portfolio_analysis',
+        startDate, 
+        endDate, 
+        tickerCount 
+      });
       
       // Call real API endpoints with dynamic timeouts
       const [portfolioResponse, tickerResponseData] = await Promise.all([
@@ -119,7 +125,8 @@ export const usePortfolioAnalysis = () => {
       const tickerResponse = tickerResponseData.data;
       const failedTickers = tickerResponseData.failedTickers || [];
 
-      console.log('API responses received:', { 
+      logger.info('API responses received', { 
+        operation: 'api_responses',
         portfolioSuccess: portfolioResponse.success, 
         portfolioData: portfolioResponse.data,
         tickerCount: tickerResponse.length 
@@ -136,26 +143,7 @@ export const usePortfolioAnalysis = () => {
         dataAvailabilityWarnings: {
           missingTickers: portfolioResponse.warnings.missingTickers,
           tickersWithoutStartData: portfolioResponse.warnings.tickersWithoutStartData,
-          firstAvailableDates: {
-            // Include first available dates from successful tickers
-            ...tickerResponse.reduce((acc, ticker) => {
-              if (ticker.firstAvailableDate && 
-                  (portfolioResponse.warnings.missingTickers.includes(ticker.ticker) || 
-                   portfolioResponse.warnings.tickersWithoutStartData.includes(ticker.ticker))) {
-                acc[ticker.ticker] = ticker.firstAvailableDate;
-              }
-              return acc;
-            }, {} as { [ticker: string]: string }),
-            // Include first available dates from failed tickers
-            ...failedTickers.reduce((acc, failedTicker) => {
-              if (failedTicker.firstAvailableDate && 
-                  (portfolioResponse.warnings.missingTickers.includes(failedTicker.ticker) || 
-                   portfolioResponse.warnings.tickersWithoutStartData.includes(failedTicker.ticker))) {
-                acc[failedTicker.ticker] = failedTicker.firstAvailableDate;
-              }
-              return acc;
-            }, {} as { [ticker: string]: string })
-          }
+          firstAvailableDates: portfolioResponse.warnings.firstAvailableDates || {}
         },
         analysisDate: new Date().toISOString(),
         dateRange: selectedDateRange || {
@@ -171,16 +159,22 @@ export const usePortfolioAnalysis = () => {
         }
       };
 
-      console.log('Analysis results created successfully:', analysisResults);
+      logger.info('Analysis results created successfully', {
+        operation: 'analysis_complete',
+        tickerCount: analysisResults.tickerMetrics.length,
+        hasPortfolioMetrics: !!analysisResults.portfolioMetrics
+      });
       setAnalysisResults(analysisResults);
       saveAnalysisResults(analysisResults);
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
-      console.error('Portfolio analysis failed:', err);
-      console.error('Error details:', { 
-        message: errorMessage, 
-        stack: err instanceof Error ? err.stack : undefined 
+      logger.error('Portfolio analysis failed', err as Error, {
+        operation: 'portfolio_analysis',
+        startDate,
+        endDate,
+        tickerCount,
+        message: errorMessage
       });
       setError(errorMessage);
     } finally {

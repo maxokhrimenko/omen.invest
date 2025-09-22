@@ -19,7 +19,8 @@ This document defines the comprehensive design system for the Portfolio Analysis
 11. [Form Design](#form-design)
 12. [Data Tables](#data-tables)
 13. [Status & Feedback](#status--feedback)
-14. [Implementation Guidelines](#implementation-guidelines)
+14. [Error Handling & Logging](#error-handling--logging)
+15. [Implementation Guidelines](#implementation-guidelines)
 
 ---
 
@@ -917,6 +918,125 @@ import {
   @apply text-sm text-gray-600 mt-1;
 }
 ```
+
+---
+
+## Error Handling & Logging
+
+### Error Boundary Design
+
+**Error Boundary Component**
+- Clean, professional error state with clear recovery options
+- Gradient background: `bg-gradient-to-r from-red-50 to-orange-50`
+- Border: `border-red-200` with rounded corners
+- Icon: Red alert triangle with `text-red-400`
+- Typography: Clear hierarchy with `text-lg font-medium` for headings
+
+**Error State Colors**
+```css
+.error-boundary {
+  background: linear-gradient(to right, #fef2f2, #fff7ed);
+  border: 1px solid #fecaca;
+  border-radius: 0.75rem;
+}
+
+.error-icon {
+  color: #f87171;
+  width: 2rem;
+  height: 2rem;
+}
+
+.error-title {
+  color: #991b1b;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+```
+
+**Error Recovery Actions**
+- Primary action: Blue button with `bg-blue-600 hover:bg-blue-700`
+- Secondary action: Gray button with `bg-gray-300 hover:bg-gray-400`
+- Clear visual hierarchy with proper spacing
+
+### Logging Interface Design
+
+**Log Display Components**
+- Monospace font for log content: `font-mono`
+- Structured layout with clear sections
+- Color coding for different log levels:
+  - DEBUG: `text-gray-500`
+  - INFO: `text-blue-600`
+  - WARN: `text-yellow-600`
+  - ERROR: `text-red-600`
+  - CRITICAL: `text-red-800 font-bold`
+
+**Log Entry Styling**
+```css
+.log-entry {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  padding: 0.5rem;
+  border-left: 3px solid;
+  margin-bottom: 0.25rem;
+}
+
+.log-debug { border-left-color: #6b7280; }
+.log-info { border-left-color: #2563eb; }
+.log-warn { border-left-color: #d97706; }
+.log-error { border-left-color: #dc2626; }
+.log-critical { border-left-color: #991b1b; }
+```
+
+### Data Availability Warnings
+
+**Collapsible Warning Design**
+- Gradient background: `bg-gradient-to-r from-amber-50 to-orange-50`
+- Border: `border-amber-200` with rounded corners
+- Icon: Amber warning triangle with `text-amber-600`
+- Toggle button with chevron icons and hover states
+
+**Warning State Colors**
+```css
+.data-warning {
+  background: linear-gradient(to right, #fffbeb, #fff7ed);
+  border: 1px solid #fed7aa;
+  border-radius: 0.75rem;
+}
+
+.warning-icon {
+  color: #d97706;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.warning-title {
+  color: #92400e;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+```
+
+**Collapsible Interface**
+- Smooth transitions with `transition-colors`
+- Hover states for interactive elements
+- Clear visual indicators for expanded/collapsed states
+- Proper accessibility with ARIA labels
+
+### Performance Monitoring
+
+**Performance Metrics Display**
+- Clean, scannable layout for performance data
+- Color coding for performance levels:
+  - Excellent: `text-green-600`
+  - Good: `text-blue-600`
+  - Warning: `text-yellow-600`
+  - Poor: `text-red-600`
+
+**Chart Performance Indicators**
+- Loading states with skeleton components
+- Progress indicators for data processing
+- Clear feedback for optimization status
 
 ---
 

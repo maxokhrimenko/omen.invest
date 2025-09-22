@@ -1,12 +1,22 @@
-import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import React, { useMemo } from 'react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ReferenceLine
+} from 'recharts';
 
 interface ChartDataPoint {
   date: string;
-  displayDate: string;
   portfolio: number | null;
   sp500: number | null;
   nasdaq: number | null;
+  displayDate: string;
 }
 
 interface PortfolioChartProps {
@@ -22,69 +32,100 @@ const PortfolioChart: React.FC<PortfolioChartProps> = ({
   nasdaqValues, 
   startValue 
 }) => {
-  // Normalize all values to start at the same point
-  const normalizeValues = (values: Record<string, number>, startValue: number) => {
-    const entries = Object.entries(values).sort(([a], [b]) => a.localeCompare(b));
-    if (entries.length === 0) return {};
-    
-    const firstValue = entries[0][1];
-    const normalized: Record<string, number> = {};
-    
-    entries.forEach(([date, value]) => {
-      normalized[date] = startValue * (value / firstValue);
-    });
-    
-    return normalized;
-  };
 
-  const normalizedPortfolio = normalizeValues(portfolioValues, startValue);
-  const normalizedSp500 = normalizeValues(sp500Values, startValue);
-  const normalizedNasdaq = normalizeValues(nasdaqValues, startValue);
+  // Process and normalize data
+  const chartData = useMemo(() => {
+    // Get all unique dates from all datasets
+    const allDates = new Set([
+      ...Object.keys(portfolioValues),
+      ...Object.keys(sp500Values),
+      ...Object.keys(nasdaqValues)
+    ]);
 
-  // Get all unique dates
-  const allDates = new Set([
-    ...Object.keys(normalizedPortfolio),
-    ...Object.keys(normalizedSp500),
-    ...Object.keys(normalizedNasdaq)
-  ]);
+    // Sort dates chronologically
+    const sortedDates = Array.from(allDates).sort((a, b) => 
+      new Date(a).getTime() - new Date(b).getTime()
+    );
 
-  // Create chart data
-  const chartData: ChartDataPoint[] = Array.from(allDates)
-    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
-    .map(date => {
+    // If no real data, return test data
+    if (sortedDates.length === 0) {
+      return [
+        { date: '2024-01-01', portfolio: 1000, sp500: 1000, nasdaq: 1000, displayDate: 'Jan 1, 24' },
+        { date: '2024-01-02', portfolio: 1050, sp500: 1020, nasdaq: 1010, displayDate: 'Jan 2, 24' },
+        { date: '2024-01-03', portfolio: 1100, sp500: 1040, nasdaq: 1020, displayDate: 'Jan 3, 24' },
+        { date: '2024-01-04', portfolio: 1080, sp500: 1030, nasdaq: 1015, displayDate: 'Jan 4, 24' },
+        { date: '2024-01-05', portfolio: 1120, sp500: 1050, nasdaq: 1030, displayDate: 'Jan 5, 24' },
+        { date: '2024-01-08', portfolio: 1150, sp500: 1060, nasdaq: 1040, displayDate: 'Jan 8, 24' },
+        { date: '2024-01-09', portfolio: 1130, sp500: 1055, nasdaq: 1035, displayDate: 'Jan 9, 24' },
+        { date: '2024-01-10', portfolio: 1180, sp500: 1070, nasdaq: 1050, displayDate: 'Jan 10, 24' },
+        { date: '2024-01-11', portfolio: 1200, sp500: 1080, nasdaq: 1060, displayDate: 'Jan 11, 24' },
+        { date: '2024-01-12', portfolio: 1220, sp500: 1090, nasdaq: 1070, displayDate: 'Jan 12, 24' }
+      ];
+    }
+
+    // Find the first available value for each dataset to use as normalization base
+    const portfolioFirstDate = sortedDates.find(date => portfolioValues[date]);
+    const sp500FirstDate = sortedDates.find(date => sp500Values[date]);
+    const nasdaqFirstDate = sortedDates.find(date => nasdaqValues[date]);
+    
+    const portfolioFirstValue = portfolioFirstDate ? portfolioValues[portfolioFirstDate] : startValue;
+    const sp500FirstValue = sp500FirstDate ? sp500Values[sp500FirstDate] : startValue;
+    const nasdaqFirstValue = nasdaqFirstDate ? nasdaqValues[nasdaqFirstDate] : startValue;
+
+
+    // Create normalized data points
+    const data: ChartDataPoint[] = sortedDates.map(date => {
       const dateObj = new Date(date);
+      
+      // Normalize values to start at the same point
+      const portfolioValue = portfolioValues[date] 
+        ? startValue * (portfolioValues[date] / portfolioFirstValue)
+        : null;
+      const sp500Value = sp500Values[date] 
+        ? startValue * (sp500Values[date] / sp500FirstValue)
+        : null;
+      const nasdaqValue = nasdaqValues[date] 
+        ? startValue * (nasdaqValues[date] / nasdaqFirstValue)
+        : null;
+
       return {
-        date: date, // Keep original date string for data consistency
-        displayDate: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        portfolio: normalizedPortfolio[date] || null,
-        sp500: normalizedSp500[date] || null,
-        nasdaq: normalizedNasdaq[date] || null
+        date,
+        portfolio: portfolioValue,
+        sp500: sp500Value,
+        nasdaq: nasdaqValue,
+        displayDate: dateObj.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          year: '2-digit'
+        })
       };
     });
 
-  const formatValue = (value: number) => `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
-  // Calculate percentage change from start value
-  const calculatePercentageChange = (currentValue: number, startValue: number) => {
-    return ((currentValue - startValue) / startValue) * 100;
-  };
+    return data;
+  }, [portfolioValues, sp500Values, nasdaqValues, startValue]);
 
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-gray-900 mb-2">{`Date: ${label}`}</p>
+          <p className="font-medium text-gray-900 mb-2">{label}</p>
           {payload.map((entry: any, index: number) => {
             if (entry.value === null) return null;
-            const percentageChange = calculatePercentageChange(entry.value, startValue);
+            
+            const percentageChange = ((entry.value - startValue) / startValue) * 100;
             const isPositive = percentageChange >= 0;
+            const sign = isPositive ? '+' : '';
+            
             return (
               <p key={index} className="text-sm" style={{ color: entry.color }}>
-                <span className="font-medium">{entry.name}:</span> {formatValue(entry.value)} 
+                <span className="font-medium">{entry.dataKey}:</span> 
+                <span className="ml-2">
+                  ${entry.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </span>
                 <span className={`ml-2 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                  ({isPositive ? '+' : ''}{percentageChange.toFixed(2)}%)
+                  ({sign}{percentageChange.toFixed(2)}%)
                 </span>
               </p>
             );
@@ -95,108 +136,133 @@ const PortfolioChart: React.FC<PortfolioChartProps> = ({
     return null;
   };
 
-  // Custom tick formatter to show fewer labels
-  const formatXAxisTick = (tickItem: any, index: number) => {
-    const totalTicks = finalChartData.length;
-    const maxTicks = 6; // Maximum number of ticks to show
-    const interval = Math.ceil(totalTicks / maxTicks);
-    
-    // Always show first and last
-    if (index === 0 || index === totalTicks - 1) {
-      return tickItem;
-    }
-    
-    // Show every nth tick based on interval
-    if (index % interval === 0) {
-      return tickItem;
-    }
-    
-    return '';
+  // Custom X-axis tick formatter
+  const formatXAxisTick = (tickItem: string) => {
+    const date = new Date(tickItem);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric' 
+    });
   };
 
-  // Debug logging
-  console.log('Chart Debug:', {
-    portfolioValues: Object.keys(portfolioValues).length,
-    sp500Values: Object.keys(sp500Values).length,
-    nasdaqValues: Object.keys(nasdaqValues).length,
-    startValue,
-    normalizedPortfolio: Object.keys(normalizedPortfolio).length,
-    normalizedSp500: Object.keys(normalizedSp500).length,
-    normalizedNasdaq: Object.keys(normalizedNasdaq).length,
-    allDates: Array.from(allDates).length,
-    chartDataLength: chartData.length,
-    chartData: chartData.slice(0, 3),
-    lastFewDates: chartData.slice(-3)
-  });
-
-  // Create test data if no real data
-  const testData = [
-    { date: '2024-01-01', displayDate: 'Jan 1, 2024', portfolio: 1000, sp500: 1000, nasdaq: 1000 },
-    { date: '2024-01-02', displayDate: 'Jan 2, 2024', portfolio: 1050, sp500: 1020, nasdaq: 1010 },
-    { date: '2024-01-03', displayDate: 'Jan 3, 2024', portfolio: 1100, sp500: 1040, nasdaq: 1020 },
-    { date: '2024-01-04', displayDate: 'Jan 4, 2024', portfolio: 1080, sp500: 1030, nasdaq: 1015 },
-    { date: '2024-01-05', displayDate: 'Jan 5, 2024', portfolio: 1120, sp500: 1050, nasdaq: 1030 }
-  ];
-
-  const finalChartData = chartData.length > 0 ? chartData : testData;
-
-  if (chartData.length === 0) {
-    console.log('Using test data for chart');
-  }
+  // Custom Y-axis tick formatter
+  const formatYAxisTick = (value: number) => {
+            return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  };
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative">
+      {/* Start Value Badge - positioned absolutely */}
+      <div 
+        className="absolute bottom-4 left-4 z-10 inline-flex items-center px-2 py-1 rounded text-xs font-semibold text-white bg-red-600 shadow-sm"
+        style={{ 
+          fontSize: '9px',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          backgroundColor: '#dc2626',
+          color: '#ffffff',
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
+        }}
+      >
+        <div className="text-center">
+          <div className="text-xs font-semibold">Starting value</div>
+          <div className="text-sm font-bold">${startValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+        </div>
+      </div>
+      
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={finalChartData} margin={{ top: 30, right: 30, left: 20, bottom: 60 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis 
-            dataKey="displayDate" 
-            stroke="#666"
-            fontSize={10}
-            tickLine={false}
-            axisLine={false}
-            angle={-30}
+        <LineChart
+          data={chartData}
+          margin={{
+            top: 20,
+            right: 30,
+            left: 20,
+            bottom: 40,
+          }}
+        >
+          <CartesianGrid 
+            strokeDasharray="2 4" 
+            stroke="#e2e8f0" 
+            strokeOpacity={0.4}
+            vertical={false}
+          />
+          
+          <XAxis
+            dataKey="date"
+            type="category"
+            tickFormatter={formatXAxisTick}
+            tick={{ fontSize: 11, fill: '#64748b', fontWeight: '500' }}
+            axisLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
+            tickLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
+            interval="preserveStartEnd"
+            minTickGap={50}
+            angle={-45}
             textAnchor="end"
             height={60}
-            interval={0}
-            tick={{ fontSize: 9 }}
-            tickFormatter={formatXAxisTick}
           />
-          <YAxis 
-            stroke="#666"
-            fontSize={12}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={formatValue}
+          
+          <YAxis
+            tickFormatter={formatYAxisTick}
+            tick={{ fontSize: 11, fill: '#64748b', fontWeight: '500' }}
+            axisLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
+            tickLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
+            domain={[0, 'dataMax + 100']}
+            tickCount={6}
           />
+          
           <Tooltip content={<CustomTooltip />} />
-          <Legend />
+          
+          <Legend 
+            verticalAlign="bottom" 
+            height={30}
+            wrapperStyle={{ paddingTop: '10px' }}
+            iconType="line"
+            iconSize={12}
+            fontSize={12}
+            fontWeight="500"
+          />
+          
+          {/* Reference line at start value */}
+          <ReferenceLine 
+            y={startValue} 
+            stroke="#6366f1" 
+            strokeDasharray="4 4" 
+            strokeWidth={2}
+            strokeOpacity={0.8}
+          />
+          
+          
           <Line
             type="monotone"
             dataKey="portfolio"
             stroke="#3b82f6"
             strokeWidth={2}
             dot={false}
+            activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
+            connectNulls={true}
             name="Portfolio"
-            connectNulls={false}
           />
+          
           <Line
             type="monotone"
             dataKey="sp500"
             stroke="#10b981"
             strokeWidth={2}
             dot={false}
+            activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }}
+            connectNulls={true}
             name="S&P 500"
-            connectNulls={false}
           />
+          
           <Line
             type="monotone"
             dataKey="nasdaq"
             stroke="#f59e0b"
             strokeWidth={2}
             dot={false}
+            activeDot={{ r: 6, stroke: '#f59e0b', strokeWidth: 2 }}
+            connectNulls={true}
             name="NASDAQ"
-            connectNulls={false}
           />
         </LineChart>
       </ResponsiveContainer>

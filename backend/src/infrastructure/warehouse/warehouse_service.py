@@ -453,6 +453,80 @@ class WarehouseService:
             return cursor.fetchone() is not None
     
     @log_operation("warehouse", include_args=True, include_result=True)
+    def get_price_history_batch(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
+        """Get price history for multiple tickers in a single query."""
+        if not tickers:
+            return {}
+        
+        ticker_symbols = [t.symbol for t in tickers]
+        placeholders = ','.join(['?'] * len(ticker_symbols))
+        
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(f"""
+                SELECT ticker, date, close_price 
+                FROM market_data 
+                WHERE ticker IN ({placeholders}) 
+                AND date >= ? AND date <= ?
+                ORDER BY ticker, date
+            """, ticker_symbols + [date_range.start, date_range.end])
+            
+            # Process results into ticker-indexed dictionary
+            result = {}
+            for ticker in tickers:
+                result[ticker] = pd.Series(dtype='float64', name='Close')
+            
+            for row in cursor.fetchall():
+                ticker_symbol, date_str, price = row
+                # Find the ticker object
+                ticker_obj = next((t for t in tickers if t.symbol == ticker_symbol), None)
+                if ticker_obj is None:
+                    continue
+                
+                # Add to existing series or create new one
+                if result[ticker_obj].empty:
+                    result[ticker_obj] = pd.Series([price], index=[pd.Timestamp(date_str)], name='Close')
+                else:
+                    result[ticker_obj].loc[pd.Timestamp(date_str)] = price
+            
+            return result
+
+    @log_operation("warehouse", include_args=True, include_result=True)
+    def get_dividend_history_batch(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
+        """Get dividend history for multiple tickers in a single query."""
+        if not tickers:
+            return {}
+        
+        ticker_symbols = [t.symbol for t in tickers]
+        placeholders = ','.join(['?'] * len(ticker_symbols))
+        
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(f"""
+                SELECT ticker, date, dividend_amount 
+                FROM dividend_data 
+                WHERE ticker IN ({placeholders}) 
+                AND date >= ? AND date <= ?
+                ORDER BY ticker, date
+            """, ticker_symbols + [date_range.start, date_range.end])
+            
+            # Process results into ticker-indexed dictionary
+            result = {}
+            for ticker in tickers:
+                result[ticker] = pd.Series(dtype='float64', name='Dividends')
+            
+            for row in cursor.fetchall():
+                ticker_symbol, date_str, dividend = row
+                ticker_obj = next((t for t in tickers if t.symbol == ticker_symbol), None)
+                if ticker_obj is None:
+                    continue
+                
+                if result[ticker_obj].empty:
+                    result[ticker_obj] = pd.Series([dividend], index=[pd.Timestamp(date_str)], name='Dividends')
+                else:
+                    result[ticker_obj].loc[pd.Timestamp(date_str)] = dividend
+            
+            return result
+
+    @log_operation("warehouse", include_args=True, include_result=True)
     def clear_data(self, ticker: Optional[Ticker] = None) -> None:
         """Clear data for a specific ticker or all data."""
         with sqlite3.connect(self.db_path) as conn:

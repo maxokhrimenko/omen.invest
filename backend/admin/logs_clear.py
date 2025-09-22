@@ -39,8 +39,7 @@ class LogsClearManager:
         self.total_dir = self.logs_dir / "total"
         self.backup_dir = self.logs_dir / "backups"
         
-        # Check for alternative frontend logs location (legacy backend/logs/ directory)
-        self.alt_frontend_dir = Path("backend/logs/frontend")
+        # Legacy backend/logs/ directory support removed - all logs now go to project root logs/
     
     def get_log_statistics(self) -> Dict[str, Any]:
         """Get statistics about current logs."""
@@ -79,25 +78,18 @@ class LogsClearManager:
                     "modified": datetime.fromtimestamp(file_path.stat().st_mtime)
                 })
         
-        # Count frontend logs (check both possible locations)
-        frontend_dirs = [self.frontend_dir]
-        if self.alt_frontend_dir.exists() and not self.frontend_dir.exists():
-            frontend_dirs = [self.alt_frontend_dir]
-        elif self.alt_frontend_dir.exists() and self.frontend_dir.exists():
-            frontend_dirs = [self.frontend_dir, self.alt_frontend_dir]
-        
-        for frontend_dir in frontend_dirs:
-            if frontend_dir.exists():
-                for file_path in frontend_dir.glob("*.log"):
-                    file_size = file_path.stat().st_size
-                    stats["frontend"]["count"] += 1
-                    stats["frontend"]["total_size"] += file_size
-                    stats["frontend"]["files"].append({
-                        "name": file_path.name,
-                        "size": file_size,
-                        "modified": datetime.fromtimestamp(file_path.stat().st_mtime),
-                        "location": str(frontend_dir)
-                    })
+        # Count frontend logs (only check project root logs/frontend)
+        if self.frontend_dir.exists():
+            for file_path in self.frontend_dir.glob("*.log"):
+                file_size = file_path.stat().st_size
+                stats["frontend"]["count"] += 1
+                stats["frontend"]["total_size"] += file_size
+                stats["frontend"]["files"].append({
+                    "name": file_path.name,
+                    "size": file_size,
+                    "modified": datetime.fromtimestamp(file_path.stat().st_mtime),
+                    "location": str(self.frontend_dir)
+                })
         
         # Count total logs
         if self.total_dir.exists():
@@ -190,16 +182,10 @@ class LogsClearManager:
             sessions_backup = backup_path / "sessions"
             shutil.copytree(self.sessions_dir, sessions_backup)
         
-        # Copy frontend logs (check both locations)
-        frontend_dirs = []
+        # Copy frontend logs (only project root logs/frontend)
         if self.frontend_dir.exists():
-            frontend_dirs.append((self.frontend_dir, "frontend"))
-        if self.alt_frontend_dir.exists():
-            frontend_dirs.append((self.alt_frontend_dir, "frontend_alt"))
-        
-        for frontend_dir, backup_name in frontend_dirs:
-            frontend_backup = backup_path / backup_name
-            shutil.copytree(frontend_dir, frontend_backup)
+            frontend_backup = backup_path / "frontend"
+            shutil.copytree(self.frontend_dir, frontend_backup)
         
         # Copy total logs
         if self.total_dir.exists():
@@ -237,43 +223,28 @@ class LogsClearManager:
     
     def clear_frontend(self, confirm: bool = True) -> bool:
         """Clear all frontend logs."""
-        # Check both possible locations
-        frontend_dirs = []
-        if self.frontend_dir.exists():
-            frontend_dirs.append(self.frontend_dir)
-        if self.alt_frontend_dir.exists():
-            frontend_dirs.append(self.alt_frontend_dir)
-        
-        if not frontend_dirs:
+        if not self.frontend_dir.exists():
             print("ℹ️  No frontend logs to clear.")
             return True
         
         if confirm:
-            dirs_str = ", ".join([str(d) for d in frontend_dirs])
-            response = input(f"⚠️  This will delete all frontend logs in {dirs_str}. Continue? (y/N): ")
+            response = input(f"⚠️  This will delete all frontend logs in {self.frontend_dir}. Continue? (y/N): ")
             if response.lower() != 'y':
                 print("❌ Operation cancelled.")
                 return False
         
         try:
-            total_files_cleared = 0
+            # Count files before deletion
+            file_count = len(list(self.frontend_dir.glob("*.log")))
             
-            # Clear files from all found directories
-            for frontend_dir in frontend_dirs:
-                file_count = len(list(frontend_dir.glob("*.log")))
-                total_files_cleared += file_count
-                
-                # Remove all log files
-                for file_path in frontend_dir.glob("*.log"):
-                    file_path.unlink()
-                
-                if file_count > 0:
-                    print(f"✅ Cleared {file_count} frontend log files from {frontend_dir}")
+            # Remove all log files
+            for file_path in self.frontend_dir.glob("*.log"):
+                file_path.unlink()
             
-            if total_files_cleared == 0:
+            if file_count == 0:
                 print("ℹ️  No frontend log files found to clear.")
             else:
-                print(f"✅ Total: Cleared {total_files_cleared} frontend log files.")
+                print(f"✅ Cleared {file_count} frontend log files from {self.frontend_dir}")
             
             return True
         except Exception as e:

@@ -30,12 +30,13 @@ from src.application.use_cases.analyze_portfolio import (
     AnalyzePortfolioUseCase, 
     AnalyzePortfolioRequest
 )
-from src.application.use_cases.analyze_ticker import AnalyzeTickerUseCase, AnalyzeTickerRequest
+from src.application.use_cases.analyze_ticker import AnalyzeTickerUseCase, AnalyzeTickerRequest, AnalyzeTickersRequest
 from src.application.use_cases.compare_tickers import CompareTickersUseCase
 from src.infrastructure.color_metrics_service import ColorMetricsService
 from src.infrastructure.logging.logger_service import initialize_logging, get_logger_service
 # Portfolio session manager will be imported locally in get_portfolio_session_manager()
 from src.domain.entities.portfolio import Portfolio
+import json
 from src.domain.entities.position import Position
 from src.domain.entities.ticker import Ticker
 from src.domain.value_objects.date_range import DateRange
@@ -261,6 +262,49 @@ async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "timestamp": "2024-01-01T00:00:00Z"}
 
+@app.post("/api/logs")
+async def receive_frontend_logs(log_entry: dict):
+    """Receive structured logs from frontend and store in logs directory."""
+    try:
+        logger_service = get_logger_service()
+        logger = logger_service.get_logger("frontend")
+        
+        # Create structured log message
+        log_message = f"FRONTEND | {log_entry.get('message', 'Unknown message')}"
+        
+        # Add context information
+        context = log_entry.get('context', {})
+        if context:
+            context_str = " | ".join([f"{k}: {v}" for k, v in context.items()])
+            log_message += f" | {context_str}"
+        
+        # Add error information if present
+        if 'error' in log_entry:
+            error_info = log_entry['error']
+            log_message += f" | Error: {error_info.get('name', 'Unknown')}: {error_info.get('message', 'No message')}"
+        
+        # Log with appropriate level
+        level = log_entry.get('level', 'INFO').upper()
+        if level == 'DEBUG':
+            logger.debug(log_message)
+        elif level == 'INFO':
+            logger.info(log_message)
+        elif level == 'WARN':
+            logger.warning(log_message)
+        elif level == 'ERROR':
+            logger.error(log_message)
+        elif level == 'CRITICAL':
+            logger.critical(log_message)
+        else:
+            logger.info(log_message)
+        
+        return {"status": "success", "message": "Log received and stored"}
+        
+    except Exception as e:
+        # Use basic logging if structured logging fails
+        print(f"Error processing frontend log: {e}")
+        return {"status": "error", "message": "Failed to process log"}
+
 @app.post("/portfolio/upload")
 async def upload_portfolio(file: UploadFile = File(...)):
     """Upload portfolio CSV file."""
@@ -334,9 +378,12 @@ async def upload_portfolio(file: UploadFile = File(...)):
                 for pos in response.portfolio.get_positions()
             ]
             
+            # Calculate total positions as sum of all position quantities
+            total_positions = sum(float(pos.quantity) for pos in response.portfolio.get_positions())
+            
             portfolio_response = PortfolioResponse(
                 positions=positions,
-                totalPositions=len(response.portfolio.get_positions()),
+                totalPositions=int(total_positions),
                 tickers=[t.symbol for t in response.portfolio.get_tickers()]
             )
             
@@ -416,9 +463,12 @@ async def get_portfolio():
         for pos in portfolio.get_positions()
     ]
     
+    # Calculate total positions as sum of all position quantities
+    total_positions = sum(float(pos.quantity) for pos in portfolio.get_positions())
+    
     portfolio_response = PortfolioResponse(
         positions=positions,
-        totalPositions=len(portfolio.get_positions()),
+        totalPositions=int(total_positions),
         tickers=[t.symbol for t in portfolio.get_tickers()]
     )
     
@@ -589,7 +639,8 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
             "data": portfolio_data,
             "warnings": {
                 "missingTickers": response.missing_tickers or [],
-                "tickersWithoutStartData": response.tickers_without_start_data or []
+                "tickersWithoutStartData": response.tickers_without_start_data or [],
+                "firstAvailableDates": response.first_available_dates or {}
             },
             "timeSeriesData": {
                 "portfolioValues": response.portfolio_values_over_time or {},
@@ -613,8 +664,7 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
 
 @app.get("/portfolio/tickers/analysis")
 async def analyze_tickers(start_date: str = None, end_date: str = None):
-    """Analyze individual tickers in portfolio with date range parameters."""
-    import asyncio
+    """Analyze individual tickers in portfolio with smart batch processing."""
     
     portfolio_uuid = get_current_portfolio_session()
     portfolio_session_manager = get_portfolio_session_manager()
@@ -668,87 +718,46 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
     
     try:
-        # Import required classes
-        
         # Create date range
         date_range = DateRange(start_date, end_date)
         
         # Get controller
         controller = get_controller()
         
-        # Define analysis function for timeout handling
-        def analyze_ticker_sync(ticker):
-            request = AnalyzeTickerRequest(
-                ticker=ticker,
-                date_range=date_range,
-                risk_free_rate=0.03
-            )
-            return controller._analyze_ticker_use_case.execute(request)
+        # Use smart batch processing - same use case, different method
+        request = AnalyzeTickersRequest(
+            tickers=portfolio.get_tickers(),
+            date_range=date_range,
+            risk_free_rate=0.03
+        )
         
-        # Analyze each ticker with timeout and progress tracking
+        response = controller._analyze_ticker_use_case.execute_batch(request)
+        
+        if not response.success:
+            raise HTTPException(status_code=400, detail=response.message)
+        
+        # Convert metrics to API response format
         ticker_results = []
-        failed_tickers = []
-        processed_count = 0
-        
-        with ThreadPoolExecutor(max_workers=min(10, ticker_count)) as executor:
-            # Submit all ticker analysis tasks
-            future_to_ticker = {
-                executor.submit(analyze_ticker_sync, ticker): ticker 
-                for ticker in portfolio.get_tickers()
+        for metrics in response.ticker_metrics:
+            ticker_data = {
+                "ticker": metrics.ticker.symbol,
+                "totalReturn": f"{metrics.total_return.value:.2f}%",
+                "annualizedReturn": f"{metrics.annualized_return.value:.2f}%",
+                "volatility": f"{metrics.volatility.value:.2f}%",
+                "sharpeRatio": f"{metrics.sharpe_ratio:.3f}",
+                "maxDrawdown": f"{metrics.max_drawdown.value:.2f}%",
+                "sortinoRatio": f"{metrics.sortino_ratio:.3f}",
+                "beta": f"{metrics.beta:.3f}",
+                "var95": f"{metrics.var_95.value:.2f}%",
+                "momentum12_1": f"{metrics.momentum_12_1.value:.2f}%",
+                "dividendYield": f"{metrics.dividend_yield.value:.2f}%",
+                "dividendAmount": f"${metrics.dividend_amount.amount:.2f}",
+                "dividendFrequency": metrics.dividend_frequency,
+                "annualizedDividend": f"${metrics.annualized_dividend.amount:.2f}",
+                "startPrice": f"${metrics.start_price.amount:.2f}",
+                "endPrice": f"${metrics.end_price.amount:.2f}"
             }
-            
-            # Process results with timeout and progress tracking
-            for future in future_to_ticker:
-                ticker = future_to_ticker[future]
-                processed_count += 1
-                
-                # Log progress for large portfolios
-                if ticker_count > 20 and processed_count % 10 == 0:
-                    print(
-                        f"Progress: {processed_count}/{ticker_count} tickers processed "
-                        f"({processed_count/ticker_count*100:.1f}%)"
-                    )
-                
-                try:
-                    # Use a reasonable timeout per ticker (30 seconds total / ticker count)
-                    per_ticker_timeout = max(5, 30 / ticker_count)  # At least 5 seconds per ticker
-                    response = future.result(timeout=per_ticker_timeout)
-                    
-                    if response.success and response.metrics:
-                        metrics = response.metrics
-                        ticker_data = {
-                            "ticker": ticker.symbol,
-                            "totalReturn": f"{metrics.total_return.value:.2f}%",
-                            "annualizedReturn": f"{metrics.annualized_return.value:.2f}%",
-                            "volatility": f"{metrics.volatility.value:.2f}%",
-                            "sharpeRatio": f"{metrics.sharpe_ratio:.3f}",
-                            "maxDrawdown": f"{metrics.max_drawdown.value:.2f}%",
-                            "sortinoRatio": f"{metrics.sortino_ratio:.3f}",
-                            "beta": f"{metrics.beta:.3f}",
-                            "var95": f"{metrics.var_95.value:.2f}%",
-                            "momentum12_1": f"{metrics.momentum_12_1.value:.2f}%",
-                            "dividendYield": f"{metrics.dividend_yield.value:.2f}%",
-                            "dividendAmount": f"${metrics.dividend_amount.amount:.2f}",
-                            "dividendFrequency": metrics.dividend_frequency,
-                            "annualizedDividend": f"${metrics.annualized_dividend.amount:.2f}",
-                            "startPrice": f"${metrics.start_price.amount:.2f}",
-                            "endPrice": f"${metrics.end_price.amount:.2f}",
-                            "hasDataAtStart": response.has_data_at_start,
-                            "firstAvailableDate": response.first_available_date
-                        }
-                        ticker_results.append(ticker_data)
-                    else:
-                        # Even for failed tickers, try to get first_available_date if available
-                        failed_ticker_info = {
-                            "ticker": ticker.symbol,
-                            "firstAvailableDate": response.first_available_date if hasattr(response, 'first_available_date') else None
-                        }
-                        failed_tickers.append(failed_ticker_info)
-                        
-                except FutureTimeoutError:
-                    failed_tickers.append({"ticker": ticker.symbol, "firstAvailableDate": None})
-                except Exception as e:
-                    failed_tickers.append({"ticker": ticker.symbol, "firstAvailableDate": None})
+            ticker_results.append(ticker_data)
         
         # Log ticker analysis completion
         if portfolio_uuid:
@@ -758,24 +767,26 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
                 success=True,
                 details={
                     "successful_tickers": len(ticker_results),
-                    "failed_tickers": len(failed_tickers),
-                    "total_tickers": ticker_count
+                    "failed_tickers": len(response.failed_tickers),
+                    "total_tickers": ticker_count,
+                    "processing_time_seconds": response.processing_time_seconds
                 }
             )
         
         # Prepare response
         response_data = {
             "success": True,
-            "message": f"Analyzed {len(ticker_results)} tickers successfully",
-            "data": ticker_results
+            "message": response.message,
+            "data": ticker_results,
+            "processingTimeSeconds": response.processing_time_seconds
         }
         
-        if failed_tickers:
-            response_data["warnings"] = (
-                f"Failed to analyze {len(failed_tickers)} tickers: "
-                f"{', '.join([ticker['ticker'] if isinstance(ticker, dict) else ticker for ticker in failed_tickers])}"
-            )
-            response_data["failedTickers"] = failed_tickers
+        if response.failed_tickers:
+            response_data["warnings"] = f"Failed to analyze {len(response.failed_tickers)} tickers"
+            response_data["failedTickers"] = [
+                {"ticker": ticker, "firstAvailableDate": None} 
+                for ticker in response.failed_tickers
+            ]
         
         return response_data
         
