@@ -27,11 +27,11 @@ class WarehouseService:
         self._logger = self._logger_service.get_logger("infrastructure")
         self._warehouse_optimizer = get_warehouse_optimizer(self.db_path)
         self._parallel_data_fetcher = get_parallel_data_fetcher()
-        self._ensure_database_exists()
+        self._init_database()
         # Optimize database on initialization
         self._warehouse_optimizer.optimize_database()
     
-    def _ensure_database_exists(self):
+    def _init_database(self):
         """Ensure the warehouse directory and database exist."""
         # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)

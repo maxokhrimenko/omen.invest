@@ -7,14 +7,13 @@ from typing import Dict, Optional
 from ..logging.logger_service import get_logger_service
 
 
-class PerformanceMonitor:
+class Monitor:
     """Performance monitoring service for detailed timing and analysis."""
     
     def __init__(self):
         self._timings: Dict[str, float] = {}
-        self._logger_service = get_logger_service()
-        self._logger = self._logger_service.get_logger("performance")
-        self._logger.info("PerformanceMonitor initialized")
+        self._logger = get_logger_service()
+        self._logger.info("Monitor initialized")
     
     def start_timing(self, operation: str) -> None:
         """Start timing an operation."""
@@ -94,13 +93,13 @@ class PerformanceMonitor:
                 self._logger.warning(f"  Performance: SLOW (> 1.0s per ticker)")
 
 
-# Global performance monitor instance
-_performance_monitor: Optional[PerformanceMonitor] = None
+# Global monitor instance
+_monitor: Optional[Monitor] = None
 
 
-def get_performance_monitor() -> PerformanceMonitor:
-    """Get or create the global performance monitor instance."""
-    global _performance_monitor
-    if _performance_monitor is None:
-        _performance_monitor = PerformanceMonitor()
-    return _performance_monitor
+def get_monitor() -> Monitor:
+    """Get or create the global monitor instance."""
+    global _monitor
+    if _monitor is None:
+        _monitor = Monitor()
+    return _monitor

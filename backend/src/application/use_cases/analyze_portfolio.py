@@ -102,7 +102,7 @@ class AnalyzePortfolioUseCase:
             
             # Calculate portfolio value over time
             self._logger.debug("Calculating portfolio values over time")
-            portfolio_values, portfolio_values_analysis, portfolio_values_missing = self._calculate_portfolio_values(
+            portfolio_values, portfolio_values_analysis, portfolio_values_missing = self._calc_portfolio_values(
                 request.portfolio, price_history, tickers_without_start_data
             )
             
@@ -161,7 +161,7 @@ class AnalyzePortfolioUseCase:
             # Calculate metrics using only complete data tickers
             self._logger.debug("Calculating portfolio metrics")
             try:
-                metrics = self._calculate_metrics(
+                metrics = self._calc_metrics(
                     portfolio_values_analysis,  # Use only complete data for metrics
                     portfolio_values,           # Total portfolio values for display
                     portfolio_values_missing,   # Missing data values for display
@@ -261,7 +261,7 @@ class AnalyzePortfolioUseCase:
                 nasdaq_values_over_time={}
             )
     
-    def _calculate_portfolio_values(self, 
+    def _calc_portfolio_values(self, 
                                    portfolio: Portfolio, 
                                    price_history: Dict[Ticker, pd.Series],
                                    tickers_without_start_data: List[str]) -> tuple[pd.Series, pd.Series, pd.Series]:
@@ -353,7 +353,7 @@ class AnalyzePortfolioUseCase:
         
         return missing_tickers, tickers_without_start_data, first_available_dates
     
-    def _calculate_var_95(self, returns: pd.Series) -> Percentage:
+    def _calc_var_95(self, returns: pd.Series) -> Percentage:
         """Calculate VaR 95% with proper validation and error handling."""
         if len(returns) < 5:
             # Insufficient data for reliable VaR calculation
@@ -390,7 +390,7 @@ class AnalyzePortfolioUseCase:
         
         return Percentage(var_95_raw)
     
-    def _calculate_portfolio_beta(self, portfolio: Portfolio, 
+    def _calc_portfolio_beta(self, portfolio: Portfolio, 
                                  price_history: Dict[Ticker, pd.Series],
                                  benchmark_data: pd.Series,
                                  date_range: DateRange) -> float:
@@ -425,7 +425,7 @@ class AnalyzePortfolioUseCase:
             
             # Calculate individual stock beta
             returns = prices.pct_change().dropna()
-            stock_beta = self._calculate_individual_beta(ticker, returns, benchmark_returns)
+            stock_beta = self._calc_individual_beta(ticker, returns, benchmark_returns)
             weighted_beta_sum += stock_beta * float(position_value.amount)
         
         if total_portfolio_value == 0:
@@ -436,7 +436,7 @@ class AnalyzePortfolioUseCase:
         self._logger.info(f"Calculated portfolio Beta: {portfolio_beta:.3f}")
         return portfolio_beta
     
-    def _calculate_individual_beta(self, ticker: Ticker, returns: pd.Series, 
+    def _calc_individual_beta(self, ticker: Ticker, returns: pd.Series, 
                                   benchmark_returns: pd.Series) -> float:
         """Calculate Beta for an individual ticker against benchmark."""
         if len(returns) < 5 or len(benchmark_returns) < 5:
@@ -470,7 +470,7 @@ class AnalyzePortfolioUseCase:
         return beta
     
     @log_calculation("portfolio_metrics", include_inputs=True, include_outputs=True)
-    def _calculate_metrics(self, 
+    def _calc_metrics(self, 
                           portfolio_values_analysis: pd.Series,  # Only complete data for calculations
                           portfolio_values_total: pd.Series,     # Total values for display
                           portfolio_values_missing: pd.Series,   # Missing data values for display
@@ -550,13 +550,13 @@ class AnalyzePortfolioUseCase:
         # VaR (95%) - Historical simulation method with validation
         # For VaR 95%, we take the 5th percentile of returns (worst 5% of outcomes)
         # This represents the maximum expected loss with 95% confidence
-        var_95 = self._calculate_var_95(returns)
+        var_95 = self._calc_var_95(returns)
         
         # Beta calculation against S&P 500
         if (portfolio is not None and price_history is not None and 
             benchmark_data is not None and hasattr(benchmark_data, 'empty') and not benchmark_data.empty and 
             date_range is not None):
-            beta = self._calculate_portfolio_beta(portfolio, price_history, benchmark_data, date_range)
+            beta = self._calc_portfolio_beta(portfolio, price_history, benchmark_data, date_range)
         else:
             self._logger.warning("Insufficient data for portfolio Beta calculation - using default value")
             beta = 1.0

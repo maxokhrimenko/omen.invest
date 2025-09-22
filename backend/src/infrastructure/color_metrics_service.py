@@ -6,15 +6,15 @@ from typing import Union, Dict, Tuple
 from ..application.interfaces.metrics_color_service import MetricsColorService, ColorCode, MetricLevel
 
 
-class ColorMetricsService(MetricsColorService):
+class MetricsService(MetricsColorService):
     """Service for color-coding financial metrics based on performance thresholds."""
     
     def __init__(self):
         """Initialize the color service with thresholds from METRICS_MEMORANDUM.md."""
-        self._portfolio_thresholds = self._initialize_portfolio_thresholds()
-        self._ticker_thresholds = self._initialize_ticker_thresholds()
+        self._thresholds = self._init_portfolio_thresholds()
+        self._ticker_thresholds = self._init_ticker_thresholds()
     
-    def _initialize_portfolio_thresholds(self) -> Dict[str, Tuple[float, float]]:
+    def _init_portfolio_thresholds(self) -> Dict[str, Tuple[float, float]]:
         """Initialize portfolio metric thresholds (bad, normal, excellent)."""
         return {
             # Return Metrics
@@ -33,7 +33,7 @@ class ColorMetricsService(MetricsColorService):
             "beta": (1.3, 0.7),  # Bad: >1.3, Normal: 0.7-1.3, Excellent: <0.7
         }
     
-    def _initialize_ticker_thresholds(self) -> Dict[str, Tuple[float, float]]:
+    def _init_ticker_thresholds(self) -> Dict[str, Tuple[float, float]]:
         """Initialize ticker metric thresholds (bad, normal, excellent)."""
         return {
             # Return Metrics
@@ -70,7 +70,7 @@ class ColorMetricsService(MetricsColorService):
     
     def get_level_for_metric(self, metric_name: str, value: Union[float, int], context: str = "portfolio") -> MetricLevel:
         """Get performance level for a specific metric value."""
-        thresholds = self._portfolio_thresholds if context == "portfolio" else self._ticker_thresholds
+        thresholds = self._thresholds if context == "portfolio" else self._ticker_thresholds
         
         if metric_name not in thresholds:
             return MetricLevel.NORMAL  # Default to normal if metric not found

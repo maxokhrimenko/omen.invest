@@ -10,7 +10,7 @@ import threading
 from typing import List, Dict, Any, Callable, Optional, Tuple
 from dataclasses import dataclass
 from ..logging.logger_service import get_logger_service
-from ..logging.performance_monitor import get_performance_monitor
+from ..logging.performance_monitor import get_monitor
 
 
 @dataclass
@@ -36,19 +36,18 @@ class CalculationResult:
     processing_time: float = 0.0
 
 
-class ParallelCalculationService:
+class CalculationService:
     """Service for managing parallel financial calculations."""
     
     def __init__(self, max_workers: int = None):
         """
-        Initialize the parallel calculation service.
+        Initialize the calculation service.
         
         Args:
             max_workers: Maximum number of worker threads. If None, uses CPU count.
         """
-        self._logger_service = get_logger_service()
-        self._logger = self._logger_service.get_logger("infrastructure")
-        self._performance_monitor = get_performance_monitor()
+        self._logger = get_logger_service()
+        self._monitor = get_monitor()
         
         # Determine optimal number of workers
         if max_workers is None:
@@ -58,7 +57,7 @@ class ParallelCalculationService:
         self.max_workers = max_workers
         self._thread_local = threading.local()
         
-        self._logger.info(f"ParallelCalculationService initialized with {max_workers} workers")
+        self._logger.info(f"CalculationService initialized with {max_workers} workers")
     
     def calculate_ticker_metrics_parallel(
         self, 
@@ -86,7 +85,7 @@ class ParallelCalculationService:
             Tuple of (successful_metrics, failed_ticker_symbols)
         """
         self._logger.info(f"Starting parallel calculation for {len(tickers)} tickers")
-        self._performance_monitor.start_timing("parallel_calculations")
+        self._monitor.start_timing("parallel_calculations")
         
         # Create calculation tasks
         tasks = []
@@ -127,7 +126,7 @@ class ParallelCalculationService:
                 failed_tickers.append(result.task_id.split('_', 2)[2])  # Extract ticker symbol
                 self._logger.error(f"Calculation failed for {result.task_id}: {result.error}")
         
-        calculation_time = self._performance_monitor.end_timing("parallel_calculations")
+        calculation_time = self._monitor.end_timing("parallel_calculations")
         
         # Log performance metrics
         success_rate = (len(successful_metrics) / len(tickers)) * 100 if tickers else 0
@@ -172,7 +171,7 @@ class ParallelCalculationService:
     
     def _execute_single_task(self, task: CalculationTask) -> CalculationResult:
         """Execute a single calculation task."""
-        start_time = self._performance_monitor.start_timing(f"task_{task.task_id}")
+        start_time = self._monitor.start_timing(f"task_{task.task_id}")
         
         try:
             # Validate input data
@@ -194,7 +193,7 @@ class ParallelCalculationService:
                 task.benchmark_data
             )
             
-            processing_time = self._performance_monitor.end_timing(f"task_{task.task_id}")
+            processing_time = self._monitor.end_timing(f"task_{task.task_id}")
             
             return CalculationResult(
                 task_id=task.task_id,
@@ -204,7 +203,7 @@ class ParallelCalculationService:
             )
             
         except Exception as e:
-            processing_time = self._performance_monitor.end_timing(f"task_{task.task_id}")
+            processing_time = self._monitor.end_timing(f"task_{task.task_id}")
             return CalculationResult(
                 task_id=task.task_id,
                 success=False,
@@ -240,18 +239,18 @@ class ParallelCalculationService:
         """Get performance metrics for the parallel calculation service."""
         return {
             "max_workers": self.max_workers,
-            "active_timings": self._performance_monitor.get_active_timings(),
+            "active_timings": self._monitor.get_active_timings(),
             "service_type": "parallel_calculation"
         }
 
 
 # Global instance
-_parallel_calculation_service: Optional[ParallelCalculationService] = None
+_calculation_service: Optional[CalculationService] = None
 
 
-def get_parallel_calculation_service() -> ParallelCalculationService:
-    """Get or create the global parallel calculation service instance."""
-    global _parallel_calculation_service
-    if _parallel_calculation_service is None:
-        _parallel_calculation_service = ParallelCalculationService()
-    return _parallel_calculation_service
+def get_calculation_service() -> CalculationService:
+    """Get or create the global calculation service instance."""
+    global _calculation_service
+    if _calculation_service is None:
+        _calculation_service = CalculationService()
+    return _calculation_service

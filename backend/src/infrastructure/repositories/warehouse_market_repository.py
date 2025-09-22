@@ -110,7 +110,7 @@ class WarehouseMarketRepository(MarketDataRepository):
             existing_dates = {date.strftime('%Y-%m-%d') for date in existing_data.index}
             
             # Step 2: Determine trading days in the requested range
-            potential_trading_days = self.trading_day_service.get_trading_days_in_range(date_range)
+            potential_trading_days = self.trading_day_service.get_trading_days(date_range)
             
             # Step 3: Check if we have sufficient coverage
             coverage_ratio = len(existing_dates.intersection(potential_trading_days)) / len(potential_trading_days)
@@ -131,7 +131,7 @@ class WarehouseMarketRepository(MarketDataRepository):
         else:
             # No data in warehouse for this range, calculate missing ranges
             self._logger.info(f"❌ No data in warehouse for {ticker.symbol} in range {date_range.start} to {date_range.end} - will fetch from Yahoo")
-            potential_trading_days = self.trading_day_service.get_trading_days_in_range(date_range)
+            potential_trading_days = self.trading_day_service.get_trading_days(date_range)
             missing_ranges = self.warehouse_service.get_missing_ranges(
                 ticker, date_range, potential_trading_days
             )

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 Portfolio Analysis Tool - Main Entry Point
-Version 4.3.0 - Advanced Portfolio Analysis & Visualization
+Version 4.3.0 - Portfolio Analysis & Visualization
 
-This application provides comprehensive portfolio analysis
-with interactive CLI interface following clean architecture principles.
+This application provides portfolio analysis
+with CLI interface following clean architecture principles.
 
 """
 
@@ -25,7 +25,7 @@ from src.application.use_cases.analyze_portfolio import AnalyzePortfolioUseCase
 from src.application.use_cases.analyze_ticker import AnalyzeTickerUseCase
 from src.application.use_cases.compare_tickers import CompareTickersUseCase
 from src.infrastructure.logging.logger_service import initialize_logging
-from src.infrastructure.color_metrics_service import ColorMetricsService
+from src.infrastructure.color_metrics_service import MetricsService
 
 
 def setup_dependencies():
@@ -40,7 +40,7 @@ def setup_dependencies():
         warehouse_db_path=warehouse_config.get_db_path()
     )
     
-    color_service = ColorMetricsService()
+    color_service = MetricsService()
     
     # Application layer
     load_portfolio_use_case = LoadPortfolioUseCase(portfolio_repo)
@@ -81,15 +81,15 @@ def main():
     try:
         logger.info("=== PORTFOLIO ANALYSIS TOOL STARTING ===")
         logger.info(f"Session ID: {session_id}")
-        print("🚀 Starting Portfolio Analysis Tool v4.4.2...")
-        print("📦 Initializing components...")
+        print("Starting Portfolio Analysis Tool v4.4.2...")
+        print("Initializing components...")
         
         logger.info("Setting up dependency injection")
         controller = setup_dependencies()
         menu = MainMenu(controller)
         
         logger.info("Application initialization completed successfully")
-        print("✅ Application ready!")
+        print("Application ready!")
         
         # Log user interaction start
         logger.info("Starting user interaction loop")
@@ -99,13 +99,13 @@ def main():
         
     except KeyboardInterrupt:
         logger.warning("Application interrupted by user (KeyboardInterrupt)")
-        print("\n\n⚠️  Application interrupted by user.")
-        print("👋 Goodbye!")
+        print("\n\nApplication interrupted by user.")
+        print("Goodbye!")
         return 1
     except Exception as e:
         logger.error(f"Fatal error in main application: {str(e)}", exc_info=True)
-        print(f"\n💥 Fatal error: {str(e)}")
-        print("📞 Please check your configuration and try again.")
+        print(f"\nFatal error: {str(e)}")
+        print("Please check your configuration and try again.")
         return 1
     finally:
         logger.info("=== PORTFOLIO ANALYSIS TOOL SHUTTING DOWN ===")
