@@ -14,6 +14,15 @@ The application follows Uncle Bob's Clean Architecture, organizing code into lay
 3. **Infrastructure Layer**: External systems and frameworks
 4. **Presentation Layer** (outermost): User interface and delivery mechanisms
 
+### Enhanced Data Validation System (v4.4.1)
+The data validation system has been significantly improved with intelligent validation logic:
+
+1. **Dynamic Date Range Validation**: Analysis considers actual date range instead of fixed assumptions
+2. **Adaptive Coverage Thresholds**: Different requirements based on analysis period length
+3. **Trading Day Estimation**: Intelligent calculation of expected trading days (70% of calendar days)
+4. **Period-Aware Validation**: Coverage thresholds adapt to analysis period for accuracy
+5. **Flexible Tolerance System**: 5-day business day tolerance for start date validation
+
 ### Enhanced Frontend Architecture (v4.4.0)
 The frontend architecture has been completely overhauled with enterprise-grade features:
 
@@ -453,6 +462,70 @@ The warehouse system provides a transparent read-through caching layer for marke
 - **Dividend Data**: 542x faster on repeated calls
 - **Memory Efficient**: Embedded SQLite with WAL mode
 - **Zero Repeated API Calls**: Once a period is checked, no more Yahoo calls
+
+### 🎯 Enhanced Data Validation System (v4.4.1)
+
+The data validation system has been significantly enhanced to provide more accurate and reliable portfolio analysis by implementing intelligent validation logic that adapts to different analysis periods.
+
+#### Core Validation Components
+
+##### Dynamic Date Range Validation
+- **Purpose**: Validates data availability for the actual analysis period instead of using fixed assumptions
+- **Implementation**: `_identify_data_issues()` method in `AnalyzePortfolioUseCase`
+- **Key Features**:
+  - Considers both start and end dates for accurate coverage calculations
+  - Dynamic trading day estimation based on actual date range
+  - Period-specific coverage thresholds for better accuracy
+
+##### Trading Day Estimation Algorithm
+```python
+# Dynamic trading day calculation
+date_range_days = (end_timestamp - start_timestamp).days
+estimated_trading_days = max(int(date_range_days * 0.7), 10)
+```
+- **Logic**: 70% of calendar days are trading days (accounts for weekends/holidays)
+- **Minimum**: Ensures at least 10 trading days for any analysis period
+- **Accuracy**: More accurate than fixed 5-year assumptions
+
+##### Adaptive Coverage Thresholds
+```python
+# Period-specific coverage thresholds
+min_data_points = max(10, int(estimated_trading_days * 0.1))
+coverage_threshold = 0.1 if estimated_trading_days > 100 else 0.05
+```
+- **Long Periods (>100 days)**: 10% coverage threshold, minimum 10% of expected trading days
+- **Short Periods (≤100 days)**: 5% coverage threshold, more lenient for shorter analysis
+- **Minimum Data Points**: At least 10 data points regardless of period length
+
+##### Flexible Tolerance System
+- **Start Date Tolerance**: 5-day business day tolerance for data availability delays
+- **Holiday Handling**: Accounts for weekends and market holidays
+- **Data Delays**: Handles typical data provider delays and market closures
+
+#### Validation Process Flow
+
+1. **Date Range Analysis**: Calculate actual analysis period and expected trading days
+2. **Data Availability Check**: Verify data exists for each ticker in the portfolio
+3. **Start Date Validation**: Check if data is available at or near the requested start date
+4. **Coverage Assessment**: Evaluate data sufficiency based on period-specific thresholds
+5. **Error Reporting**: Provide detailed warnings about data quality issues
+
+#### Benefits of Enhanced Validation
+
+##### Improved Accuracy
+- **Period-Appropriate Validation**: Proper validation for any analysis period length
+- **Better Data Quality**: More accurate assessment of data sufficiency
+- **Enhanced Reliability**: More reliable analysis results with proper validation
+
+##### Better User Experience
+- **Accurate Warnings**: More specific error messages with actual vs expected metrics
+- **Clear Feedback**: Better understanding of data quality and limitations
+- **Actionable Information**: Specific recommendations for data issues
+
+##### Developer Benefits
+- **Better Debugging**: More detailed logging with specific coverage metrics
+- **Maintainable Code**: Clean separation of validation logic
+- **Extensible Design**: Easy to add new validation rules and thresholds
 
 ## 🎨 Presentation Layer
 

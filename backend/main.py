@@ -81,7 +81,7 @@ def main():
     try:
         logger.info("=== PORTFOLIO ANALYSIS TOOL STARTING ===")
         logger.info(f"Session ID: {session_id}")
-        print("🚀 Starting Portfolio Analysis Tool v4.4.0...")
+        print("🚀 Starting Portfolio Analysis Tool v4.4.1...")
         print("📦 Initializing components...")
         
         logger.info("Setting up dependency injection")

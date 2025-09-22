@@ -15,7 +15,7 @@ A script to manage version updates across the entire application.
 python3 scripts/update_version.py
 
 # Update to a new version
-python3 scripts/update_version.py 4.4.0
+python3 scripts/update_version.py 4.4.1
 ```
 
 #### What it does
@@ -43,7 +43,7 @@ Uses semantic versioning: `MAJOR.MINOR.PATCH` (e.g., `4.3.0`)
 python3 scripts/update_version.py 4.3.1
 
 # Minor version (new features)
-python3 scripts/update_version.py 4.4.0
+python3 scripts/update_version.py 4.4.1
 
 # Major version (breaking changes)
 python3 scripts/update_version.py 5.0.0

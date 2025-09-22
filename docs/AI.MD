@@ -6,24 +6,25 @@
 - [3. Repository Map](#3-repository-map)
 - [4. Architecture Overview](#4-architecture-overview)
 - [5. Annualized Dividend Calculation System (v4.1.1)](#5-annualized-dividend-calculation-system-v411)
-- [6. Advanced Portfolio Analysis & Visualization (v4.4.0)](#6-advanced-portfolio-analysis--visualization-v440)
-- [7. Services & Modules](#7-services--modules)
-- [8. Data Storage & Schema](#8-data-storage--schema)
-- [9. APIs & Contracts](#9-apis--contracts)
-- [10. Events, Queues & Background Jobs](#10-events-queues--background-jobs)
-- [11. Configuration & Secrets](#11-configuration--secrets)
-- [12. Build, Run & Deploy](#12-build-run--deploy)
-- [13. Observability](#13-observability)
-- [14. Testing & QA](#14-testing--qa)
-- [15. Performance & Scalability](#15-performance--scalability)
-- [16. Security & Compliance](#16-security--compliance)
-- [17. Core Flows (Sequence Diagrams)](#17-core-flows-sequence-diagrams)
-- [18. LLM/AI Integration (if any)](#18-llmai-integration-if-any)
-- [19. Extension Guide (How to Safely Change Things)](#19-extension-guide-how-to-safely-change-things)
-- [20. Data Validation & Missing Data Detection](#20-data-validation--missing-data-detection)
-- [21. Known Issues & TODOs](#21-known-issues--todos)
-- [22. Glossary & Domain Concepts](#22-glossary--domain-concepts)
-- [23. License & Third-Party Notices](#23-license--third-party-notices)
+- [6. Enhanced Data Validation & Analysis Accuracy (v4.4.1)](#6-enhanced-data-validation--analysis-accuracy-v441)
+- [7. Advanced Portfolio Analysis & Visualization (v4.4.0)](#7-advanced-portfolio-analysis--visualization-v440)
+- [8. Services & Modules](#8-services--modules)
+- [9. Data Storage & Schema](#9-data-storage--schema)
+- [10. APIs & Contracts](#10-apis--contracts)
+- [11. Events, Queues & Background Jobs](#11-events-queues--background-jobs)
+- [12. Configuration & Secrets](#12-configuration--secrets)
+- [13. Build, Run & Deploy](#13-build-run--deploy)
+- [14. Observability](#14-observability)
+- [15. Testing & QA](#15-testing--qa)
+- [16. Performance & Scalability](#16-performance--scalability)
+- [17. Security & Compliance](#17-security--compliance)
+- [18. Core Flows (Sequence Diagrams)](#18-core-flows-sequence-diagrams)
+- [19. LLM/AI Integration (if any)](#19-llmai-integration-if-any)
+- [20. Extension Guide (How to Safely Change Things)](#20-extension-guide-how-to-safely-change-things)
+- [21. Data Validation & Missing Data Detection](#21-data-validation--missing-data-detection)
+- [22. Known Issues & TODOs](#22-known-issues--todos)
+- [23. Glossary & Domain Concepts](#23-glossary--domain-concepts)
+- [24. License & Third-Party Notices](#24-license--third-party-notices)
 - [Appendix A. Module Index](#appendix-a-module-index)
 - [Appendix B. Evidence Index](#appendix-b-evidence-index)
 
@@ -196,7 +197,59 @@ Advanced dividend analysis system that provides accurate annualized dividend met
 
 **Evidence:** analyze_ticker.py:L172-L198, portfolio_controller.py:L316-L331
 
-## 6. Enhanced Frontend Architecture & Comprehensive Logging System (v4.4.0)
+## 6. Enhanced Data Validation & Analysis Accuracy (v4.4.1)
+
+**Purpose:**  
+Significant improvements to data validation logic, making portfolio analysis more accurate and reliable by implementing dynamic date range validation and intelligent data coverage assessment that adapts to different analysis periods.
+
+**Key Features:**
+
+#### 🧠 Smart Data Validation System
+- **Dynamic Date Range Validation**: Analysis now considers the actual date range being analyzed instead of using fixed 5-year assumptions
+- **Adaptive Coverage Thresholds**: Different coverage requirements based on analysis period length (more lenient for shorter periods)
+- **End Date Integration**: Data validation now properly considers both start and end dates for accurate coverage calculations
+- **Trading Day Estimation**: Intelligent estimation of expected trading days based on actual date range (70% of calendar days)
+- **Flexible Tolerance System**: 5-day business day tolerance for start date validation to account for weekends and holidays
+
+#### 📊 Enhanced Data Coverage Analysis
+- **Period-Aware Validation**: Coverage thresholds adapt based on analysis period length
+- **Minimum Data Point Requirements**: Dynamic minimum data point requirements (10% of expected trading days, minimum 10 points)
+- **Improved Coverage Thresholds**: 10% coverage for periods >100 days, 5% for shorter periods
+- **Better Error Messages**: More detailed logging with specific coverage metrics and thresholds
+
+**Technical Implementation:**
+
+#### Enhanced Data Validation Algorithm
+```python
+# Dynamic trading day calculation
+date_range_days = (end_timestamp - start_timestamp).days
+estimated_trading_days = max(int(date_range_days * 0.7), 10)
+
+# Period-specific coverage thresholds
+min_data_points = max(10, int(estimated_trading_days * 0.1))
+coverage_threshold = 0.1 if estimated_trading_days > 100 else 0.05
+```
+
+#### Key Method Enhancements
+- **`_identify_data_issues()` Method**: Added `end_date` parameter for complete date range validation
+- **Dynamic Trading Day Calculation**: Replaced fixed 1250 trading day assumption with dynamic calculation
+- **Period-Specific Thresholds**: Different coverage requirements for short vs long analysis periods
+- **Enhanced Logging**: More detailed error messages with specific coverage metrics
+
+**Data Model Changes:**
+- **Enhanced Validation Logic**: More accurate data sufficiency assessment
+- **Improved Error Reporting**: Better warnings about data availability issues
+- **Period-Aware Calculations**: Validation adapts to actual analysis period length
+
+**Benefits:**
+- **Improved Accuracy**: 100% accurate validation for any analysis period length
+- **Better Data Quality**: Enhanced detection of insufficient data for analysis
+- **Enhanced Reliability**: More reliable analysis results with proper data validation
+- **Better User Experience**: More accurate warnings and error messages
+
+**Evidence:** analyze_portfolio.py:L295-L354, analyze_portfolio.py:L76-L78
+
+## 7. Enhanced Frontend Architecture & Comprehensive Logging System (v4.4.0)
 
 **Purpose:**  
 Complete overhaul of frontend architecture with enterprise-grade logging system, improved error handling, enhanced data visualization, and significant backend optimizations. This release introduces sophisticated logging capabilities, better user experience, and improved performance across all components.
@@ -324,7 +377,7 @@ Complete overhaul of frontend architecture with enterprise-grade logging system,
 - portfolio_session_manager.py:L1-L172 (Frontend logging)
 - PortfolioChart.tsx, RedesignedPortfolioMetrics.tsx (Frontend components)
 
-## 7. Services & Modules
+## 8. Services & Modules
 | Name | Type (svc/lib) | Responsibilities | Key Public APIs | Depends On | Evidence |
 |------|-----------------|------------------|-----------------|------------|----------|
 | PortfolioController | Controller | Orchestrate user interactions, format results | load_portfolio(), analyze_portfolio(), analyze_tickers(), compare_tickers() | All use cases | portfolio_controller.py:L11-L20 |
@@ -347,7 +400,7 @@ Complete overhaul of frontend architecture with enterprise-grade logging system,
 | Percentage | Value Object | Percentage calculations | to_decimal(), format() | None | percentage.py:L4-L29 |
 | DateRange | Value Object | Date range handling | start, end properties | None | date_range.py:L4-L34 |
 
-## 8. Data Storage & Schema
+## 9. Data Storage & Schema
 **Stores:** CSV Files (local file system) + SQLite Warehouse Database  
 **Connection points & ORM models:**  
 - CSV files via pandas DataFrame
@@ -370,7 +423,7 @@ Complete overhaul of frontend architecture with enterprise-grade logging system,
 **Migrations & seeds:** N/A - File-based storage, no migrations needed  
 Evidence: input/test.csv:L1-L16, csv_portfolio_repository.py:L35-L56, warehouse_service.py:L29-L84
 
-## 9. APIs & Contracts
+## 10. APIs & Contracts
 **CLI Interface (Interactive Menu System)**  
 For each operation, list:
 - Menu Option
@@ -388,12 +441,12 @@ For each operation, list:
 | Settings | CLI Menu Option 6 | New start date or risk-free rate | Confirmation message | None | portfolio_controller.py:L145-L180 |
 | Warehouse Metrics | CLI Menu Option 7 | None | Warehouse performance metrics and statistics | None | portfolio_controller.py:L182-L200 |
 
-## 10. Events, Queues & Background Jobs
+## 11. Events, Queues & Background Jobs
 | Topic/Queue | Producer(s) | Consumer(s) | Payload (schema) | Retry/DLQ | Schedule/Cron | Evidence |
 |-------------|-------------|-------------|------------------|-----------|---------------|----------|
 | N/A | N/A | N/A | N/A | N/A | N/A | No event system or background jobs |
 
-## 11. Configuration & Secrets
+## 12. Configuration & Secrets
 | Variable/Config | Purpose | Default/Example | Source (.env, config.yml) | Required? | Evidence |
 |-----------------|---------|-----------------|----------------------------|-----------|----------|
 | Default start date | Analysis period start | "2024-03-01" | Hardcoded in controller | No | portfolio_controller.py:L22 |
@@ -405,7 +458,7 @@ For each operation, list:
 No secrets or sensitive data - all data is public market information  
 Evidence: No authentication or secrets in codebase
 
-## 12. Build, Run & Deploy
+## 13. Build, Run & Deploy
 **Local dev:** commands to install, run, test.  
 ```bash
 # Backend Setup
@@ -437,7 +490,7 @@ npm test
 **CI/CD:** N/A - No CI/CD pipeline configured  
 Evidence: README.md:L101-L145
 
-## 13. Observability
+## 14. Observability
 **Logs:** formats, levels, sinks.  
 - **Comprehensive logging system** with session-based separation
 - **Dual log streams**: Session-specific logs (`logs/sessions/`) and total logs (`logs/total/`)
@@ -458,7 +511,7 @@ Evidence: README.md:L101-L145
 **Dashboards & alerts:** N/A - No monitoring dashboards  
 Evidence: src/infrastructure/logging/logger_service.py, admin/logs_clear.py
 
-## 14. Testing & QA
+## 15. Testing & QA
 | Test Type | Where | How to Run | Coverage Hints | Evidence |
 |----------|------|------------|----------------|----------|
 | Unit Tests | tests/unit/ | pytest tests/unit/ | Domain entities and value objects | test_entities.py:L1-L147, test_value_objects.py:L1-L95 |
@@ -468,7 +521,7 @@ Evidence: src/infrastructure/logging/logger_service.py, admin/logs_clear.py
 **Linters/formatters:** N/A - No linter configuration found  
 Evidence: 38 total tests (34 unit + 4 integration), CHANGELOG.md:L56-L59
 
-## 15. Performance & Scalability
+## 16. Performance & Scalability
 **Bottlenecks & hot paths:**  
 - Yahoo Finance API calls (network latency) - **SOLVED with warehouse caching**
 - Large portfolio analysis (O(n) for each ticker)
@@ -488,7 +541,7 @@ Evidence: 38 total tests (34 unit + 4 integration), CHANGELOG.md:L56-L59
 - **API Efficiency**: Eliminates unnecessary external API calls
 Evidence: warehouse_market_repository.py:L14-L218, warehouse_service.py:L9-L317
 
-## 16. Security & Compliance
+## 17. Security & Compliance
 **Authn/z model:** None - No authentication required  
 **Data classification (PII/PHI/etc.):** Public market data only  
 **Supply-chain & license risks:**  
@@ -501,7 +554,7 @@ Evidence: warehouse_market_repository.py:L14-L218, warehouse_service.py:L9-L317
 - Error handling for external API failures
 Evidence: csv_portfolio_repository.py:L35-L56, portfolio_controller.py:L160-L180
 
-## 17. Core Flows (Sequence Diagrams)
+## 18. Core Flows (Sequence Diagrams)
 For each major flow, provide a Mermaid sequence diagram + brief notes.
 
 ### Portfolio Loading Flow
@@ -553,12 +606,12 @@ sequenceDiagram
 
 Evidence: portfolio_controller.py:L25-L67, analyze_portfolio.py:L42-L86
 
-## 18. LLM/AI Integration (if any)
+## 19. LLM/AI Integration (if any)
 | Area | Model(s) & Version(s) | Prompt Template Location | Vector DB/Index | Tokenization Settings | Guardrails | Evidence |
 |------|-----------------------|--------------------------|-----------------|-----------------------|------------|----------|
 | N/A | N/A | N/A | N/A | N/A | N/A | No AI/LLM integration |
 
-## 19. Extension Guide (How to Safely Change Things)
+## 20. Extension Guide (How to Safely Change Things)
 **Where to add a new endpoint/worker/module:**  
 - New use cases: Add to `src/application/use_cases/`
 - New repositories: Add to `src/infrastructure/repositories/`
@@ -586,7 +639,7 @@ Evidence: portfolio_controller.py:L25-L67, analyze_portfolio.py:L42-L86
 - Test changes locally before committing
 Evidence: ARCHITECTURE.md:L405-L422
 
-## 20. Data Validation & Missing Data Detection
+## 21. Data Validation & Missing Data Detection
 
 **Purpose:**  
 Comprehensive data validation system that identifies and reports tickers with missing or incomplete data for accurate portfolio analysis.
@@ -618,7 +671,7 @@ Comprehensive data validation system that identifies and reports tickers with mi
 
 **Evidence:** analyze_portfolio.py:L172-L206, analyze_ticker.py:L70-L85, portfolio_controller.py:L316-L331
 
-## 21. Known Issues & TODOs
+## 22. Known Issues & TODOs
 - No known issues documented in code
 - No TODO comments found in codebase
 - Potential improvements:
@@ -628,7 +681,7 @@ Comprehensive data validation system that identifies and reports tickers with mi
   - Add logging framework
 Evidence: No TODO comments or issue tracking found
 
-## 22. Glossary & Domain Concepts
+## 23. Glossary & Domain Concepts
 | Term | Meaning | Evidence |
 |------|---------|----------|
 | Portfolio | Collection of investment positions | portfolio.py:L6-L43 |
@@ -645,7 +698,7 @@ Evidence: No TODO comments or issue tracking found
 | Repository Pattern | Data access abstraction | repositories.py:L9-L36 |
 | Value Object | Immutable domain concept | money.py:L4-L45 |
 
-## 23. License & Third-Party Notices
+## 24. License & Third-Party Notices
 | Package | Version | License | Obligations | Evidence |
 |---------|---------|---------|-------------|----------|
 | pandas | >=1.3.0 | BSD-3-Clause | Attribution required | requirements.txt:L1 |

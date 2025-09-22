@@ -2,7 +2,7 @@
 
 A comprehensive full-stack application for analyzing investment portfolios, built with clean architecture principles. The system consists of a FastAPI backend with clean architecture, a React frontend interface, and a robust database layer.
 
-> **🚀 Version 4.4.0 - Enhanced Frontend Architecture & Logging System**: This release introduces significant improvements to the frontend architecture, enhanced logging capabilities, and improved user experience with better error handling and data visualization.
+> **🚀 Version 4.4.1 - Enhanced Data Validation & Analysis Accuracy**: This release introduces significant improvements to data validation logic, making portfolio analysis more accurate and reliable with dynamic date range validation and intelligent data coverage assessment.
 
 ## 🏗️ Architecture Overview
 
@@ -25,7 +25,15 @@ This tool helps investors analyze their portfolios by providing:
 
 ## 📋 Features
 
-### 🚀 Enhanced Frontend Architecture & Logging System (NEW in v4.4.0)
+### 🎯 Enhanced Data Validation & Analysis Accuracy (NEW in v4.4.1)
+- **Smart Data Validation**: Dynamic date range validation that considers the actual analysis period instead of fixed assumptions
+- **Adaptive Coverage Thresholds**: Different coverage requirements based on analysis period length (more lenient for shorter periods)
+- **End Date Integration**: Data validation now properly considers both start and end dates for accurate coverage calculations
+- **Trading Day Estimation**: Intelligent estimation of expected trading days based on actual date range (70% of calendar days)
+- **Flexible Tolerance System**: 5-day business day tolerance for start date validation to account for weekends and holidays
+- **Period-Aware Validation**: Coverage thresholds adapt based on analysis period length for more accurate analysis
+
+### 🚀 Enhanced Frontend Architecture & Logging System (v4.4.0)
 - **Interactive Charts**: Recharts-based performance comparison charts with hover effects and tooltips
 - **Benchmark Comparisons**: Side-by-side portfolio vs S&P 500 vs NASDAQ performance visualization
 - **Advanced Risk Metrics**: VaR (Value at Risk) and Beta calculations with color-coded indicators

@@ -76,7 +76,8 @@ class AnalyzePortfolioUseCase:
             missing_tickers, tickers_without_start_data, first_available_dates = self._identify_data_issues(
                 request.portfolio.get_tickers(), 
                 price_history, 
-                request.date_range.start
+                request.date_range.start,
+                request.date_range.end
             )
             
             if not price_history:
@@ -294,14 +295,22 @@ class AnalyzePortfolioUseCase:
     def _identify_data_issues(self, 
                              tickers: List[Ticker], 
                              price_history: Dict[Ticker, pd.Series], 
-                             start_date: str) -> tuple[List[str], List[str], Dict[str, str]]:
+                             start_date: str,
+                             end_date: str = None) -> tuple[List[str], List[str], Dict[str, str]]:
         """Identify tickers with missing data or no data at start date."""
         missing_tickers = []
         tickers_without_start_data = []
         first_available_dates = {}
         
         start_timestamp = pd.Timestamp(start_date)
+        end_timestamp = pd.Timestamp(end_date) if end_date else pd.Timestamp.now()
         
+        # Calculate expected trading days for the actual date range
+        # Approximate trading days: ~252 per year (weekdays minus holidays)
+        date_range_days = (end_timestamp - start_timestamp).days
+        estimated_trading_days = max(int(date_range_days * 0.7), 10)  # 70% of calendar days are trading days, minimum 10
+        
+        self._logger.debug(f"Date range: {start_date} to {end_date}, estimated trading days: {estimated_trading_days}")
         
         for ticker in tickers:
             if ticker not in price_history:
@@ -315,22 +324,30 @@ class AnalyzePortfolioUseCase:
                 else:
                     first_available = prices.index[0]
                     
-                    # Check if data starts after the requested start date
-                    if first_available > start_timestamp:
+                    # Check if data starts after the requested start date (with business day tolerance)
+                    # Allow up to 5 business days tolerance for start date (to account for weekends/holidays)
+                    tolerance_days = 5
+                    max_allowed_start = start_timestamp + pd.Timedelta(days=tolerance_days)
+                    has_data_at_start = first_available <= max_allowed_start
+                    
+                    if not has_data_at_start:
                         tickers_without_start_data.append(ticker.symbol)
                         first_available_dates[ticker.symbol] = first_available.strftime('%Y-%m-%d')
                         days_late = (first_available - start_timestamp).days
-                        self._logger.warning(f"Data starts after requested start date for {ticker.symbol}: {first_available.strftime('%Y-%m-%d')} (requested: {start_date}, {days_late} days late)")
+                        self._logger.warning(f"Data starts after requested start date for {ticker.symbol}: {first_available.strftime('%Y-%m-%d')} (requested: {start_date}, {days_late} days late, tolerance: {tolerance_days} days)")
                     else:
                         # Additional check for extremely poor data coverage
                         # This catches cases where data exists but is insufficient for analysis
-                        estimated_trading_days = 1250  # Approximate for 5-year period
                         data_coverage_ratio = len(prices) / max(estimated_trading_days, 1)
                         
-                        if len(prices) < 10 or data_coverage_ratio < 0.1:
+                        # More lenient threshold for shorter periods
+                        min_data_points = max(10, int(estimated_trading_days * 0.1))  # At least 10% of expected trading days
+                        coverage_threshold = 0.1 if estimated_trading_days > 100 else 0.05  # More lenient for shorter periods
+                        
+                        if len(prices) < min_data_points or data_coverage_ratio < coverage_threshold:
                             tickers_without_start_data.append(ticker.symbol)
                             first_available_dates[ticker.symbol] = first_available.strftime('%Y-%m-%d')
-                            self._logger.warning(f"Insufficient data coverage for {ticker.symbol}: {len(prices)} data points, coverage ratio: {data_coverage_ratio:.2%}")
+                            self._logger.warning(f"Insufficient data coverage for {ticker.symbol}: {len(prices)} data points, coverage ratio: {data_coverage_ratio:.2%} (expected: {estimated_trading_days}, threshold: {coverage_threshold:.1%})")
                         else:
                             self._logger.debug(f"Sufficient data for {ticker.symbol}: starts {first_available.strftime('%Y-%m-%d')}, {len(prices)} data points, coverage ratio: {data_coverage_ratio:.2%}")
         
