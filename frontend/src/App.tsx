@@ -39,8 +39,8 @@ const DashboardPage = ({ portfolio, setPortfolio }: { portfolio: any, setPortfol
       });
       setUploadedFile(file);
       setSuccess(`File "${file.name}" selected successfully!`);
-      // Process CSV immediately after file selection
-      processCSVFile(file);
+      // Upload CSV immediately after file selection
+      uploadCSVFile(file);
     }
   };
 
@@ -50,8 +50,8 @@ const DashboardPage = ({ portfolio, setPortfolio }: { portfolio: any, setPortfol
     if (file) {
       setUploadedFile(file);
       setSuccess(`File "${file.name}" selected successfully!`);
-      // Process CSV immediately after file drop
-      processCSVFile(file);
+      // Upload CSV immediately after file drop
+      uploadCSVFile(file);
     }
   };
 
@@ -83,7 +83,7 @@ const DashboardPage = ({ portfolio, setPortfolio }: { portfolio: any, setPortfol
   };
 
 
-  const processCSVFile = async (file: File) => {
+  const uploadCSVFile = async (file: File) => {
     setParseError(null);
     setPortfolio(null);
     
@@ -216,7 +216,7 @@ const DashboardPage = ({ portfolio, setPortfolio }: { portfolio: any, setPortfol
               </button>
             </div>
 
-            {/* Portfolio Summary - Moved to top for better UX */}
+            {/* Portfolio Summary - Moved to top */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                 <div className="text-sm font-medium text-gray-500">Total Positions</div>

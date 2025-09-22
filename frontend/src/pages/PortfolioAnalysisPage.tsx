@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart3, Calendar, X, Loader2 } from 'lucide-react';
 import DateRangeSelector from '../components/portfolio/DateRangeSelector';
 import AnalysisTrigger from '../components/portfolio/AnalysisTrigger';
-import RedesignedPortfolioMetrics from '../components/portfolio/RedesignedPortfolioMetrics';
+import PortfolioMetrics from '../components/portfolio/PortfolioMetrics';
 import TickerAnalysisDisplay from '../components/portfolio/TickerAnalysisDisplay';
 import DataAvailabilityWarnings from '../components/portfolio/DataAvailabilityWarnings';
 import MetricsLegend from '../components/portfolio/MetricsLegend';
@@ -190,7 +190,7 @@ const PortfolioAnalysisPage: React.FC = () => {
             )}
 
             {/* Portfolio Metrics */}
-            <RedesignedPortfolioMetrics 
+            <PortfolioMetrics 
               metrics={analysisResults.portfolioMetrics} 
               timeSeriesData={analysisResults.timeSeriesData}
             />
