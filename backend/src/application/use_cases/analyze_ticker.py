@@ -10,6 +10,7 @@ from ...domain.value_objects.money import Money
 from ...domain.value_objects.percentage import Percentage
 from ...infrastructure.logging.logger_service import get_logger_service
 from ...infrastructure.logging.performance_monitor import get_performance_monitor
+from ...infrastructure.services.parallel_calculation_service import get_parallel_calculation_service
 
 @dataclass
 class AnalyzeTickerRequest:
@@ -64,6 +65,7 @@ class AnalyzeTickerUseCase:
         self._logger_service = get_logger_service()
         self._logger = self._logger_service.get_logger("application")
         self._performance_monitor = get_performance_monitor()
+        self._parallel_calculation_service = get_parallel_calculation_service()
     
     def execute(self, request: AnalyzeTickerRequest) -> AnalyzeTickerResponse:
         try:
@@ -173,32 +175,19 @@ class AnalyzeTickerUseCase:
             )
             benchmark_fetch_time = self._performance_monitor.end_timing("benchmark_data_fetch")
             
-            # Step 2: Process all tickers using existing calculation logic
+            # Step 2: Process all tickers using parallel calculation
             self._performance_monitor.start_timing("calculations")
-            ticker_metrics = []
-            failed_tickers = []
             
-            for ticker in request.tickers:
-                try:
-                    # Get data for this ticker
-                    price_data = all_price_data.get(ticker, pd.Series(dtype='float64'))
-                    dividend_data = all_dividend_data.get(ticker, pd.Series(dtype='float64'))
-                    
-                    if price_data.empty or len(price_data) < 2:
-                        failed_tickers.append(ticker.symbol)
-                        continue
-                    
-                    # Use existing calculation logic
-                    metrics = self._calculate_metrics(
-                        ticker, price_data, dividend_data, 
-                        request.risk_free_rate, request.date_range, benchmark_data
-                    )
-                    
-                    ticker_metrics.append(metrics)
-                    
-                except Exception as e:
-                    self._logger.error(f"Failed to analyze ticker {ticker.symbol}: {str(e)}")
-                    failed_tickers.append(ticker.symbol)
+            # Use parallel calculation service for better performance
+            ticker_metrics, failed_tickers = self._parallel_calculation_service.calculate_ticker_metrics_parallel(
+                tickers=request.tickers,
+                all_price_data=all_price_data,
+                all_dividend_data=all_dividend_data,
+                risk_free_rate=request.risk_free_rate,
+                date_range=request.date_range,
+                benchmark_data=benchmark_data,
+                calculation_func=lambda ticker, prices, dividends, risk_free_rate, date_range, benchmark_data: self._calculate_metrics(ticker, prices, dividends, risk_free_rate, date_range, benchmark_data)
+            )
             
             calculation_time = self._performance_monitor.end_timing("calculations")
             total_time = self._performance_monitor.end_timing("batch_analysis")

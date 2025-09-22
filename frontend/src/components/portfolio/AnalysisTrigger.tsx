@@ -113,6 +113,7 @@ const AnalysisTrigger: React.FC<AnalysisTriggerProps> = ({
                 </button>
               </div>
 
+
               {/* Selected Range Display */}
               {selectedDateRange && (
                 <div className="w-full mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">

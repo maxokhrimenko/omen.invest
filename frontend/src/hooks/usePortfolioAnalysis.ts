@@ -63,44 +63,25 @@ export const usePortfolioAnalysis = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange | null>(null);
 
-  // Load saved analysis results from localStorage
-  useEffect(() => {
-    const savedResults = localStorage.getItem('portfolioAnalysisResults');
-    const savedDateRange = localStorage.getItem('portfolioAnalysisDateRange');
-    
-    if (savedResults) {
-      try {
-        const parsed = JSON.parse(savedResults);
-        setAnalysisResults(parsed);
-      } catch (error) {
-        console.error('Failed to parse saved analysis results:', error);
-        localStorage.removeItem('portfolioAnalysisResults');
-      }
-    }
-    
-    if (savedDateRange) {
-      try {
-        const parsed = JSON.parse(savedDateRange);
-        setSelectedDateRange(parsed);
-      } catch (error) {
-        console.error('Failed to parse saved date range:', error);
-        localStorage.removeItem('portfolioAnalysisDateRange');
-      }
-    }
-  }, []);
+  // No localStorage caching - rely on warehouse system for data persistence
+  // This ensures fresh data and eliminates cache inconsistency issues
 
-  // Save analysis results to localStorage
+  // No localStorage caching - rely on warehouse system for data persistence
   const saveAnalysisResults = useCallback((results: AnalysisResults) => {
-    localStorage.setItem('portfolioAnalysisResults', JSON.stringify(results));
-    localStorage.setItem('portfolioAnalysisDateRange', JSON.stringify(results.dateRange));
+    // Analysis results are not cached - always fetch fresh data from warehouse
   }, []);
 
   // Clear analysis results
   const clearAnalysis = useCallback(() => {
     setAnalysisResults(null);
     setError(null);
-    localStorage.removeItem('portfolioAnalysisResults');
-    localStorage.removeItem('portfolioAnalysisDateRange');
+  }, []);
+
+  // Force clear cache and reload fresh data (no-op since we don't use cache)
+  const clearCacheAndReload = useCallback(() => {
+    console.log('Cache clearing not needed - using warehouse system for data persistence');
+    setAnalysisResults(null);
+    setError(null);
   }, []);
 
   // Run portfolio analysis
@@ -189,6 +170,7 @@ export const usePortfolioAnalysis = () => {
     selectedDateRange,
     setSelectedDateRange,
     runAnalysis,
-    clearAnalysis
+    clearAnalysis,
+    clearCacheAndReload
   };
 };

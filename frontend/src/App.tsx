@@ -379,7 +379,7 @@ const Sidebar = ({ portfolio }: { portfolio: any }) => {
             <p className="text-sm text-gray-500 mt-1">Deep portfolio analysis</p>
             <div className="mt-2">
               <span className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 whitespace-nowrap">
-                v4.4.1
+                v4.4.2
               </span>
             </div>
           </div>

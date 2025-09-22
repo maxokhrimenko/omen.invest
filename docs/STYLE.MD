@@ -1040,6 +1040,162 @@ import {
 
 ---
 
+## Parallel Processing Services (v4.4.2)
+
+### Service Architecture Design
+
+**Parallel Processing Components**
+- Clean separation of concerns with dedicated service classes
+- Thread-safe implementation with proper resource management
+- Comprehensive error handling with task-level isolation
+- Performance monitoring and metrics collection
+
+**Service Naming Conventions**
+```python
+# Service classes follow clear naming patterns
+class ParallelCalculationService:    # CPU-bound operations
+class ParallelDataFetcher:          # I/O-bound operations  
+class WarehouseOptimizer:           # Database optimization
+```
+
+**Service Integration Patterns**
+- Dependency injection for clean service management
+- Service discovery with global instance management
+- Thread-safe singleton pattern for shared services
+- Comprehensive logging integration across all services
+
+### Performance Monitoring Design
+
+**Metrics Display Components**
+- Real-time performance metrics with clear visual hierarchy
+- Color-coded performance indicators:
+  - Green: Optimal performance (`text-green-600`)
+  - Yellow: Suboptimal performance (`text-yellow-600`)
+  - Red: Poor performance (`text-red-600`)
+
+**Performance Visualization**
+```css
+.performance-metric {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  background: #f8fafc;
+  border-radius: 0.375rem;
+  border-left: 4px solid #3b82f6;
+}
+
+.performance-good {
+  border-left-color: #10b981;
+}
+
+.performance-warning {
+  border-left-color: #f59e0b;
+}
+
+.performance-poor {
+  border-left-color: #ef4444;
+}
+```
+
+**Worker Management Display**
+- Clear worker allocation visualization
+- Task distribution charts
+- Resource utilization indicators
+- Error rate monitoring
+
+### Error Handling in Parallel Services
+
+**Task-Level Error Isolation**
+- Individual task failures don't affect other tasks
+- Comprehensive error logging with task context
+- Graceful degradation with partial results
+- Clear error reporting with actionable information
+
+**Error State Design**
+```css
+.parallel-error {
+  background: linear-gradient(to right, #fef2f2, #fff7ed);
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0.5rem 0;
+}
+
+.parallel-error-title {
+  color: #991b1b;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.parallel-error-details {
+  color: #7f1d1d;
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+```
+
+**Recovery Actions**
+- Retry failed tasks with exponential backoff
+- Partial success handling with clear user feedback
+- Resource cleanup on service shutdown
+- Performance impact reporting
+
+### Database Optimization Design
+
+**Connection Pool Visualization**
+- Real-time connection pool status
+- Connection utilization charts
+- Performance metrics display
+- Query optimization indicators
+
+**Database Performance Indicators**
+```css
+.db-performance {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.db-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #e0f2fe;
+}
+
+.db-metric:last-child {
+  border-bottom: none;
+}
+
+.db-metric-label {
+  font-weight: 500;
+  color: #0c4a6e;
+}
+
+.db-metric-value {
+  font-family: 'JetBrains Mono', monospace;
+  color: #0369a1;
+}
+```
+
+### Service Integration Patterns
+
+**Dependency Injection Design**
+- Clean service instantiation and management
+- Thread-safe singleton pattern implementation
+- Service lifecycle management
+- Resource cleanup and disposal
+
+**Service Communication**
+- Asynchronous communication patterns
+- Event-driven architecture where appropriate
+- Comprehensive logging for service interactions
+- Performance monitoring across service boundaries
+
+---
+
 ## Implementation Guidelines
 
 ### CSS Architecture

@@ -8,6 +8,8 @@ from ...domain.value_objects.date_range import DateRange
 from ..logging.logger_service import get_logger_service
 from ..logging.decorators import log_operation
 from ..config.warehouse_config import WarehouseConfig
+from ..services.warehouse_optimizer import get_warehouse_optimizer
+from ..services.parallel_data_fetcher import get_parallel_data_fetcher
 
 
 class WarehouseService:
@@ -23,7 +25,11 @@ class WarehouseService:
             
         self._logger_service = get_logger_service()
         self._logger = self._logger_service.get_logger("infrastructure")
+        self._warehouse_optimizer = get_warehouse_optimizer(self.db_path)
+        self._parallel_data_fetcher = get_parallel_data_fetcher()
         self._ensure_database_exists()
+        # Optimize database on initialization
+        self._warehouse_optimizer.optimize_database()
     
     def _ensure_database_exists(self):
         """Ensure the warehouse directory and database exist."""
@@ -454,77 +460,130 @@ class WarehouseService:
     
     @log_operation("warehouse", include_args=True, include_result=True)
     def get_price_history_batch(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
-        """Get price history for multiple tickers in a single query."""
+        """Get price history for multiple tickers using optimized queries and parallel missing data fetching."""
         if not tickers:
             return {}
         
-        ticker_symbols = [t.symbol for t in tickers]
-        placeholders = ','.join(['?'] * len(ticker_symbols))
+        # Use optimized warehouse operations
+        result = self._warehouse_optimizer.get_price_history_optimized(tickers, date_range)
         
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute(f"""
-                SELECT ticker, date, close_price 
-                FROM market_data 
-                WHERE ticker IN ({placeholders}) 
-                AND date >= ? AND date <= ?
-                ORDER BY ticker, date
-            """, ticker_symbols + [date_range.start, date_range.end])
-            
-            # Process results into ticker-indexed dictionary
-            result = {}
-            for ticker in tickers:
-                result[ticker] = pd.Series(dtype='float64', name='Close')
-            
-            for row in cursor.fetchall():
-                ticker_symbol, date_str, price = row
-                # Find the ticker object
-                ticker_obj = next((t for t in tickers if t.symbol == ticker_symbol), None)
-                if ticker_obj is None:
-                    continue
-                
-                # Add to existing series or create new one
-                if result[ticker_obj].empty:
-                    result[ticker_obj] = pd.Series([price], index=[pd.Timestamp(date_str)], name='Close')
-                else:
-                    result[ticker_obj].loc[pd.Timestamp(date_str)] = price
-            
-            return result
+        # Check for missing data and fetch in parallel
+        missing_tickers = []
+        for ticker in tickers:
+            if ticker not in result or result[ticker].empty:
+                missing_tickers.append(ticker)
+        
+        if missing_tickers:
+            self._logger.info(f"Found {len(missing_tickers)} tickers with missing data, fetching in parallel...")
+            # Fetch missing data in parallel
+            missing_data = self._fetch_missing_data_parallel(missing_tickers, date_range)
+            result.update(missing_data)
+        
+        return result
 
     @log_operation("warehouse", include_args=True, include_result=True)
     def get_dividend_history_batch(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
-        """Get dividend history for multiple tickers in a single query."""
+        """Get dividend history for multiple tickers using optimized queries and parallel missing data fetching."""
         if not tickers:
             return {}
         
-        ticker_symbols = [t.symbol for t in tickers]
-        placeholders = ','.join(['?'] * len(ticker_symbols))
+        # Use optimized warehouse operations
+        result = self._warehouse_optimizer.get_dividend_history_optimized(tickers, date_range)
         
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute(f"""
-                SELECT ticker, date, dividend_amount 
-                FROM dividend_data 
-                WHERE ticker IN ({placeholders}) 
-                AND date >= ? AND date <= ?
-                ORDER BY ticker, date
-            """, ticker_symbols + [date_range.start, date_range.end])
-            
-            # Process results into ticker-indexed dictionary
-            result = {}
-            for ticker in tickers:
-                result[ticker] = pd.Series(dtype='float64', name='Dividends')
-            
-            for row in cursor.fetchall():
-                ticker_symbol, date_str, dividend = row
-                ticker_obj = next((t for t in tickers if t.symbol == ticker_symbol), None)
-                if ticker_obj is None:
-                    continue
+        # Check for missing data and fetch in parallel
+        missing_tickers = []
+        for ticker in tickers:
+            if ticker not in result or result[ticker].empty:
+                missing_tickers.append(ticker)
+        
+        if missing_tickers:
+            self._logger.info(f"Found {len(missing_tickers)} tickers with missing dividend data, fetching in parallel...")
+            # Fetch missing dividend data in parallel
+            missing_data = self._fetch_missing_dividend_data_parallel(missing_tickers, date_range)
+            result.update(missing_data)
+        
+        return result
+
+    def _fetch_missing_data_parallel(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
+        """Fetch missing data for multiple tickers in parallel using Yahoo Finance."""
+        if not tickers:
+            return {}
+        
+        self._logger.info(f"Fetching missing data for {len(tickers)} tickers in parallel...")
+        
+        # Create a function to fetch data for a single ticker
+        def fetch_ticker_data(ticker, date_range):
+            try:
+                # Import here to avoid circular imports
+                from ..repositories.yfinance_market_repository import YFinanceMarketRepository
+                yahoo_repo = YFinanceMarketRepository()
                 
-                if result[ticker_obj].empty:
-                    result[ticker_obj] = pd.Series([dividend], index=[pd.Timestamp(date_str)], name='Dividends')
-                else:
-                    result[ticker_obj].loc[pd.Timestamp(date_str)] = dividend
-            
-            return result
+                # Fetch data from Yahoo Finance
+                data = yahoo_repo.get_price_history(ticker, date_range)
+                
+                # Store in warehouse for future use
+                if not data.empty:
+                    self.store_price_data(ticker, data)
+                
+                return data
+            except Exception as e:
+                self._logger.error(f"Error fetching data for {ticker.symbol}: {str(e)}")
+                return pd.Series(dtype='float64')
+        
+        # Use parallel data fetcher
+        parallel_results = self._parallel_data_fetcher.fetch_price_data_parallel(
+            tickers, date_range, fetch_ticker_data
+        )
+        
+        # Convert results to ticker-indexed dictionary
+        result = {}
+        for ticker in tickers:
+            ticker_symbol = ticker.symbol
+            if ticker_symbol in parallel_results[0]:
+                result[ticker] = parallel_results[0][ticker_symbol]
+            else:
+                result[ticker] = pd.Series(dtype='float64')
+        
+        self._logger.info(f"Parallel missing data fetch completed for {len(tickers)} tickers")
+        return result
+
+    def _fetch_missing_dividend_data_parallel(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
+        """Fetch missing dividend data for multiple tickers in parallel using Yahoo Finance."""
+        if not tickers:
+            return {}
+        
+        self._logger.info(f"Fetching missing dividend data for {len(tickers)} tickers in parallel...")
+        
+        # Create a function to fetch dividend data for a single ticker
+        def fetch_ticker_dividend_data(ticker: Ticker, date_range: DateRange) -> pd.Series:
+            try:
+                # Import here to avoid circular imports
+                from ..repositories.yfinance_market_repository import YFinanceMarketRepository
+                yahoo_repo = YFinanceMarketRepository()
+                
+                self._logger.info(f"Fetching dividend history for 1 tickers: {ticker.symbol}")
+                self._logger.info(f"Date range: {date_range.start} to {date_range.end}")
+                data = yahoo_repo.get_dividend_history(ticker, date_range)
+                self._logger.info(f"Successfully processed 1 tickers out of 1 requested")
+                return data
+            except Exception as e:
+                self._logger.error(f"Error fetching dividend data for {ticker.symbol} from Yahoo Finance: {e}")
+                return pd.Series(dtype='float64')
+        
+        # Use parallel data fetcher for Yahoo Finance calls
+        parallel_results = self._parallel_data_fetcher.fetch_dividend_data_parallel(
+            tickers, date_range, fetch_ticker_dividend_data
+        )
+        
+        # Aggregate results
+        aggregated_results = {}
+        for ticker_symbol, data in parallel_results[0].items():
+            ticker = Ticker(ticker_symbol)
+            aggregated_results[ticker] = data
+            if not data.empty:
+                self._warehouse_optimizer.store_dividend_history(ticker, data)
+        
+        return aggregated_results
 
     @log_operation("warehouse", include_args=True, include_result=True)
     def clear_data(self, ticker: Optional[Ticker] = None) -> None:

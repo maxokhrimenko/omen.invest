@@ -9,6 +9,7 @@ from ..warehouse.trading_day_service import TradingDayService
 from ..logging.logger_service import get_logger_service
 from ..logging.decorators import log_operation
 from .yfinance_market_repository import YFinanceMarketRepository
+from ..services.parallel_data_fetcher import get_parallel_data_fetcher
 
 
 class WarehouseMarketRepository(MarketDataRepository):
@@ -29,6 +30,7 @@ class WarehouseMarketRepository(MarketDataRepository):
         self.yahoo_repo = YFinanceMarketRepository()  # Fallback to original
         self._logger_service = get_logger_service()
         self._logger = self._logger_service.get_logger("infrastructure")
+        self._parallel_data_fetcher = get_parallel_data_fetcher()
         
         # Observability counters
         self.warehouse_hits = 0
@@ -276,52 +278,20 @@ class WarehouseMarketRepository(MarketDataRepository):
         self._logger.info(f"Warehouse-enabled batch price history fetch for {len(tickers)} tickers")
         self._logger.info(f"Date range: {date_range.start} to {date_range.end}")
         
-        result = {}
-        
-        # Check warehouse coverage for all tickers
-        missing_tickers = []
-        warehouse_data = {}
-        
-        for ticker in tickers:
-            try:
-                ticker_result = self._get_ticker_price_history(ticker, date_range)
-                if not ticker_result.empty:
-                    warehouse_data[ticker] = ticker_result
-                else:
-                    missing_tickers.append(ticker)
-            except Exception as e:
-                self._logger.error(f"Error processing ticker {ticker.symbol}: {str(e)}")
-                missing_tickers.append(ticker)
-        
-        # Fetch missing data from Yahoo in batch
-        if missing_tickers:
-            self._logger.info(f"Fetching {len(missing_tickers)} missing tickers from Yahoo")
-            try:
-                yahoo_result = self.yahoo_repo.get_price_history(missing_tickers, date_range)
-                for ticker in missing_tickers:
-                    if ticker in yahoo_result and not yahoo_result[ticker].empty:
-                        warehouse_data[ticker] = yahoo_result[ticker]
-                        # Store in warehouse for future use
-                        self.warehouse_service.store_price_data(ticker, yahoo_result[ticker])
-            except Exception as yahoo_error:
-                self._logger.error(f"Yahoo batch fetch failed: {str(yahoo_error)}")
-        
-        return warehouse_data
+        # Use warehouse service's optimized batch method
+        return self.warehouse_service.get_price_history_batch(tickers, date_range)
 
     @log_operation("warehouse_market", include_args=True, include_result=True)
     def get_dividend_history_batch(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
         """Get dividend history for multiple tickers with warehouse caching."""
         if not self.warehouse_enabled:
             self._logger.info("Warehouse disabled, using direct Yahoo Finance for batch dividends")
-            return {ticker: self.yahoo_repo.get_dividend_history(ticker, date_range) for ticker in tickers}
+            return self.yahoo_repo.get_dividend_history_batch(tickers, date_range)
         
         self._logger.info(f"Warehouse-enabled batch dividend history fetch for {len(tickers)} tickers")
         
-        result = {}
-        for ticker in tickers:
-            result[ticker] = self.get_dividend_history(ticker, date_range)
-        
-        return result
+        # Use warehouse service's optimized batch method
+        return self.warehouse_service.get_dividend_history_batch(tickers, date_range)
 
     def reset_metrics(self):
         """Reset observability metrics."""
