@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
+import { TrendingUp, Building2, BarChart3 } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -150,26 +151,26 @@ const PortfolioChart: React.FC<PortfolioChartProps> = ({
     return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   }, []);
 
+  // Custom Legend Component
+  const CustomLegend = () => (
+    <div className="flex justify-center items-center gap-6 mt-2">
+      <div className="flex items-center gap-2">
+        <TrendingUp className="w-4 h-4 text-blue-600" />
+        <span className="text-sm font-medium text-gray-700">Portfolio</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <Building2 className="w-4 h-4 text-green-600" />
+        <span className="text-sm font-medium text-gray-700">S&P 500</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <BarChart3 className="w-4 h-4 text-orange-500" />
+        <span className="text-sm font-medium text-gray-700">NASDAQ</span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="w-full h-full relative">
-      {/* Start Value Badge - positioned absolutely */}
-      <div 
-        className="absolute bottom-4 left-4 z-10 inline-flex items-center px-2 py-1 rounded text-xs font-semibold text-white bg-red-600 shadow-sm"
-        style={{ 
-          fontSize: '9px',
-          padding: '4px 8px',
-          borderRadius: '4px',
-          backgroundColor: '#dc2626',
-          color: '#ffffff',
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
-        }}
-      >
-        <div className="text-center">
-          <div className="text-xs font-semibold">Starting value</div>
-          <div className="text-sm font-bold">${startValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-        </div>
-      </div>
-      
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={chartData}
@@ -211,16 +212,6 @@ const PortfolioChart: React.FC<PortfolioChartProps> = ({
           />
           
           <Tooltip content={<CustomTooltip />} />
-          
-          <Legend 
-            verticalAlign="bottom" 
-            height={30}
-            wrapperStyle={{ paddingTop: '10px' }}
-            iconType="line"
-            iconSize={12}
-            fontSize={12}
-            fontWeight="500"
-          />
           
           {/* Reference line at start value */}
           <ReferenceLine 
@@ -266,6 +257,9 @@ const PortfolioChart: React.FC<PortfolioChartProps> = ({
           />
         </LineChart>
       </ResponsiveContainer>
+      
+      {/* Custom Legend */}
+      <CustomLegend />
     </div>
   );
 };

@@ -4,7 +4,7 @@ import { BarChart3, Calendar, X, Loader2 } from 'lucide-react';
 import DateRangeSelector from '../components/portfolio/DateRangeSelector';
 import AnalysisButton from '../components/portfolio/AnalysisButton';
 import PortfolioMetricsDisplay from '../components/portfolio/PortfolioMetricsDisplay';
-import TickerAnalysisDisplay from '../components/portfolio/TickerAnalysisDisplay';
+// TickerAnalysisDisplay removed - ticker analysis will be separate feature
 import DataWarnings from '../components/portfolio/DataWarnings';
 import MetricsLegend from '../components/portfolio/MetricsLegend';
 import { usePortfolioAnalysis } from '../hooks/usePortfolioAnalysis';
@@ -194,9 +194,6 @@ const PortfolioAnalysisPage: React.FC = () => {
               metrics={analysisResults.portfolioMetrics} 
               timeSeriesData={analysisResults.timeSeriesData}
             />
-
-            {/* Individual Ticker Analysis */}
-            <TickerAnalysisDisplay tickerMetrics={analysisResults.tickerMetrics} />
           </div>
         )}
 

@@ -1,6 +1,25 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, DollarSign, Calendar } from 'lucide-react';
-import type { TickerMetrics } from '../../hooks/usePortfolioAnalysis';
+
+// Temporary interface for ticker analysis (will be moved to separate feature later)
+interface TickerMetrics {
+  ticker: string;
+  totalReturn: string;
+  annualizedReturn: string;
+  volatility: string;
+  sharpeRatio: string;
+  maxDrawdown: string;
+  sortinoRatio: string;
+  beta: string;
+  var95: string;
+  momentum12to1: string;
+  dividendYield: string;
+  dividendAmount: string;
+  dividendFrequency: string;
+  annualizedDividend: string;
+  startPrice: string;
+  endPrice: string;
+}
 
 interface TickerAnalysisDisplayProps {
   tickerMetrics: TickerMetrics[];

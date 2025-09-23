@@ -13,9 +13,11 @@
 - [10. Logging & Monitoring](#10-logging--monitoring)
 - [11. Configuration](#11-configuration)
 - [12. Testing](#12-testing)
-- [13. Performance Optimizations](#13-performance-optimizations)
-- [14. Error Handling](#14-error-handling)
-- [15. Development Guidelines](#15-development-guidelines)
+- [13. Portfolio Dividend Metrics System (v4.4.7)](#13-portfolio-dividend-metrics-system-v447)
+- [14. Code Quality & Performance Optimization (v4.4.5)](#14-code-quality--performance-optimization-v445)
+- [15. Performance Optimizations](#15-performance-optimizations)
+- [16. Error Handling](#16-error-handling)
+- [17. Development Guidelines](#17-development-guidelines)
 
 ---
 
@@ -286,9 +288,13 @@ graph TD
 - **Dependencies**: PortfolioRepository
 
 **AnalyzePortfolioUseCase** (`src/application/use_cases/analyze_portfolio.py`)
-- **Purpose**: Calculate portfolio-level metrics
+- **Purpose**: Calculate portfolio-level metrics including dividend analysis
 - **Input**: `AnalyzePortfolioRequest` (portfolio, date range, risk-free rate)
 - **Output**: `AnalyzePortfolioResponse` (metrics, success, message, missing_tickers)
+- **Key Features**:
+  - Portfolio dividend metrics calculation
+  - Position-level dividend calculations with quantity weighting
+  - Annualized and total dividend yield calculations
 - **Dependencies**: MarketDataRepository
 
 **AnalyzeTickerUseCase** (`src/application/use_cases/analyze_ticker.py`)
@@ -737,7 +743,67 @@ pytest tests/performance/
 
 ---
 
-## 13. Code Quality & Performance Optimization (v4.4.5)
+## 13. Portfolio Dividend Metrics System (v4.4.7)
+
+**Purpose:**  
+Enhanced portfolio analysis with comprehensive dividend metrics at the portfolio level, providing complete dividend analysis alongside existing individual ticker dividend calculations.
+
+**Key Features:**
+
+#### Portfolio Dividend Metrics
+- **Dividend Amount**: Total dividends received across all positions in the analysis period
+- **Annualized Dividend Yield**: Portfolio-level annualized dividend yield based on average portfolio value
+- **Total Dividend Yield**: Total dividend yield for the analysis period based on starting portfolio value
+- **Position-Level Calculations**: Individual position dividend calculations with quantity weighting
+- **Currency Support**: Proper currency handling for dividend amounts
+
+#### Technical Implementation
+
+##### PortfolioMetrics Enhancement
+```python
+@dataclass
+class PortfolioMetrics:
+    # Existing fields...
+    dividend_amount: Money  # Total dividends received in period
+    annualized_dividend_yield: Percentage  # Portfolio-level annualized dividend yield
+    total_dividend_yield: Percentage  # Portfolio-level total dividend yield for period
+```
+
+##### API Response Enhancement
+```python
+# Enhanced portfolio analysis response
+{
+    "dividendAmount": f"${metrics.dividend_amount.amount:,.2f}",
+    "annualizedDividendYield": f"{metrics.annualized_dividend_yield.value:.2f}%",
+    "totalDividendYield": f"{metrics.total_dividend_yield.value:.2f}%"
+}
+```
+
+##### CLI Display Enhancement
+```python
+# Enhanced CLI portfolio metrics display
+print(f"💰 Dividend Amount:   ${metrics.dividend_amount.amount:,.2f}")
+print(f"📈 Annual Div Yield:  {annualized_dividend_yield_colored}")
+print(f"📊 Total Div Yield:   {total_dividend_yield_colored}")
+```
+
+#### Data Model Changes
+- **PortfolioMetrics Class**: Added `dividend_amount`, `annualized_dividend_yield`, and `total_dividend_yield` fields
+- **API Response**: Enhanced with dividend metrics in portfolio analysis endpoint
+- **CLI Display**: Added dividend metrics to portfolio analysis output
+
+**Benefits:**
+- **Comprehensive Analysis**: Complete dividend analysis at portfolio level
+- **Consistent Behavior**: Frontend and CLI now provide identical functionality
+- **User Experience**: Clear separation between portfolio and ticker analysis
+- **Data Completeness**: Full dividend metrics for portfolio evaluation
+
+**Evidence:** 
+- `backend/src/application/use_cases/analyze_portfolio.py` - Portfolio dividend metrics calculation
+- `backend/api.py` - Enhanced API response with dividend metrics
+- `backend/src/presentation/controllers/portfolio_controller.py` - CLI display enhancement
+
+## 14. Code Quality & Performance Optimization (v4.4.5)
 
 ### Code Quality Improvements
 
@@ -748,6 +814,20 @@ pytest tests/performance/
   - Shared calculator methods across AnalyzePortfolioUseCase and AnalyzeTickerUseCase
   - Simplified service interfaces with focused responsibilities
   - Enhanced error handling and recovery mechanisms
+
+#### Portfolio Dividend Metrics & CLI-Frontend Alignment (v4.4.7)
+- **Portfolio Dividend Metrics**: Enhanced portfolio analysis with comprehensive dividend calculations
+  - Dividend Amount: Total dividends received across all positions in the analysis period
+  - Annualized Dividend Yield: Portfolio-level annualized dividend yield based on average portfolio value
+  - Total Dividend Yield: Total dividend yield for the analysis period based on starting portfolio value
+  - Position-Level Calculations: Individual position dividend calculations with quantity weighting
+  - Currency Support: Proper currency handling for dividend amounts
+- **CLI-Frontend Alignment (v4.4.6)**: Complete alignment between CLI and frontend
+  - Portfolio Analysis Unification: Frontend portfolio analysis now matches CLI exactly
+  - Individual Ticker Analysis Removal: Removed from portfolio analysis page to match CLI behavior
+  - API Call Simplification: Frontend now only calls `/portfolio/analysis` endpoint
+  - Message Updates: Loading and success messages updated to reflect portfolio-only analysis
+  - Behavior Consistency: Frontend behavior now matches CLI "Analyze Portfolio" option exactly
 
 #### Service Simplification
 - **ParallelCalculationService**: Removed `get_optimal_worker_count` and `get_performance_metrics` methods
@@ -767,7 +847,7 @@ pytest tests/performance/
 - **Processing Speed**: Optimized calculation methods with shared logic
 - **Error Handling**: Faster error recovery and handling
 
-## 14. Performance Optimizations
+## 15. Performance Optimizations
 
 ### Parallel Processing
 
@@ -804,7 +884,7 @@ pytest tests/performance/
 
 ---
 
-## 14. Error Handling
+## 16. Error Handling
 
 ### Error Strategy
 
@@ -850,7 +930,7 @@ External Error → Repository → Use Case → Controller → User Message
 
 ---
 
-## 15. Development Guidelines
+## 17. Development Guidelines
 
 ### Code Organization
 

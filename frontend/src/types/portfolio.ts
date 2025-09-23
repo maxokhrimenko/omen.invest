@@ -32,6 +32,9 @@ export interface PortfolioAnalysis {
     endValue: string;
     endValueAnalysis: string;
     endValueMissing: string;
+    dividendAmount: string;
+    annualizedDividendYield: string;
+    totalDividendYield: string;
   };
   warnings: {
     missingTickers: string[];

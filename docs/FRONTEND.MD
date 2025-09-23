@@ -259,14 +259,17 @@ graph TD
 - **Dependencies**: PortfolioUpload, PortfolioTable, apiService
 
 #### PortfolioAnalysisPage (`src/pages/PortfolioAnalysisPage.tsx`)
-- **Purpose**: Portfolio analysis and metrics display
+- **Purpose**: Portfolio analysis and metrics display (matches CLI functionality exactly)
 - **Features**:
   - Date range selection
-  - Analysis execution
-  - Metrics visualization
+  - Portfolio-level analysis only (no individual ticker analysis)
+  - Metrics visualization with charts including dividend metrics
   - Data availability warnings
+  - Enhanced portfolio chart with custom legend
 - **Key Hooks**: `usePortfolioAnalysis`
 - **Dependencies**: PortfolioChart, PortfolioMetrics, DataAvailabilityWarnings
+- **Note**: Individual ticker analysis removed to match CLI behavior - ticker analysis will be separate feature
+- **Dividend Metrics**: Displays portfolio-level dividend amount, annualized yield, and total yield
 
 #### PortfolioUploadPage (`src/pages/PortfolioUploadPage.tsx`)
 - **Purpose**: Dedicated portfolio upload and management page
@@ -363,17 +366,19 @@ graph TD
 ### React Hooks
 
 #### usePortfolioAnalysis (`src/hooks/usePortfolioAnalysis.ts`)
-- **Purpose**: Portfolio analysis state management
+- **Purpose**: Portfolio analysis state management (matches CLI functionality exactly)
 - **State**:
-  - `analysisResults`: Analysis data and metrics
+  - `analysisResults`: Portfolio-level analysis data and metrics including dividend metrics
   - `isLoading`: Loading state for analysis
   - `error`: Error state and messages
   - `selectedDateRange`: Selected analysis date range
 - **Methods**:
-  - `runAnalysis()`: Execute portfolio analysis
+  - `runAnalysis()`: Execute portfolio analysis (portfolio metrics including dividend metrics)
   - `clearAnalysis()`: Clear analysis results
   - `setSelectedDateRange()`: Update date range
 - **Dependencies**: apiService, logger, useToast
+- **Note**: Individual ticker analysis removed - only calls `/portfolio/analysis` endpoint
+- **Dividend Metrics**: Handles portfolio-level dividend amount, annualized yield, and total yield
 
 ### Context Providers
 
@@ -1016,6 +1021,56 @@ const isApiError = (error: unknown): error is ApiError => {
 - **Removed Unused Files**: Deleted 2 unused files
   - `PortfolioUploadPage.tsx` (not imported anywhere)
   - Old `DashboardPage.tsx` (replaced by extracted component)
+
+#### Portfolio Dividend Metrics & CLI-Frontend Alignment (v4.4.7)
+- **Portfolio Dividend Metrics**: Enhanced portfolio analysis with comprehensive dividend calculations
+  - Dividend Amount: Total dividends received across all positions in the analysis period
+  - Annualized Dividend Yield: Portfolio-level annualized dividend yield based on average portfolio value
+  - Total Dividend Yield: Total dividend yield for the analysis period based on starting portfolio value
+  - Position-Level Calculations: Individual position dividend calculations with quantity weighting
+  - Currency Support: Proper currency handling for dividend amounts
+- **CLI-Frontend Alignment (v4.4.6)**: Complete alignment between CLI and frontend
+  - Portfolio Analysis Unification: Frontend portfolio analysis now matches CLI exactly
+  - Individual Ticker Analysis Removal: Removed from portfolio analysis page to match CLI behavior
+  - API Call Simplification: Frontend now only calls `/portfolio/analysis` endpoint
+  - Message Updates: Loading and success messages updated to reflect portfolio-only analysis
+  - Behavior Consistency: Frontend behavior now matches CLI "Analyze Portfolio" option exactly
+
+#### Portfolio Dividend Metrics System (v4.4.7)
+
+The portfolio dividend metrics system provides comprehensive dividend analysis at the portfolio level, enhancing the existing individual ticker dividend analysis with portfolio-wide calculations.
+
+##### Portfolio Chart Enhancement
+- **Custom Legend Implementation**: Enhanced portfolio chart with custom legend using Lucide React icons
+- **Visual Improvements**: Better chart presentation with TrendingUp, Building2, and BarChart3 icons
+- **Responsive Design**: Mobile-friendly legend with proper spacing and alignment
+- **Icon Integration**: Seamless integration of Lucide React icons for better visual representation
+
+##### Technical Implementation
+```typescript
+// Enhanced Portfolio Chart with Custom Legend
+const CustomLegend = () => (
+  <div className="flex justify-center items-center gap-6 mt-2">
+    <div className="flex items-center gap-2">
+      <TrendingUp className="w-4 h-4 text-blue-600" />
+      <span className="text-sm font-medium text-gray-700">Portfolio</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <Building2 className="w-4 h-4 text-green-600" />
+      <span className="text-sm font-medium text-gray-700">S&P 500</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <BarChart3 className="w-4 h-4 text-orange-500" />
+      <span className="text-sm font-medium text-gray-700">NASDAQ</span>
+    </div>
+  </div>
+);
+```
+
+##### API Integration
+- **Enhanced Portfolio Analysis**: Seamless integration with enhanced portfolio analysis endpoint
+- **Dividend Metrics Display**: Portfolio metrics display with dividend information
+- **Data Consistency**: Consistent data handling between frontend and backend
 
 #### Code Organization
 - **Extracted Inline Components**: Moved large `DashboardPage` component from `App.tsx` to dedicated file

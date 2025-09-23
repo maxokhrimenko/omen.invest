@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { DateRange } from '../components/portfolio/DateRangeSelector';
 import { apiService } from '../services/api';
 import { logger } from '../utils/logger';
@@ -19,26 +19,12 @@ export interface PortfolioMetrics {
   endValue: string;
   endValueAnalysis: string;
   endValueMissing: string;
+  dividendAmount: string;
+  annualizedDividendYield: string;
+  totalDividendYield: string;
 }
 
-export interface TickerMetrics {
-  ticker: string;
-  totalReturn: string;
-  annualizedReturn: string;
-  volatility: string;
-  sharpeRatio: string;
-  maxDrawdown: string;
-  sortinoRatio: string;
-  beta: string;
-  var95: string;
-  momentum12to1: string;
-  dividendYield: string;
-  dividendAmount: string;
-  dividendFrequency: string;
-  annualizedDividend: string;
-  startPrice: string;
-  endPrice: string;
-}
+// TickerMetrics removed - ticker analysis will be separate feature
 
 export interface DataWarnings {
   missingTickers: string[];
@@ -48,7 +34,6 @@ export interface DataWarnings {
 
 export interface AnalysisResults {
   portfolioMetrics: PortfolioMetrics;
-  tickerMetrics: TickerMetrics[];
   dataWarnings: DataWarnings;
   analysisDate: string;
   dateRange: DateRange;
@@ -66,16 +51,41 @@ export const usePortfolioAnalysis = () => {
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange | null>(null);
   const { showToast, hideToast } = useToast();
 
-  // No localStorage caching - rely on warehouse system for data persistence
-  // This ensures fresh data and eliminates cache inconsistency issues
-  const saveAnalysisResults = useCallback((_results: AnalysisResults) => {
-    // Analysis results are not cached - always fetch fresh data from warehouse
+  // Load analysis results from localStorage on mount
+  useEffect(() => {
+    const savedResults = localStorage.getItem('portfolioAnalysisResults');
+    const savedDateRange = localStorage.getItem('portfolioAnalysisDateRange');
+    
+    if (savedResults) {
+      try {
+        setAnalysisResults(JSON.parse(savedResults));
+      } catch (error) {
+        console.error('Failed to parse saved analysis results:', error);
+        localStorage.removeItem('portfolioAnalysisResults');
+      }
+    }
+    
+    if (savedDateRange) {
+      try {
+        setSelectedDateRange(JSON.parse(savedDateRange));
+      } catch (error) {
+        console.error('Failed to parse saved date range:', error);
+        localStorage.removeItem('portfolioAnalysisDateRange');
+      }
+    }
+  }, []);
+
+  // Save analysis results to localStorage
+  const saveAnalysisResults = useCallback((results: AnalysisResults) => {
+    localStorage.setItem('portfolioAnalysisResults', JSON.stringify(results));
   }, []);
 
   // Clear analysis results
   const clearAnalysis = useCallback(() => {
     setAnalysisResults(null);
     setError(null);
+    localStorage.removeItem('portfolioAnalysisResults');
+    localStorage.removeItem('portfolioAnalysisDateRange');
   }, []);
 
   // Clear cache and reload data (no-op since we don't use cache)
@@ -103,7 +113,7 @@ export const usePortfolioAnalysis = () => {
     const loadingToastId = showToast({
       type: 'loading',
       title: 'Analysis in Progress',
-      message: `Analyzing ${tickerCount || 'portfolio'} tickers${estimatedTimeText}...`,
+      message: `Analyzing portfolio${estimatedTimeText}...`,
       persistent: true
     });
 
@@ -115,29 +125,22 @@ export const usePortfolioAnalysis = () => {
         tickerCount 
       });
       
-      // Call real API endpoints with dynamic timeouts
-      const [portfolioResponse, tickerResponseData] = await Promise.all([
-        apiService.analyzePortfolio(startDate, endDate, tickerCount),
-        apiService.analyzeTickers(startDate, endDate, tickerCount)
-      ]);
-      
-      const tickerResponse = tickerResponseData.data;
+      // Call only portfolio analysis API endpoint (matching CLI behavior)
+      const portfolioResponse = await apiService.analyzePortfolio(startDate, endDate, tickerCount);
 
-      logger.info('API responses received', { 
+      logger.info('API response received', { 
         operation: 'api_responses',
         portfolioSuccess: portfolioResponse.success, 
-        portfolioData: portfolioResponse.data,
-        tickerCount: tickerResponse.length 
+        portfolioData: portfolioResponse.data
       });
 
       if (!portfolioResponse.success) {
         throw new Error(portfolioResponse.message);
       }
 
-      // Convert API responses to our internal format
+      // Convert API response to our internal format (portfolio metrics only)
       const analysisResults: AnalysisResults = {
         portfolioMetrics: portfolioResponse.data,
-        tickerMetrics: tickerResponse,
         dataWarnings: {
           missingTickers: portfolioResponse.warnings.missingTickers,
           tickersWithoutStartData: portfolioResponse.warnings.tickersWithoutStartData,
@@ -159,18 +162,27 @@ export const usePortfolioAnalysis = () => {
 
       logger.info('Analysis results created successfully', {
         operation: 'analysis_complete',
-        tickerCount: analysisResults.tickerMetrics.length,
         hasPortfolioMetrics: !!analysisResults.portfolioMetrics
       });
       setAnalysisResults(analysisResults);
       saveAnalysisResults(analysisResults);
+      
+      // Save date range to localStorage
+      const dateRange = selectedDateRange || {
+        startDate,
+        endDate,
+        label: 'Custom Range',
+        type: 'custom'
+      };
+      setSelectedDateRange(dateRange);
+      localStorage.setItem('portfolioAnalysisDateRange', JSON.stringify(dateRange));
       
       // Hide loading toast and show success toast
       hideToast(loadingToastId);
       showToast({
         type: 'success',
         title: 'Analysis Complete',
-        message: `Successfully analyzed ${tickerResponse.length} tickers${estimatedTimeText}`,
+        message: `Portfolio analysis completed successfully${estimatedTimeText}`,
         duration: 3000
       });
       

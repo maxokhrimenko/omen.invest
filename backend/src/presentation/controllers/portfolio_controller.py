@@ -291,6 +291,20 @@ class PortfolioController:
             metrics.beta, "beta", "portfolio"
         )
         print(f"β  Beta:             {beta_colored}")
+        
+        # Dividend metrics
+        print(f"💰 Dividend Amount:   ${metrics.dividend_amount.amount:,.2f}")
+        
+        annualized_dividend_yield_colored = self._color_service.colorize_percentage(
+            metrics.annualized_dividend_yield.value, "dividend_yield", "portfolio"
+        )
+        print(f"📈 Annual Div Yield:  {annualized_dividend_yield_colored}")
+        
+        total_dividend_yield_colored = self._color_service.colorize_percentage(
+            metrics.total_dividend_yield.value, "dividend_yield", "portfolio"
+        )
+        print(f"📊 Total Div Yield:   {total_dividend_yield_colored}")
+        
         print("=" * 60)
     
     def _analyze_all_tickers(self, display_format: str = "cards") -> None:

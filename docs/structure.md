@@ -36,9 +36,33 @@ This document outlines the implemented full-stack repository structure with back
 - **Type Safety**: Enhanced TypeScript type safety with proper null handling
 - **Bundle Optimization**: Cleaned up package-lock.json and removed extraneous packages
 
-## 🎯 Key Features (v4.4.4)
+#### Portfolio Dividend Metrics & CLI-Frontend Alignment (v4.4.7)
+- **Portfolio Dividend Metrics**: Enhanced portfolio analysis with comprehensive dividend calculations
+  - Dividend Amount: Total dividends received across all positions in the analysis period
+  - Annualized Dividend Yield: Portfolio-level annualized dividend yield based on average portfolio value
+  - Total Dividend Yield: Total dividend yield for the analysis period based on starting portfolio value
+  - Position-Level Calculations: Individual position dividend calculations with quantity weighting
+  - Currency Support: Proper currency handling for dividend amounts
+- **CLI-Frontend Alignment (v4.4.6)**: Complete alignment between CLI and frontend
+  - Portfolio Analysis Unification: Frontend portfolio analysis now matches CLI exactly
+  - Individual Ticker Analysis Removal: Removed from portfolio analysis page to match CLI behavior
+  - API Call Simplification: Frontend now only calls `/portfolio/analysis` endpoint
+  - Message Updates: Loading and success messages updated to reflect portfolio-only analysis
+  - Behavior Consistency: Frontend behavior now matches CLI "Analyze Portfolio" option exactly
 
-### Administration System & Enhanced Date Validation
+## 🎯 Key Features (v4.4.7)
+
+### Portfolio Dividend Metrics System
+- **Portfolio Dividend Amount**: Total dividends received across all positions in the analysis period
+- **Annualized Dividend Yield**: Portfolio-level annualized dividend yield based on average portfolio value
+- **Total Dividend Yield**: Total dividend yield for the analysis period based on starting portfolio value
+- **Position-Level Calculations**: Individual position dividend calculations with quantity weighting
+- **Currency Support**: Proper currency handling for dividend amounts
+- **API Integration**: Enhanced portfolio analysis endpoint with dividend metrics
+- **CLI Display**: Added dividend metrics to portfolio analysis output
+- **Frontend Integration**: Portfolio chart with custom legend and enhanced metrics display
+
+### Administration System & Enhanced Date Validation (v4.4.4)
 - **Administration API Endpoints**: Complete set of administrative endpoints for system management
 - **Warehouse Management**: Tools for warehouse data management and cleanup
 - **Log Management**: Administrative tools for log clearing and management  

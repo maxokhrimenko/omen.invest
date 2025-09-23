@@ -53,6 +53,36 @@ The system has been enhanced with code quality improvements and performance opti
 6. **Type Safety**: Enhanced TypeScript type safety with proper null handling
 7. **Bundle Optimization**: Cleaned up package-lock.json and removed extraneous packages
 
+#### Portfolio Dividend Metrics & CLI-Frontend Alignment (v4.4.7)
+1. **Portfolio Dividend Metrics**: Enhanced portfolio analysis with comprehensive dividend calculations
+   - Dividend Amount: Total dividends received across all positions
+   - Annualized Dividend Yield: Portfolio-level annualized dividend yield
+   - Total Dividend Yield: Total dividend yield for the analysis period
+   - Position-Level Calculations: Individual position dividend calculations with quantity weighting
+2. **CLI-Frontend Alignment (v4.4.6)**: Complete alignment between CLI and frontend
+   - Portfolio Analysis Unification: Frontend portfolio analysis now matches CLI exactly
+   - Individual Ticker Analysis Removal: Removed from portfolio analysis page to match CLI behavior
+   - API Call Simplification: Frontend now only calls `/portfolio/analysis` endpoint
+   - Message Updates: Loading and success messages updated to reflect portfolio-only analysis
+   - Behavior Consistency: Frontend behavior now matches CLI "Analyze Portfolio" option exactly
+
+### Portfolio Dividend Metrics System (v4.4.7)
+
+The portfolio dividend metrics system provides comprehensive dividend analysis at the portfolio level, enhancing the existing individual ticker dividend analysis with portfolio-wide calculations.
+
+#### Key Features
+1. **Portfolio Dividend Amount**: Total dividends received across all positions in the analysis period
+2. **Annualized Dividend Yield**: Portfolio-level annualized dividend yield based on average portfolio value
+3. **Total Dividend Yield**: Total dividend yield for the analysis period based on starting portfolio value
+4. **Position-Level Calculations**: Individual position dividend calculations with quantity weighting
+5. **Currency Support**: Proper currency handling for dividend amounts
+
+#### Technical Implementation
+- **PortfolioMetrics Enhancement**: Added `dividend_amount`, `annualized_dividend_yield`, and `total_dividend_yield` fields
+- **API Response Enhancement**: Enhanced portfolio analysis endpoint with dividend metrics
+- **CLI Display Enhancement**: Added dividend metrics to portfolio analysis output
+- **Frontend Integration**: Portfolio chart with custom legend and enhanced metrics display
+
 ### Administration System (v4.4.4)
 The administration system provides comprehensive system management capabilities:
 
@@ -289,6 +319,15 @@ The domain layer contains the core business logic and is independent of any exte
   - Cannot be empty
   - Unique positions per ticker (last wins if duplicates)
 
+#### PortfolioMetrics
+- **Purpose**: Portfolio-level performance metrics including dividend analysis
+- **Key Fields**:
+  - `dividend_amount`: Total dividends received across all positions
+  - `annualized_dividend_yield`: Portfolio-level annualized dividend yield
+  - `total_dividend_yield`: Total dividend yield for the analysis period
+  - Standard metrics: total_return, annualized_return, volatility, sharpe_ratio, etc.
+- **Dependencies**: Money, Percentage
+
 ### Value Objects
 
 #### Money
@@ -338,9 +377,10 @@ The application layer orchestrates domain objects to fulfill business use cases.
 - **Output**: `AnalyzePortfolioResponse` (metrics, success, message, missing_tickers, tickers_without_start_data)
 - **Responsibilities**:
   - Fetch market data for all portfolio tickers
-  - Calculate portfolio-level metrics
+  - Calculate portfolio-level metrics including dividend analysis
   - Validate data availability with business day tolerance
   - Identify missing tickers and incomplete data scenarios
+  - Calculate portfolio dividend metrics (amount, annualized yield, total yield)
 - **Data Validation Features**:
   - Missing tickers detection (no data available)
   - Start date validation (5-day business tolerance)
@@ -350,6 +390,7 @@ The application layer orchestrates domain objects to fulfill business use cases.
   - Volatility, Sharpe ratio, Sortino ratio
   - Maximum drawdown, Calmar ratio
   - Value at Risk (VaR), Beta
+  - Dividend amount, annualized dividend yield, total dividend yield
 
 #### AnalyzeTickerUseCase
 - **Input**: `AnalyzeTickerRequest` (ticker, date range, risk-free rate)

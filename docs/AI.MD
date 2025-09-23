@@ -9,23 +9,24 @@
 - [6. Parallel Processing & Warehouse Optimization System (v4.4.3)](#6-parallel-processing--warehouse-optimization-system-v443)
 - [7. Enhanced Data Validation & Analysis Accuracy (v4.4.1)](#7-enhanced-data-validation--analysis-accuracy-v441)
 - [8. Advanced Portfolio Analysis & Visualization (v4.4.0)](#8-advanced-portfolio-analysis--visualization-v440)
-- [9. Services & Modules](#9-services--modules)
-- [10. Data Storage & Schema](#10-data-storage--schema)
-- [11. APIs & Contracts](#11-apis--contracts)
-- [12. Events, Queues & Background Jobs](#12-events-queues--background-jobs)
-- [13. Configuration & Secrets](#13-configuration--secrets)
-- [14. Build, Run & Deploy](#14-build-run--deploy)
-- [15. Observability](#15-observability)
-- [16. Testing & QA](#16-testing--qa)
-- [17. Performance & Scalability](#17-performance--scalability)
-- [18. Security & Compliance](#18-security--compliance)
-- [19. Core Flows (Sequence Diagrams)](#19-core-flows-sequence-diagrams)
-- [20. LLM/AI Integration (if any)](#20-llmai-integration-if-any)
-- [21. Extension Guide (How to Safely Change Things)](#21-extension-guide-how-to-safely-change-things)
-- [22. Data Validation & Missing Data Detection](#22-data-validation--missing-data-detection)
-- [23. Known Issues & TODOs](#23-known-issues--todos)
-- [24. Glossary & Domain Concepts](#24-glossary--domain-concepts)
-- [25. License & Third-Party Notices](#25-license--third-party-notices)
+- [9. Portfolio Dividend Metrics & CLI-Frontend Alignment (v4.4.7)](#9-portfolio-dividend-metrics--cli-frontend-alignment-v447)
+- [10. Services & Modules](#10-services--modules)
+- [11. Data Storage & Schema](#11-data-storage--schema)
+- [12. APIs & Contracts](#12-apis--contracts)
+- [13. Events, Queues & Background Jobs](#13-events-queues--background-jobs)
+- [14. Configuration & Secrets](#14-configuration--secrets)
+- [15. Build, Run & Deploy](#15-build-run--deploy)
+- [16. Observability](#16-observability)
+- [17. Testing & QA](#17-testing--qa)
+- [18. Performance & Scalability](#18-performance--scalability)
+- [19. Security & Compliance](#19-security--compliance)
+- [20. Core Flows (Sequence Diagrams)](#20-core-flows-sequence-diagrams)
+- [21. LLM/AI Integration (if any)](#21-llmai-integration-if-any)
+- [22. Extension Guide (How to Safely Change Things)](#22-extension-guide-how-to-safely-change-things)
+- [23. Data Validation & Missing Data Detection](#23-data-validation--missing-data-detection)
+- [24. Known Issues & TODOs](#24-known-issues--todos)
+- [25. Glossary & Domain Concepts](#25-glossary--domain-concepts)
+- [26. License & Third-Party Notices](#26-license--third-party-notices)
 - [Appendix A. Module Index](#appendix-a-module-index)
 - [Appendix B. Evidence Index](#appendix-b-evidence-index)
 
@@ -318,6 +319,15 @@ Code quality improvements, performance optimizations, and system cleanup with en
 - **Dependency Cleanup**: Removed unused dependencies (`sharp`, `@tailwindcss/postcss`)
 - **Import Optimization**: Added type-only imports for `verbatimModuleSyntax` compatibility
 
+#### CLI-Frontend Alignment (v4.4.6)
+- **Portfolio Analysis Unification**: Frontend portfolio analysis now matches CLI exactly
+  - Removed individual ticker analysis from portfolio analysis page
+  - Portfolio analysis shows only portfolio-level metrics (no ticker breakdown)
+  - Individual ticker analysis will be separate feature
+  - API calls simplified to only use `/portfolio/analysis` endpoint
+  - Loading and success messages updated to reflect portfolio-only analysis
+  - Frontend behavior now matches CLI "Analyze Portfolio" option exactly
+
 #### Performance Optimizations
 - **Shared Calculator Methods**: Centralized calculation logic for basic metrics, risk metrics, momentum, dividend metrics, and beta
 - **Simplified Service Interfaces**: Removed complex performance monitoring methods for cleaner service contracts
@@ -449,7 +459,77 @@ def is_date_after_previous_working_day(date_str: str) -> bool:
 - `backend/src/infrastructure/utils/date_utils.py` - Date utility functions
 - `backend/src/domain/value_objects/date_range.py` - Enhanced DateRange class
 
-## 9. Portfolio Analysis & Visualization (v4.4.0)
+## 9. Portfolio Dividend Metrics & CLI-Frontend Alignment (v4.4.7)
+
+**Purpose:**  
+Enhanced portfolio analysis with comprehensive dividend metrics and complete CLI-frontend alignment. This release adds portfolio-level dividend calculations and ensures frontend behavior matches CLI exactly.
+
+**Key Features:**
+
+#### Portfolio Dividend Metrics System
+- **Dividend Amount**: Total dividends received across all positions in the analysis period
+- **Annualized Dividend Yield**: Portfolio-level annualized dividend yield based on average portfolio value
+- **Total Dividend Yield**: Total dividend yield for the analysis period based on starting portfolio value
+- **Position-Level Calculations**: Individual position dividend calculations with quantity weighting
+- **Currency Support**: Proper currency handling for dividend amounts
+
+#### CLI-Frontend Alignment (v4.4.6)
+- **Portfolio Analysis Unification**: Frontend portfolio analysis now matches CLI exactly
+  - Removed individual ticker analysis from portfolio analysis page
+  - Portfolio analysis shows only portfolio-level metrics (no ticker breakdown)
+  - Individual ticker analysis will be separate feature
+  - API calls simplified to only use `/portfolio/analysis` endpoint
+  - Loading and success messages updated to reflect portfolio-only analysis
+  - Frontend behavior now matches CLI "Analyze Portfolio" option exactly
+
+**Technical Implementation:**
+
+#### Portfolio Dividend Metrics Calculation
+```python
+def _calculate_portfolio_dividend_metrics(self, portfolio: Portfolio, dividend_history: Dict[Ticker, pd.Series], 
+                                        price_history: Dict[Ticker, pd.Series], start_value: Money, 
+                                        end_value: Money) -> tuple[Money, Percentage, Percentage]:
+    # Calculate total dividends received across all positions
+    # Calculate annualized dividend yield using average portfolio value
+    # Calculate total dividend yield for the analysis period
+```
+
+#### API Response Enhancement
+```python
+# Enhanced portfolio analysis response
+{
+    "dividendAmount": f"${metrics.dividend_amount.amount:,.2f}",
+    "annualizedDividendYield": f"{metrics.annualized_dividend_yield.value:.2f}%",
+    "totalDividendYield": f"{metrics.total_dividend_yield.value:.2f}%"
+}
+```
+
+#### CLI Display Enhancement
+```python
+# Enhanced CLI portfolio metrics display
+print(f"💰 Dividend Amount:   ${metrics.dividend_amount.amount:,.2f}")
+print(f"📈 Annual Div Yield:  {annualized_dividend_yield_colored}")
+print(f"📊 Total Div Yield:   {total_dividend_yield_colored}")
+```
+
+**Data Model Changes:**
+- **PortfolioMetrics Class**: Added `dividend_amount`, `annualized_dividend_yield`, and `total_dividend_yield` fields
+- **API Response**: Enhanced with dividend metrics in portfolio analysis endpoint
+- **CLI Display**: Added dividend metrics to portfolio analysis output
+
+**Benefits:**
+- **Comprehensive Analysis**: Complete dividend analysis at portfolio level
+- **Consistent Behavior**: Frontend and CLI now provide identical functionality
+- **User Experience**: Clear separation between portfolio and ticker analysis
+- **Data Completeness**: Full dividend metrics for portfolio evaluation
+
+**Evidence:** 
+- `backend/src/application/use_cases/analyze_portfolio.py` - Portfolio dividend metrics calculation
+- `backend/api.py` - Enhanced API response with dividend metrics
+- `backend/src/presentation/controllers/portfolio_controller.py` - CLI display enhancement
+- `frontend/src/components/portfolio/PortfolioChart.tsx` - Custom legend implementation
+
+## 10. Portfolio Analysis & Visualization (v4.4.0)
 
 **Purpose:**  
 Overhaul of frontend architecture with logging system, improved error handling, data visualization, and backend optimizations. This release introduces logging capabilities, better user experience, and improved performance across all components.
@@ -577,7 +657,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 - portfolio_session_manager.py:L1-L172 (Frontend logging)
 - PortfolioChart.tsx, RedesignedPortfolioMetrics.tsx (Frontend components)
 
-## 9. Services & Modules
+## 10. Services & Modules
 | Name | Type (svc/lib) | Responsibilities | Key Public APIs | Depends On | Evidence |
 |------|-----------------|------------------|-----------------|------------|----------|
 | PortfolioController | Controller | Orchestrate user interactions, format results | load_portfolio(), analyze_portfolio(), analyze_tickers(), compare_tickers() | All use cases | portfolio_controller.py:L11-L20 |
@@ -602,7 +682,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 | Percentage | Value Object | Percentage calculations | to_decimal(), format() | None | percentage.py:L4-L29 |
 | DateRange | Value Object | Date range handling | start, end properties | None | date_range.py:L4-L34 |
 
-## 10. Data Storage & Schema
+## 11. Data Storage & Schema
 **Stores:** CSV Files (local file system) + SQLite Warehouse Database  
 **Connection points & ORM models:**  
 - CSV files via pandas DataFrame
@@ -625,7 +705,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 **Migrations & seeds:** N/A - File-based storage, no migrations needed  
 Evidence: input/test.csv:L1-L16, csv_portfolio_repository.py:L35-L56, warehouse_service.py:L29-L84
 
-## 11. APIs & Contracts
+## 12. APIs & Contracts
 **CLI Interface (Interactive Menu System)**  
 For each operation, list:
 - Menu Option
@@ -654,12 +734,12 @@ For administrative operations and system management:
 | Get Warehouse Tickers | GET /api/admin/warehouse/tickers | search (optional) | List of available tickers | None | api.py:L902-L970 |
 | Clear Warehouse Ticker | POST /api/admin/warehouse/clear-ticker | ticker (string) | Success/error message | None | api.py:L972-L1000 |
 
-## 12. Events, Queues & Background Jobs
+## 13. Events, Queues & Background Jobs
 | Topic/Queue | Producer(s) | Consumer(s) | Payload (schema) | Retry/DLQ | Schedule/Cron | Evidence |
 |-------------|-------------|-------------|------------------|-----------|---------------|----------|
 | N/A | N/A | N/A | N/A | N/A | N/A | No event system or background jobs |
 
-## 13. Configuration & Secrets
+## 14. Configuration & Secrets
 | Variable/Config | Purpose | Default/Example | Source (.env, config.yml) | Required? | Evidence |
 |-----------------|---------|-----------------|----------------------------|-----------|----------|
 | Default start date | Analysis period start | "2024-03-01" | Hardcoded in controller | No | portfolio_controller.py:L22 |
@@ -671,7 +751,7 @@ For administrative operations and system management:
 No secrets or sensitive data - all data is public market information  
 Evidence: No authentication or secrets in codebase
 
-## 14. Build, Run & Deploy
+## 15. Build, Run & Deploy
 **Local dev:** commands to install, run, test.  
 ```bash
 # Backend Setup
@@ -703,7 +783,7 @@ npm test
 **CI/CD:** N/A - No CI/CD pipeline configured  
 Evidence: README.md:L101-L145
 
-## 15. Observability
+## 16. Observability
 **Logs:** formats, levels, sinks.  
 - **Logging system** with session-based separation
 - **Dual log streams**: Session-specific logs (`logs/sessions/`) and total logs (`logs/total/`)
@@ -724,7 +804,7 @@ Evidence: README.md:L101-L145
 **Dashboards & alerts:** N/A - No monitoring dashboards  
 Evidence: src/infrastructure/logging/logger_service.py, admin/logs_clear.py
 
-## 16. Testing & QA
+## 17. Testing & QA
 | Test Type | Where | How to Run | Coverage Hints | Evidence |
 |----------|------|------------|----------------|----------|
 | Unit Tests | tests/unit/ | pytest tests/unit/ | Domain entities and value objects | test_entities.py:L1-L147, test_value_objects.py:L1-L95 |
@@ -734,7 +814,7 @@ Evidence: src/infrastructure/logging/logger_service.py, admin/logs_clear.py
 **Linters/formatters:** N/A - No linter configuration found  
 Evidence: 38 total tests (34 unit + 4 integration), CHANGELOG.md:L56-L59
 
-## 17. Performance & Scalability
+## 18. Performance & Scalability
 **Bottlenecks & hot paths:**  
 - Yahoo Finance API calls (network latency) - **SOLVED with warehouse caching**
 - Large portfolio analysis (O(n) for each ticker)
@@ -754,7 +834,7 @@ Evidence: 38 total tests (34 unit + 4 integration), CHANGELOG.md:L56-L59
 - **API Efficiency**: Eliminates unnecessary external API calls
 Evidence: warehouse_market_repository.py:L14-L218, warehouse_service.py:L9-L317
 
-## 18. Security & Compliance
+## 19. Security & Compliance
 **Authn/z model:** None - No authentication required  
 **Data classification (PII/PHI/etc.):** Public market data only  
 **Supply-chain & license risks:**  
@@ -767,7 +847,7 @@ Evidence: warehouse_market_repository.py:L14-L218, warehouse_service.py:L9-L317
 - Error handling for external API failures
 Evidence: csv_portfolio_repository.py:L35-L56, portfolio_controller.py:L160-L180
 
-## 19. Core Flows (Sequence Diagrams)
+## 20. Core Flows (Sequence Diagrams)
 For each major flow, provide a Mermaid sequence diagram + brief notes.
 
 ### Portfolio Loading Flow
@@ -819,12 +899,12 @@ sequenceDiagram
 
 Evidence: portfolio_controller.py:L25-L67, analyze_portfolio.py:L42-L86
 
-## 20. LLM/AI Integration (if any)
+## 21. LLM/AI Integration (if any)
 | Area | Model(s) & Version(s) | Prompt Template Location | Vector DB/Index | Tokenization Settings | Guardrails | Evidence |
 |------|-----------------------|--------------------------|-----------------|-----------------------|------------|----------|
 | N/A | N/A | N/A | N/A | N/A | N/A | No AI/LLM integration |
 
-## 21. Extension Guide (How to Safely Change Things)
+## 22. Extension Guide (How to Safely Change Things)
 **Where to add a new endpoint/worker/module:**  
 - New use cases: Add to `src/application/use_cases/`
 - New repositories: Add to `src/infrastructure/repositories/`
@@ -852,7 +932,7 @@ Evidence: portfolio_controller.py:L25-L67, analyze_portfolio.py:L42-L86
 - Test changes locally before committing
 Evidence: ARCHITECTURE.md:L405-L422
 
-## 22. Data Validation & Missing Data Detection
+## 23. Data Validation & Missing Data Detection
 
 **Purpose:**  
 Data validation system that identifies and reports tickers with missing or incomplete data for portfolio analysis.
@@ -884,7 +964,7 @@ Data validation system that identifies and reports tickers with missing or incom
 
 **Evidence:** analyze_portfolio.py:L172-L206, analyze_ticker.py:L70-L85, portfolio_controller.py:L316-L331
 
-## 23. Known Issues & TODOs
+## 24. Known Issues & TODOs
 - No known issues documented in code
 - No TODO comments found in codebase
 - Potential improvements:
@@ -894,7 +974,7 @@ Data validation system that identifies and reports tickers with missing or incom
   - Add logging framework
 Evidence: No TODO comments or issue tracking found
 
-## 24. Glossary & Domain Concepts
+## 25. Glossary & Domain Concepts
 | Term | Meaning | Evidence |
 |------|---------|----------|
 | Portfolio | Collection of investment positions | portfolio.py:L6-L43 |
@@ -911,7 +991,7 @@ Evidence: No TODO comments or issue tracking found
 | Repository Pattern | Data access abstraction | repositories.py:L9-L36 |
 | Value Object | Immutable domain concept | money.py:L4-L45 |
 
-## 25. License & Third-Party Notices
+## 26. License & Third-Party Notices
 | Package | Version | License | Obligations | Evidence |
 |---------|---------|---------|-------------|----------|
 | pandas | >=1.3.0 | BSD-3-Clause | Attribution required | requirements.txt:L1 |

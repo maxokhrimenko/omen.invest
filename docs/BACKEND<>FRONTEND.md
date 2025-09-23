@@ -1167,6 +1167,59 @@ logger.info(
 - **Removed Unused Files**: Deleted 2 unused files that were not being imported anywhere
 - **Extracted Inline Components**: Moved large `DashboardPage` component from `App.tsx` to dedicated file for better modularity
 
+#### Portfolio Dividend Metrics & CLI-Frontend Alignment (v4.4.7)
+- **Portfolio Dividend Metrics**: Enhanced portfolio analysis with comprehensive dividend calculations
+  - Dividend Amount: Total dividends received across all positions in the analysis period
+  - Annualized Dividend Yield: Portfolio-level annualized dividend yield based on average portfolio value
+  - Total Dividend Yield: Total dividend yield for the analysis period based on starting portfolio value
+  - Position-Level Calculations: Individual position dividend calculations with quantity weighting
+  - Currency Support: Proper currency handling for dividend amounts
+- **CLI-Frontend Alignment (v4.4.6)**: Complete alignment between CLI and frontend
+  - Portfolio Analysis Unification: Frontend portfolio analysis now matches CLI exactly
+  - Individual Ticker Analysis Removal: Removed from portfolio analysis page to match CLI behavior
+  - API Call Simplification: Frontend now only calls `/portfolio/analysis` endpoint
+  - Message Updates: Loading and success messages updated to reflect portfolio-only analysis
+  - Behavior Consistency: Frontend behavior now matches CLI "Analyze Portfolio" option exactly
+
+#### Portfolio Dividend Metrics System (v4.4.7)
+
+The portfolio dividend metrics system provides comprehensive dividend analysis at the portfolio level, enhancing the existing individual ticker dividend analysis with portfolio-wide calculations.
+
+##### Backend Implementation
+- **PortfolioMetrics Enhancement**: Added `dividend_amount`, `annualized_dividend_yield`, and `total_dividend_yield` fields
+- **API Response Enhancement**: Enhanced portfolio analysis endpoint with dividend metrics
+- **CLI Display Enhancement**: Added dividend metrics to portfolio analysis output
+- **Position-Level Calculations**: Individual position dividend calculations with quantity weighting
+
+##### Frontend Integration
+- **Portfolio Chart Enhancement**: Custom legend implementation with Lucide React icons
+- **Metrics Display**: Enhanced portfolio metrics display with dividend information
+- **API Integration**: Seamless integration with enhanced portfolio analysis endpoint
+
+##### Technical Implementation
+```python
+# Backend: Enhanced PortfolioMetrics
+@dataclass
+class PortfolioMetrics:
+    # Existing fields...
+    dividend_amount: Money  # Total dividends received in period
+    annualized_dividend_yield: Percentage  # Portfolio-level annualized dividend yield
+    total_dividend_yield: Percentage  # Portfolio-level total dividend yield for period
+```
+
+```typescript
+// Frontend: Enhanced Portfolio Chart with Custom Legend
+const CustomLegend = () => (
+  <div className="flex justify-center items-center gap-6 mt-2">
+    <div className="flex items-center gap-2">
+      <TrendingUp className="w-4 h-4 text-blue-600" />
+      <span className="text-sm font-medium text-gray-700">Portfolio</span>
+    </div>
+    {/* Additional legend items... */}
+  </div>
+);
+```
+
 #### Dependency Management
 - **Removed Unused Dependencies**: Cleaned up `package.json` by removing `sharp` and `@tailwindcss/postcss`
 - **Package Lock Cleanup**: Removed extraneous packages from `package-lock.json`

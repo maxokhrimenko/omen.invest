@@ -33,6 +33,10 @@ class PortfolioMetrics:
     end_value: Money
     end_value_analysis: Money  # Only tickers with complete data
     end_value_missing: Money   # Only tickers missing data at start
+    # Dividend metrics
+    dividend_amount: Money  # Total dividends received in period
+    annualized_dividend_yield: Percentage  # Portfolio-level annualized dividend yield
+    total_dividend_yield: Percentage  # Portfolio-level total dividend yield for period
 
 @dataclass
 class AnalyzePortfolioResponse:
@@ -72,6 +76,17 @@ class AnalyzePortfolioUseCase:
                 request.portfolio.get_tickers(),
                 request.date_range
             )
+            
+            # Get dividend history for all tickers
+            self._logger.debug("Fetching dividend history from market data repository")
+            dividend_history = {}
+            for ticker in request.portfolio.get_tickers():
+                try:
+                    dividend_data = self._market_data_repo.get_dividend_history(ticker, request.date_range)
+                    dividend_history[ticker] = dividend_data
+                except Exception as e:
+                    self._logger.warning(f"Failed to fetch dividend data for {ticker.symbol}: {e}")
+                    dividend_history[ticker] = pd.Series(dtype='float64')
             
             # Identify missing tickers and tickers without start data
             missing_tickers, tickers_without_start_data, first_available_dates = self._identify_data_issues(
@@ -170,7 +185,8 @@ class AnalyzePortfolioUseCase:
                     request.portfolio,          # Portfolio for Beta calculation
                     price_history,             # Price history for Beta calculation
                     benchmark_data,            # Benchmark data for Beta calculation
-                    request.date_range         # Date range for Beta calculation
+                    request.date_range,        # Date range for Beta calculation
+                    dividend_history           # Dividend history for dividend metrics
                 )
             except ValueError as e:
                 self._logger.error(f"Portfolio metrics calculation failed: {str(e)}")
@@ -443,7 +459,8 @@ class AnalyzePortfolioUseCase:
                           portfolio: Portfolio = None,           # Portfolio for Beta calculation
                           price_history: Dict[Ticker, pd.Series] = None,  # Price history for Beta calculation
                           benchmark_data: pd.Series = None,      # Benchmark data for Beta calculation
-                          date_range: DateRange = None) -> PortfolioMetrics:
+                          date_range: DateRange = None,         # Date range for Beta calculation
+                          dividend_history: Dict[Ticker, pd.Series] = None) -> PortfolioMetrics:  # Dividend history for dividend metrics
         """Calculate portfolio performance metrics using only complete data tickers."""
         self._logger.debug(f"Calculating portfolio metrics for {len(portfolio_values_analysis)} data points")
         
@@ -467,6 +484,11 @@ class AnalyzePortfolioUseCase:
         # Calculate beta
         beta = self._calculate_portfolio_beta_safe(portfolio, price_history, benchmark_data, date_range)
         
+        # Calculate dividend metrics
+        dividend_amount, annualized_dividend_yield, total_dividend_yield = self._calculate_portfolio_dividend_metrics(
+            portfolio, dividend_history, price_history, start_value, end_value_analysis
+        )
+        
         return PortfolioMetrics(
             total_return=total_return,
             annualized_return=annualized_return,
@@ -480,7 +502,10 @@ class AnalyzePortfolioUseCase:
             start_value=start_value,
             end_value=end_value_total,  # Total end value for display
             end_value_analysis=end_value_analysis,  # Only complete data
-            end_value_missing=end_value_missing  # Only missing data
+            end_value_missing=end_value_missing,  # Only missing data
+            dividend_amount=dividend_amount,
+            annualized_dividend_yield=annualized_dividend_yield,
+            total_dividend_yield=total_dividend_yield
         )
     
     def _prepare_portfolio_data(self, portfolio_values_analysis: pd.Series, portfolio_values_total: pd.Series) -> pd.Series:
@@ -532,3 +557,76 @@ class AnalyzePortfolioUseCase:
         else:
             self._logger.warning("Insufficient data for portfolio Beta calculation - using default value")
             return 1.0
+    
+    def _calculate_portfolio_dividend_metrics(self, portfolio: Portfolio, dividend_history: Dict[Ticker, pd.Series], 
+                                            price_history: Dict[Ticker, pd.Series], start_value: Money, 
+                                            end_value: Money) -> tuple[Money, Percentage, Percentage]:
+        """Calculate portfolio-level dividend metrics."""
+        total_dividend_amount = 0.0
+        total_annualized_dividend = 0.0
+        currency = "USD"  # Default currency
+        
+        if not portfolio or not dividend_history or not price_history:
+            return Money(0, currency), Percentage(0), Percentage(0)
+        
+        # Calculate total dividends received across all positions
+        for position in portfolio.get_positions():
+            ticker = position.ticker
+            if ticker in dividend_history and ticker in price_history:
+                dividends = dividend_history[ticker]
+                prices = price_history[ticker]
+                
+                if not dividends.empty and not prices.empty:
+                    # Calculate total dividends for this position
+                    position_dividends = dividends.sum() * float(position.quantity)
+                    total_dividend_amount += position_dividends
+                    
+                    # Calculate annualized dividend for this position
+                    # Use the same logic as individual ticker analysis
+                    annualized_dividend = self._calculate_annualized_dividend_for_position(
+                        dividends, prices, float(position.quantity), currency
+                    )
+                    total_annualized_dividend += annualized_dividend
+        
+        # Calculate yields
+        dividend_amount = Money(total_dividend_amount, currency)
+        
+        # Total dividend yield for the period
+        if start_value.amount > 0:
+            total_dividend_yield = Percentage((total_dividend_amount / float(start_value.amount)) * 100)
+        else:
+            total_dividend_yield = Percentage(0)
+        
+        # Annualized dividend yield (using average portfolio value)
+        average_portfolio_value = (float(start_value.amount) + float(end_value.amount)) / 2
+        if average_portfolio_value > 0:
+            annualized_dividend_yield = Percentage((total_annualized_dividend / average_portfolio_value) * 100)
+        else:
+            annualized_dividend_yield = Percentage(0)
+        
+        return dividend_amount, annualized_dividend_yield, total_dividend_yield
+    
+    def _calculate_annualized_dividend_for_position(self, dividends: pd.Series, prices: pd.Series, 
+                                                  quantity: float, currency: str) -> float:
+        """Calculate annualized dividend for a single position."""
+        if dividends.empty or prices.empty:
+            return 0.0
+        
+        # Calculate total dividends received (multiply by quantity)
+        total_dividends = dividends.sum() * quantity
+        
+        # Calculate period length in years (same logic as individual ticker)
+        if len(dividends) > 1:
+            days = (dividends.index[-1] - dividends.index[0]).days
+            years = days / 365.25
+        else:
+            # If only one dividend, assume it's for the full period
+            years = 1.0
+        
+        if years <= 0:
+            return 0.0
+        
+        # Annualize based on period length (same as individual ticker logic)
+        annualized = total_dividends / years
+        
+        return annualized

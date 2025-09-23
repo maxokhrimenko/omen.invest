@@ -655,7 +655,10 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
             "startValue": f"${metrics.start_value.amount:,.2f}",
             "endValue": f"${metrics.end_value.amount:,.2f}",
             "endValueAnalysis": f"${metrics.end_value_analysis.amount:,.2f}",
-            "endValueMissing": f"${metrics.end_value_missing.amount:,.2f}"
+            "endValueMissing": f"${metrics.end_value_missing.amount:,.2f}",
+            "dividendAmount": f"${metrics.dividend_amount.amount:,.2f}",
+            "annualizedDividendYield": f"{metrics.annualized_dividend_yield.value:.2f}%",
+            "totalDividendYield": f"{metrics.total_dividend_yield.value:.2f}%"
         }
         
         return {
