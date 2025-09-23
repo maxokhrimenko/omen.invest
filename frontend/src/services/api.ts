@@ -64,6 +64,11 @@ class ApiService {
     );
   }
 
+  // Getter for API instance (for administration page)
+  getApiInstance(): AxiosInstance {
+    return this.api;
+  }
+
   // Portfolio endpoints
   async uploadPortfolio(file: File): Promise<PortfolioUploadResponse> {
     const formData = new FormData();

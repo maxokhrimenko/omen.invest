@@ -33,11 +33,6 @@ const CalendarSelector: React.FC<CalendarSelectorProps> = ({
     return monthMapping[displayIndex];
   };
 
-  // Map actual month number (0-11) to display index
-  const getDisplayIndex = (actualMonth: number): number => {
-    const displayMapping = [0, 2, 4, 6, 8, 10, 1, 3, 5, 7, 9, 11]; // 0->0, 1->2, 2->4, etc.
-    return displayMapping[actualMonth];
-  };
 
   // Always show current year and 4 years before it
   const currentYear = new Date().getFullYear();

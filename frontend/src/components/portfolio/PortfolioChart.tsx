@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import {
   LineChart,
   Line,
@@ -106,7 +106,7 @@ const PortfolioChart: React.FC<PortfolioChartProps> = ({
   }, [portfolioValues, sp500Values, nasdaqValues, startValue]);
 
   // Custom tooltip component
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = useCallback(({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
@@ -134,21 +134,21 @@ const PortfolioChart: React.FC<PortfolioChartProps> = ({
       );
     }
     return null;
-  };
+  }, [startValue]);
 
   // Custom X-axis tick formatter
-  const formatXAxisTick = (tickItem: string) => {
+  const formatXAxisTick = useCallback((tickItem: string) => {
     const date = new Date(tickItem);
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric' 
     });
-  };
+  }, []);
 
   // Custom Y-axis tick formatter
-  const formatYAxisTick = (value: number) => {
-            return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-  };
+  const formatYAxisTick = useCallback((value: number) => {
+    return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  }, []);
 
   return (
     <div className="w-full h-full relative">

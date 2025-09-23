@@ -36,6 +36,7 @@ export interface PortfolioAnalysis {
   warnings: {
     missingTickers: string[];
     tickersWithoutStartData: string[];
+    firstAvailableDates?: { [ticker: string]: string };
   };
   timeSeriesData: {
     portfolioValues: Record<string, number>;
@@ -58,7 +59,7 @@ export interface TickerAnalysis {
   sortinoRatio: string;
   beta: string;
   var95: string;
-  momentum12_1: string;
+  momentum12to1: string;
   dividendYield: string;
   dividendAmount: string;
   dividendFrequency: string;

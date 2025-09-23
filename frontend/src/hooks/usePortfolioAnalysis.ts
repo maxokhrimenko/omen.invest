@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { DateRange } from '../components/portfolio/DateRangeSelector';
 import { apiService } from '../services/api';
 import { logger } from '../utils/logger';
@@ -31,7 +31,7 @@ export interface TickerMetrics {
   sortinoRatio: string;
   beta: string;
   var95: string;
-  momentum12_1: string;
+  momentum12to1: string;
   dividendYield: string;
   dividendAmount: string;
   dividendFrequency: string;
@@ -68,7 +68,7 @@ export const usePortfolioAnalysis = () => {
 
   // No localStorage caching - rely on warehouse system for data persistence
   // This ensures fresh data and eliminates cache inconsistency issues
-  const saveAnalysisResults = useCallback((results: AnalysisResults) => {
+  const saveAnalysisResults = useCallback((_results: AnalysisResults) => {
     // Analysis results are not cached - always fetch fresh data from warehouse
   }, []);
 
@@ -122,7 +122,6 @@ export const usePortfolioAnalysis = () => {
       ]);
       
       const tickerResponse = tickerResponseData.data;
-      const failedTickers = tickerResponseData.failedTickers || [];
 
       logger.info('API responses received', { 
         operation: 'api_responses',

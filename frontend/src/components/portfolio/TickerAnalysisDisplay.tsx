@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, ChevronRight, TrendingUp, TrendingDown, DollarSign, Calendar } from 'lucide-react';
 import type { TickerMetrics } from '../../hooks/usePortfolioAnalysis';
 
@@ -11,38 +11,52 @@ const TickerAnalysisDisplay: React.FC<TickerAnalysisDisplayProps> = ({ tickerMet
   const [sortField, setSortField] = useState<keyof TickerMetrics>('ticker');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  const toggleRow = (ticker: string) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(ticker)) {
-      newExpanded.delete(ticker);
-    } else {
-      newExpanded.add(ticker);
-    }
-    setExpandedRows(newExpanded);
-  };
+  const toggleRow = useCallback((ticker: string) => {
+    setExpandedRows(prev => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(ticker)) {
+        newExpanded.delete(ticker);
+      } else {
+        newExpanded.add(ticker);
+      }
+      return newExpanded;
+    });
+  }, []);
 
-  const handleSort = (field: keyof TickerMetrics) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  };
+  const handleSort = useCallback((field: keyof TickerMetrics) => {
+    setSortField(field);
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  }, []);
 
-  const sortedMetrics = [...tickerMetrics].sort((a, b) => {
-    const aValue = parseFloat(a[sortField].replace(/[%,$]/g, ''));
-    const bValue = parseFloat(b[sortField].replace(/[%,$]/g, ''));
+  const sortedMetrics = useMemo(() => {
+    return [...tickerMetrics].sort((a, b) => {
+      const aField = a[sortField];
+      const bField = b[sortField];
+      
+      // Handle undefined or null values
+      if (!aField || !bField) {
+        if (!aField && !bField) return 0;
+        if (!aField) return 1;
+        if (!bField) return -1;
+      }
+      
+      const aValue = parseFloat(aField.replace(/[%,$]/g, ''));
+      const bValue = parseFloat(bField.replace(/[%,$]/g, ''));
+      
+      if (isNaN(aValue) || isNaN(bValue)) {
+        return aField.localeCompare(bField);
+      }
+      
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    });
+  }, [tickerMetrics, sortField, sortDirection]);
+
+  const getColorClass = useCallback((value: string | undefined, type: 'return' | 'risk' | 'ratio') => {
+    if (!value) return 'text-gray-400';
     
-    if (isNaN(aValue) || isNaN(bValue)) {
-      return a[sortField].localeCompare(b[sortField]);
-    }
-    
-    return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-  });
-
-  const getColorClass = (value: string, type: 'return' | 'risk' | 'ratio') => {
     const numValue = parseFloat(value.replace(/[%,$]/g, ''));
+    
+    if (isNaN(numValue)) return 'text-gray-400';
     
     if (type === 'return') {
       if (numValue < 5) return 'text-red-600';
@@ -59,9 +73,9 @@ const TickerAnalysisDisplay: React.FC<TickerAnalysisDisplayProps> = ({ tickerMet
     }
     
     return 'text-gray-600';
-  };
+  }, []);
 
-  const getFrequencyIcon = (frequency: string) => {
+  const getFrequencyIcon = useCallback((frequency: string) => {
     switch (frequency) {
       case 'Monthly': return '🟢';
       case 'Quarterly': return '🔵';
@@ -70,7 +84,7 @@ const TickerAnalysisDisplay: React.FC<TickerAnalysisDisplayProps> = ({ tickerMet
       case 'Irregular': return '🔴';
       default: return '⚪';
     }
-  };
+  }, []);
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
@@ -153,21 +167,21 @@ const TickerAnalysisDisplay: React.FC<TickerAnalysisDisplayProps> = ({ tickerMet
                     </div>
                   </td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${getColorClass(ticker.annualizedReturn, 'return')}`}>
-                    {ticker.annualizedReturn}
+                    {ticker.annualizedReturn || 'N/A'}
                   </td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${getColorClass(ticker.volatility, 'risk')}`}>
-                    {ticker.volatility}
+                    {ticker.volatility || 'N/A'}
                   </td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${getColorClass(ticker.sharpeRatio, 'ratio')}`}>
-                    {ticker.sharpeRatio}
+                    {ticker.sharpeRatio || 'N/A'}
                   </td>
                   <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${getColorClass(ticker.maxDrawdown, 'risk')}`}>
-                    {ticker.maxDrawdown}
+                    {ticker.maxDrawdown || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     <div className="flex items-center">
-                      <span className="mr-1">{getFrequencyIcon(ticker.dividendFrequency)}</span>
-                      {ticker.dividendYield}
+                      <span className="mr-1">{getFrequencyIcon(ticker.dividendFrequency || '')}</span>
+                      {ticker.dividendYield || 'N/A'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -198,15 +212,15 @@ const TickerAnalysisDisplay: React.FC<TickerAnalysisDisplayProps> = ({ tickerMet
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                               <span className="text-gray-600">Total Return:</span>
-                              <span className={getColorClass(ticker.totalReturn, 'return')}>{ticker.totalReturn}</span>
+                              <span className={getColorClass(ticker.totalReturn, 'return')}>{ticker.totalReturn || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Annualized:</span>
-                              <span className={getColorClass(ticker.annualizedReturn, 'return')}>{ticker.annualizedReturn}</span>
+                              <span className={getColorClass(ticker.annualizedReturn, 'return')}>{ticker.annualizedReturn || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Momentum (12-1):</span>
-                              <span className={getColorClass(ticker.momentum12_1, 'return')}>{ticker.momentum12_1}</span>
+                              <span className={getColorClass(ticker.momentum12to1, 'return')}>{ticker.momentum12to1 || 'N/A'}</span>
                             </div>
                           </div>
                         </div>
@@ -220,19 +234,19 @@ const TickerAnalysisDisplay: React.FC<TickerAnalysisDisplayProps> = ({ tickerMet
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                               <span className="text-gray-600">Volatility:</span>
-                              <span className={getColorClass(ticker.volatility, 'risk')}>{ticker.volatility}</span>
+                              <span className={getColorClass(ticker.volatility, 'risk')}>{ticker.volatility || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Max Drawdown:</span>
-                              <span className={getColorClass(ticker.maxDrawdown, 'risk')}>{ticker.maxDrawdown}</span>
+                              <span className={getColorClass(ticker.maxDrawdown, 'risk')}>{ticker.maxDrawdown || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">VaR (95%):</span>
-                              <span className={getColorClass(ticker.var95, 'risk')}>{ticker.var95}</span>
+                              <span className={getColorClass(ticker.var95, 'risk')}>{ticker.var95 || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Beta:</span>
-                              <span className={getColorClass(ticker.beta, 'ratio')}>{ticker.beta}</span>
+                              <span className={getColorClass(ticker.beta, 'ratio')}>{ticker.beta || 'N/A'}</span>
                             </div>
                           </div>
                         </div>
@@ -246,22 +260,22 @@ const TickerAnalysisDisplay: React.FC<TickerAnalysisDisplayProps> = ({ tickerMet
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                               <span className="text-gray-600">Yield:</span>
-                              <span className="text-gray-900">{ticker.dividendYield}</span>
+                              <span className="text-gray-900">{ticker.dividendYield || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Amount:</span>
-                              <span className="text-gray-900">{ticker.dividendAmount}</span>
+                              <span className="text-gray-900">{ticker.dividendAmount || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Frequency:</span>
                               <span className="text-gray-900 flex items-center">
-                                <span className="mr-1">{getFrequencyIcon(ticker.dividendFrequency)}</span>
-                                {ticker.dividendFrequency}
+                                <span className="mr-1">{getFrequencyIcon(ticker.dividendFrequency || '')}</span>
+                                {ticker.dividendFrequency || 'N/A'}
                               </span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Annualized:</span>
-                              <span className="text-gray-900">{ticker.annualizedDividend}</span>
+                              <span className="text-gray-900">{ticker.annualizedDividend || 'N/A'}</span>
                             </div>
                           </div>
                         </div>
@@ -275,11 +289,11 @@ const TickerAnalysisDisplay: React.FC<TickerAnalysisDisplayProps> = ({ tickerMet
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                               <span className="text-gray-600">Start Price:</span>
-                              <span className="text-gray-900">{ticker.startPrice}</span>
+                              <span className="text-gray-900">{ticker.startPrice || 'N/A'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">End Price:</span>
-                              <span className="text-gray-900">{ticker.endPrice}</span>
+                              <span className="text-gray-900">{ticker.endPrice || 'N/A'}</span>
                             </div>
                           </div>
                         </div>

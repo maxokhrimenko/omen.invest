@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Trash2, Download, RefreshCw } from 'lucide-react';
 import type { Portfolio } from '../../types/portfolio';
 
@@ -15,13 +15,13 @@ const PortfolioTable: React.FC<PortfolioTableProps> = ({
   onRefreshPortfolio,
   isRefreshing = false
 }) => {
-  const handleClearPortfolio = () => {
+  const handleClearPortfolio = useCallback(() => {
     if (window.confirm('Are you sure you want to clear the portfolio? This action cannot be undone.')) {
       onClearPortfolio();
     }
-  };
+  }, [onClearPortfolio]);
 
-  const exportToCSV = () => {
+  const exportToCSV = useCallback(() => {
     const csvContent = [
       'ticker,position',
       ...portfolio.positions.map(pos => `${pos.ticker},${pos.position}`)
@@ -34,7 +34,17 @@ const PortfolioTable: React.FC<PortfolioTableProps> = ({
     a.download = 'portfolio_export.csv';
     a.click();
     window.URL.revokeObjectURL(url);
-  };
+  }, [portfolio.positions]);
+
+  const totalPositions = useMemo(() => {
+    return portfolio.positions.reduce((sum, pos) => sum + pos.position, 0);
+  }, [portfolio.positions]);
+
+  const averagePosition = useMemo(() => {
+    return portfolio.totalPositions > 0 
+      ? (totalPositions / portfolio.totalPositions).toFixed(0)
+      : 0;
+  }, [totalPositions, portfolio.totalPositions]);
 
   return (
     <div className="space-y-6">
@@ -97,7 +107,6 @@ const PortfolioTable: React.FC<PortfolioTableProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {portfolio.positions.map((position, index) => {
-                const totalPositions = portfolio.positions.reduce((sum, pos) => sum + pos.position, 0);
                 const weight = totalPositions > 0 ? (position.position / totalPositions) * 100 : 0;
                 
                 return (
@@ -136,7 +145,7 @@ const PortfolioTable: React.FC<PortfolioTableProps> = ({
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="text-sm font-medium text-gray-500">Total Positions</div>
           <div className="text-2xl font-bold text-gray-900">
-            {portfolio.positions.reduce((sum, pos) => sum + pos.position, 0).toLocaleString()}
+            {totalPositions.toLocaleString()}
           </div>
         </div>
         
@@ -150,10 +159,7 @@ const PortfolioTable: React.FC<PortfolioTableProps> = ({
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="text-sm font-medium text-gray-500">Average Position</div>
           <div className="text-2xl font-bold text-gray-900">
-            {portfolio.totalPositions > 0 
-              ? (portfolio.positions.reduce((sum, pos) => sum + pos.position, 0) / portfolio.totalPositions).toFixed(0)
-              : 0
-            }
+            {averagePosition}
           </div>
         </div>
       </div>

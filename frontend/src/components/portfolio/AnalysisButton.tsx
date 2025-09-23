@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Play, Loader2, AlertCircle, Clock } from 'lucide-react';
 import type { DateRange } from './DateRangeSelector';
 import { calculateAnalysisTimeout, formatTimeout } from '../../utils/timeoutCalculator';
@@ -22,26 +22,28 @@ const AnalysisButton: React.FC<AnalysisButtonProps> = ({
   hasResults,
   tickerCount
 }) => {
-  const handleAnalyze = async () => {
+  const handleAnalyze = useCallback(async () => {
     if (selectedDateRange) {
       await onAnalyze(selectedDateRange.startDate, selectedDateRange.endDate);
     }
-  };
+  }, [onAnalyze, selectedDateRange]);
 
   const isDisabled = !selectedDateRange || isLoading;
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
-  };
+  }, []);
 
   // Calculate estimated timeout
-  const estimatedTimeout = selectedDateRange && tickerCount 
-    ? calculateAnalysisTimeout(tickerCount, selectedDateRange.startDate, selectedDateRange.endDate)
-    : null;
+  const estimatedTimeout = useMemo(() => {
+    return selectedDateRange && tickerCount 
+      ? calculateAnalysisTimeout(tickerCount, selectedDateRange.startDate, selectedDateRange.endDate)
+      : null;
+  }, [selectedDateRange, tickerCount]);
 
   return (
     <div className="flex flex-col items-center space-y-3">

@@ -44,7 +44,7 @@ const AdministrationPage: React.FC = () => {
   const handleLogsClearAll = async () => {
     setLoading('logs-clear', true);
     try {
-      const response = await apiService.api.post('/api/admin/logs/clear-all');
+      const response = await apiService.getApiInstance().post('/api/admin/logs/clear-all');
       
       if (response.data.success) {
         showToast('All logs cleared successfully');
@@ -62,7 +62,7 @@ const AdministrationPage: React.FC = () => {
   const handleWarehouseClearAll = async () => {
     setLoading('warehouse-clear', true);
     try {
-      const response = await apiService.api.post('/api/admin/warehouse/clear-all');
+      const response = await apiService.getApiInstance().post('/api/admin/warehouse/clear-all');
       
       if (response.data.success) {
         showToast('All warehouse data cleared successfully');
@@ -80,7 +80,7 @@ const AdministrationPage: React.FC = () => {
   const handleWarehouseStats = async () => {
     setLoading('warehouse-stats', true);
     try {
-      const response = await apiService.api.get('/api/admin/warehouse/stats');
+      const response = await apiService.getApiInstance().get('/api/admin/warehouse/stats');
       
       if (response.data.success) {
         const data = response.data.data;
@@ -100,7 +100,7 @@ const AdministrationPage: React.FC = () => {
     
     // Always fetch tickers, whether there's a search term or not
     try {
-      const response = await apiService.api.get('/api/admin/warehouse/tickers', {
+      const response = await apiService.getApiInstance().get('/api/admin/warehouse/tickers', {
         params: { search: value }
       });
       if (response.data.success) {
@@ -116,7 +116,7 @@ const AdministrationPage: React.FC = () => {
     // When input is focused, show all tickers if not already loaded
     if (tickerOptions.length === 0) {
       try {
-        const response = await apiService.api.get('/api/admin/warehouse/tickers');
+        const response = await apiService.getApiInstance().get('/api/admin/warehouse/tickers');
         if (response.data.success) {
           setTickerOptions(response.data.tickers || []);
         }
@@ -150,7 +150,7 @@ const AdministrationPage: React.FC = () => {
 
   const handleSelectAll = async () => {
     try {
-      const response = await apiService.api.get('/api/admin/warehouse/tickers');
+      const response = await apiService.getApiInstance().get('/api/admin/warehouse/tickers');
       if (response.data.success) {
         const allTickers = response.data.tickers.map((t: TickerOption) => t.value);
         setSelectedTickers(allTickers);
@@ -174,7 +174,7 @@ const AdministrationPage: React.FC = () => {
     try {
       // Clear data for each selected ticker
       const clearPromises = selectedTickers.map(ticker => 
-        apiService.api.post('/api/admin/warehouse/clear-ticker', {
+        apiService.getApiInstance().post('/api/admin/warehouse/clear-ticker', {
           ticker: ticker
         })
       );
