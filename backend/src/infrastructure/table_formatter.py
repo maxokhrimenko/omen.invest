@@ -4,7 +4,7 @@ Handles proper alignment when color codes are present.
 """
 
 import re
-from typing import List, Union
+from typing import List
 
 
 class TableFormatter:

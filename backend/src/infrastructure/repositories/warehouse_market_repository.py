@@ -9,7 +9,6 @@ from ..warehouse.trading_day_service import TradingDayService
 from ..logging.logger_service import get_logger_service
 from ..logging.decorators import log_operation
 from .yfinance_market_repository import YFinanceMarketRepository
-from ..services.parallel_data_fetcher import get_parallel_data_fetcher
 
 
 class WarehouseMarketRepository(MarketDataRepository):
@@ -30,7 +29,6 @@ class WarehouseMarketRepository(MarketDataRepository):
         self.yahoo_repo = YFinanceMarketRepository()  # Fallback to original
         self._logger_service = get_logger_service()
         self._logger = self._logger_service.get_logger("infrastructure")
-        self._parallel_data_fetcher = get_parallel_data_fetcher()
         
         # Observability counters
         self.warehouse_hits = 0

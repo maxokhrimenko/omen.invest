@@ -1,5 +1,5 @@
 """
-Logging decorators for easy integration across the application.
+Logging decorators for application integration.
 
 This module provides decorators for:
 - Timing operations

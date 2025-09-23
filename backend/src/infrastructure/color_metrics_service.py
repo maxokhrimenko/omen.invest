@@ -77,7 +77,7 @@ class ColorMetricsService(MetricsColorService):
         
         bad_threshold, excellent_threshold = thresholds[metric_name]
         
-        # Handle special cases for metrics where lower is better
+        # Handle cases for metrics where lower is better
         if metric_name in ["max_drawdown", "volatility", "var_95", "beta"]:
             # For max_drawdown, more negative is worse (closer to 0 is better)
             if metric_name == "max_drawdown":

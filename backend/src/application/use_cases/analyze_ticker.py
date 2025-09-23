@@ -11,6 +11,7 @@ from ...domain.value_objects.percentage import Percentage
 from ...infrastructure.logging.logger_service import get_logger_service
 from ...infrastructure.logging.performance_monitor import get_performance_monitor
 from ...infrastructure.services.parallel_calculation_service import get_parallel_calculation_service
+from ...infrastructure.services.metrics_calculator import MetricsCalculator
 
 @dataclass
 class AnalyzeTickerRequest:
@@ -230,74 +231,6 @@ class AnalyzeTickerUseCase:
                 processing_time_seconds=total_time
             )
     
-    def _calculate_var_95(self, returns: pd.Series) -> Percentage:
-        """Calculate VaR 95% with proper validation and error handling."""
-        if len(returns) < 5:
-            # Insufficient data for reliable VaR calculation
-            return Percentage(0)  # Default to 0 when insufficient data
-        
-        # Calculate VaR using historical simulation method
-        var_95_raw = np.percentile(returns, 5) * 100
-        
-        # Validate VaR result - it should be negative (representing a loss)
-        if var_95_raw > 0:
-            # Check if we have any negative returns at all
-            negative_returns = returns[returns < 0]
-            if not negative_returns.empty:
-                # Use the worst negative return as VaR
-                var_95_raw = negative_returns.min() * 100
-            else:
-                # No negative returns - this is very unusual for financial data
-                # In this case, we cannot calculate a meaningful VaR, so we set it to 0
-                # This indicates that there's no historical loss to base VaR on
-                var_95_raw = 0
-        
-        # Additional validation: VaR should not be more extreme than the worst return
-        # Only apply this validation if we have a meaningful VaR (negative)
-        if var_95_raw < 0:
-            worst_return = returns.min() * 100
-            if var_95_raw < worst_return:
-                var_95_raw = worst_return
-        
-        return Percentage(var_95_raw)
-    
-    def _calculate_beta(self, ticker: Ticker, returns: pd.Series, 
-                       benchmark_returns: pd.Series) -> float:
-        """Calculate Beta for a ticker against benchmark."""
-        if len(returns) < 5 or len(benchmark_returns) < 5:
-            self._logger.warning(f"Insufficient data for Beta calculation: {len(returns)} ticker, {len(benchmark_returns)} benchmark observations")
-            return 1.0  # Default to market beta
-        
-        # Align the data by date (in case of missing data points)
-        common_dates = returns.index.intersection(benchmark_returns.index)
-        if len(common_dates) < 5:
-            self._logger.warning(f"Insufficient common dates for Beta calculation: {len(common_dates)}")
-            return 1.0
-        
-        aligned_returns = returns.loc[common_dates]
-        aligned_benchmark = benchmark_returns.loc[common_dates]
-        
-        # Ensure data is 1D for covariance calculation
-        if aligned_benchmark.ndim > 1:
-            aligned_benchmark = aligned_benchmark.iloc[:, 0] if hasattr(aligned_benchmark, 'iloc') else aligned_benchmark.flatten()
-        
-        # Calculate covariance and variance
-        covariance = np.cov(aligned_returns, aligned_benchmark)[0, 1]
-        benchmark_variance = np.var(aligned_benchmark)
-        
-        if benchmark_variance == 0:
-            self._logger.warning("Benchmark variance is zero - cannot calculate Beta")
-            return 1.0
-        
-        beta = covariance / benchmark_variance
-        
-        # Validate Beta result
-        if np.isnan(beta) or np.isinf(beta):
-            self._logger.warning(f"Invalid Beta calculation result: {beta}")
-            return 1.0
-        
-        self._logger.debug(f"Calculated Beta for {ticker.symbol}: {beta:.3f}")
-        return beta
     
     def _calculate_metrics(self,
                           ticker: Ticker,
@@ -310,90 +243,23 @@ class AnalyzeTickerUseCase:
         # Calculate returns
         returns = prices.pct_change().dropna()
         
-        # Basic metrics
-        start_price = Money(float(prices.iloc[0]))
-        end_price = Money(float(prices.iloc[-1]))
-        total_return = Percentage(float((end_price.amount - start_price.amount) / start_price.amount) * 100)
+        # Calculate basic metrics using shared calculator
+        start_price, end_price, total_return, annualized_return = MetricsCalculator.calculate_basic_metrics(prices)
         
-        # Annualized return
-        days = len(returns)
-        if days > 0:
-            total_return_ratio = float(end_price.amount / start_price.amount)
-            annualized_return = Percentage(
-                (total_return_ratio ** (252 / days) - 1) * 100
-            )
-        else:
-            annualized_return = Percentage(0)
+        # Calculate risk metrics using shared calculator
+        volatility, sharpe_ratio, max_drawdown, sortino_ratio = MetricsCalculator.calculate_risk_metrics(returns, risk_free_rate)
+        var_95 = MetricsCalculator.calculate_var_95(returns)
         
-        # Risk metrics
-        volatility = Percentage(returns.std() * np.sqrt(252) * 100)
+        # Calculate momentum
+        momentum_12_1 = self._calculate_momentum(prices)
         
-        # Sharpe ratio
-        rf_daily = risk_free_rate / 252
-        excess_returns = returns - rf_daily
-        excess_std = excess_returns.std()
-        sharpe_ratio = np.sqrt(252) * excess_returns.mean() / excess_std if excess_std > 0 else 0
-        
-        # Max drawdown
-        cumulative_returns = (1 + returns).cumprod()
-        max_drawdown = Percentage(
-            ((cumulative_returns - cumulative_returns.cummax()) / cumulative_returns.cummax()).min() * 100
+        # Calculate dividend metrics
+        dividend_yield, dividend_amount, dividend_frequency, annualized_dividend = self._calculate_dividend_metrics(
+            dividends, prices, date_range, start_price.currency
         )
         
-        # Sortino ratio
-        downside_returns = returns[returns < 0]
-        downside_std = downside_returns.std() if not downside_returns.empty else 0
-        sortino_ratio = (
-            np.sqrt(252) * excess_returns.mean() / downside_std 
-            if downside_std > 0 else 0
-        )
-        
-        # VaR (95%) - Historical simulation method with validation
-        # For VaR 95%, we take the 5th percentile of returns (worst 5% of outcomes)
-        # This represents the maximum expected loss with 95% confidence
-        var_95 = self._calculate_var_95(returns)
-        
-        # Momentum 12-1 (skip last month)
-        momentum_12_1 = Percentage(0)
-        if len(prices) >= 252:
-            price_252d = prices.iloc[-252]
-            price_21d = prices.iloc[-21]
-            momentum_12_1 = Percentage((price_21d - price_252d) / price_252d * 100)
-        
-        # Dividend yield and amount calculation with proper annualization
-        dividend_yield = Percentage(0)
-        dividend_amount = Money(0)
-        dividend_frequency = "Unknown"
-        annualized_dividend = Money(0)
-        
-        if not dividends.empty and not prices.empty:
-            # Calculate total dividends received in the period
-            total_dividends = dividends.sum()
-            dividend_amount = Money(total_dividends, start_price.currency)
-            
-            # Detect dividend payment frequency
-            dividend_frequency = self._detect_dividend_frequency(dividends, date_range)
-            
-            # Calculate annualized dividend based on frequency
-            annualized_dividend = self._calculate_annualized_dividend(
-                dividends, dividend_frequency, date_range, start_price.currency
-            )
-            
-            # Calculate annualized dividend yield using average price
-            if annualized_dividend.amount > 0:
-                # Use average price over the period for yield calculation
-                average_price = prices.mean()
-                if average_price > 0:
-                    annualized_yield = (float(annualized_dividend.amount) / float(average_price)) * 100
-                    dividend_yield = Percentage(annualized_yield)
-        
-        # Beta calculation against S&P 500
-        if benchmark_data is not None and hasattr(benchmark_data, 'empty') and not benchmark_data.empty:
-            benchmark_returns = benchmark_data.pct_change().dropna()
-            beta = self._calculate_beta(ticker, returns, benchmark_returns)
-        else:
-            self._logger.warning(f"No benchmark data available for Beta calculation for {ticker.symbol}")
-            beta = 1.0  # Default to market beta
+        # Calculate beta
+        beta = self._calculate_beta_safe(ticker, returns, benchmark_data)
         
         return TickerMetrics(
             ticker=ticker,
@@ -413,6 +279,54 @@ class AnalyzeTickerUseCase:
             start_price=start_price,
             end_price=end_price
         )
+    
+    def _calculate_momentum(self, prices: pd.Series) -> Percentage:
+        """Calculate 12-1 momentum (skip last month)."""
+        if len(prices) >= 252:
+            price_252d = prices.iloc[-252]
+            price_21d = prices.iloc[-21]
+            return Percentage((price_21d - price_252d) / price_252d * 100)
+        return Percentage(0)
+    
+    def _calculate_dividend_metrics(self, dividends: pd.Series, prices: pd.Series, 
+                                  date_range: DateRange, currency: str) -> tuple[Percentage, Money, str, Money]:
+        """Calculate dividend-related metrics."""
+        dividend_yield = Percentage(0)
+        dividend_amount = Money(0, currency)
+        dividend_frequency = "Unknown"
+        annualized_dividend = Money(0, currency)
+        
+        if not dividends.empty and not prices.empty:
+            # Calculate total dividends received in the period
+            total_dividends = dividends.sum()
+            dividend_amount = Money(total_dividends, currency)
+            
+            # Detect dividend payment frequency
+            dividend_frequency = self._detect_dividend_frequency(dividends, date_range)
+            
+            # Calculate annualized dividend based on frequency
+            annualized_dividend = self._calculate_annualized_dividend(
+                dividends, dividend_frequency, date_range, currency
+            )
+            
+            # Calculate annualized dividend yield using average price
+            if annualized_dividend.amount > 0:
+                # Use average price over the period for yield calculation
+                average_price = prices.mean()
+                if average_price > 0:
+                    annualized_yield = (float(annualized_dividend.amount) / float(average_price)) * 100
+                    dividend_yield = Percentage(annualized_yield)
+        
+        return dividend_yield, dividend_amount, dividend_frequency, annualized_dividend
+    
+    def _calculate_beta_safe(self, ticker: Ticker, returns: pd.Series, benchmark_data: pd.Series) -> float:
+        """Calculate beta with safe fallback."""
+        if benchmark_data is not None and hasattr(benchmark_data, 'empty') and not benchmark_data.empty:
+            benchmark_returns = benchmark_data.pct_change().dropna()
+            return MetricsCalculator.calculate_beta(returns, benchmark_returns)
+        else:
+            self._logger.warning(f"No benchmark data available for Beta calculation for {ticker.symbol}")
+            return 1.0
     
     def _detect_dividend_frequency(self, dividends: pd.Series, date_range: DateRange) -> str:
         """Detect dividend payment frequency based on payment patterns."""

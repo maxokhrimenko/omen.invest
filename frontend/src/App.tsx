@@ -388,10 +388,10 @@ const Sidebar = ({ portfolio }: { portfolio: any }) => {
             <h1 className="text-xl font-bold text-gray-900 leading-tight">
               Altidus
             </h1>
-            <p className="text-sm text-gray-500 mt-1">Bought the peak,<br />lost it all in a week</p>
+            <p className="text-sm text-gray-500 mt-1">Charts rise,<br />charts may fall</p>
             <div className="mt-2">
               <span className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 whitespace-nowrap">
-                v4.4.4
+                v4.4.5
               </span>
             </div>
           </div>

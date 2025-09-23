@@ -30,6 +30,8 @@ The backend is a Python-based portfolio analysis system built with Clean Archite
 - Parallel processing for multi-threaded calculations
 - Comprehensive logging and monitoring
 - Administration system for system management
+- Centralized metrics calculator service for shared calculations
+- Simplified service architecture with enhanced error handling
 
 **Entry Points:**
 - `backend/main.py` - CLI application entry point
@@ -735,7 +737,37 @@ pytest tests/performance/
 
 ---
 
-## 13. Performance Optimizations
+## 13. Code Quality & Performance Optimization (v4.4.5)
+
+### Code Quality Improvements
+
+#### Metrics Calculator Service
+- **Purpose**: Centralized calculation service for shared financial metrics across use cases
+- **Features**:
+  - Centralized calculation logic for basic metrics, risk metrics, momentum, dividend metrics, and beta
+  - Shared calculator methods across AnalyzePortfolioUseCase and AnalyzeTickerUseCase
+  - Simplified service interfaces with focused responsibilities
+  - Enhanced error handling and recovery mechanisms
+
+#### Service Simplification
+- **ParallelCalculationService**: Removed `get_optimal_worker_count` and `get_performance_metrics` methods
+- **ParallelDataFetcher**: Removed `get_optimal_worker_count` and `get_performance_metrics` methods
+- **WarehouseOptimizer**: Removed `get_performance_metrics` method
+- **WarehouseMarketRepository**: Removed unused parallel data fetcher imports
+
+#### Enhanced Error Handling
+- **Logging Decorators**: Improved application integration and error handling
+- **Service Integration**: Better error handling across all service layers
+- **Error Recovery**: Enhanced error recovery mechanisms
+- **Code Maintainability**: Improved code organization and maintainability
+
+### Performance Improvements
+- **Code Efficiency**: Simplified service implementations for better performance
+- **Memory Usage**: Reduced memory footprint through code cleanup
+- **Processing Speed**: Optimized calculation methods with shared logic
+- **Error Handling**: Faster error recovery and handling
+
+## 14. Performance Optimizations
 
 ### Parallel Processing
 

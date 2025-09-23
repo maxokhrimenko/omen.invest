@@ -16,7 +16,7 @@ from ..logging.performance_monitor import get_performance_monitor
 
 
 class ConnectionPool:
-    """Simple connection pool for SQLite connections."""
+    """Connection pool for SQLite connections."""
     
     def __init__(self, db_path: str, max_connections: int = 10):
         self.db_path = db_path
@@ -296,14 +296,6 @@ class WarehouseOptimizer:
         insert_time = self._performance_monitor.end_timing(f"batch_insert_{table_name}")
         self._logger.info(f"Batch insert completed in {insert_time:.3f}s for {len(data)} rows")
     
-    def get_performance_metrics(self) -> Dict[str, Any]:
-        """Get performance metrics for the warehouse optimizer."""
-        return {
-            "max_connections": self.connection_pool.max_connections,
-            "active_connections": len(self.connection_pool._pool),
-            "active_timings": self._performance_monitor.get_active_timings(),
-            "service_type": "warehouse_optimizer"
-        }
     
     def close(self):
         """Close the warehouse optimizer and all connections."""

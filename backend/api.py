@@ -512,8 +512,10 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
     if not end_date:
         end_date = datetime.now().strftime('%Y-%m-%d')
     
-    # Log portfolio analysis start
+    # Calculate ticker count for logging and display
     ticker_count = len(portfolio.get_tickers())
+    
+    # Log portfolio analysis start
     if portfolio_uuid:
         portfolio_session_manager.log_portfolio_operation(
             portfolio_uuid=portfolio_uuid,
@@ -525,6 +527,12 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
                 "end_date": end_date
             }
         )
+        
+        # Also log to backend-specific logger
+        backend_logger = portfolio_session_manager.get_backend_portfolio_logger(portfolio_uuid)
+        if backend_logger:
+            backend_logger.info(f"BACKEND | Starting portfolio analysis for {ticker_count} tickers")
+            backend_logger.info(f"BACKEND | Date range: {start_date} to {end_date}")
     
     print(f"Portfolio analysis: {ticker_count} tickers, {start_date} to {end_date}")
     
@@ -577,6 +585,13 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
             risk_free_rate=0.03
         )
         
+        # Log backend analysis execution
+        if portfolio_uuid:
+            backend_logger = portfolio_session_manager.get_backend_portfolio_logger(portfolio_uuid)
+            if backend_logger:
+                backend_logger.info(f"BACKEND | Executing portfolio analysis use case")
+                backend_logger.info(f"BACKEND | Risk-free rate: 0.03")
+        
         response = controller._analyze_portfolio_use_case.execute(request)
         
         if not response.success:
@@ -615,6 +630,15 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
                     )
                 }
             )
+            
+            # Log backend analysis completion
+            backend_logger = portfolio_session_manager.get_backend_portfolio_logger(portfolio_uuid)
+            if backend_logger:
+                backend_logger.info(f"BACKEND | Portfolio analysis completed successfully")
+                if response.missing_tickers:
+                    backend_logger.info(f"BACKEND | Missing tickers: {len(response.missing_tickers)}")
+                if response.tickers_without_start_data:
+                    backend_logger.info(f"BACKEND | Tickers without start data: {len(response.tickers_without_start_data)}")
         
         # Convert metrics to API response format
         metrics = response.metrics
@@ -703,6 +727,12 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
                 "end_date": end_date
             }
         )
+        
+        # Also log to backend-specific logger
+        backend_logger = portfolio_session_manager.get_backend_portfolio_logger(portfolio_uuid)
+        if backend_logger:
+            backend_logger.info(f"BACKEND | Starting ticker analysis for {ticker_count} tickers")
+            backend_logger.info(f"BACKEND | Date range: {start_date} to {end_date}")
     
     # Validate date range
     try:
@@ -731,6 +761,13 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
             date_range=date_range,
             risk_free_rate=0.03
         )
+        
+        # Log backend ticker analysis execution
+        if portfolio_uuid:
+            backend_logger = portfolio_session_manager.get_backend_portfolio_logger(portfolio_uuid)
+            if backend_logger:
+                backend_logger.info(f"BACKEND | Executing ticker analysis use case with batch processing")
+                backend_logger.info(f"BACKEND | Risk-free rate: 0.03")
         
         response = controller._analyze_ticker_use_case.execute_batch(request)
         
@@ -773,6 +810,14 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
                     "processing_time_seconds": response.processing_time_seconds
                 }
             )
+            
+            # Log backend ticker analysis completion
+            backend_logger = portfolio_session_manager.get_backend_portfolio_logger(portfolio_uuid)
+            if backend_logger:
+                backend_logger.info(f"BACKEND | Ticker analysis completed successfully")
+                backend_logger.info(f"BACKEND | Successful tickers: {len(ticker_results)}")
+                backend_logger.info(f"BACKEND | Failed tickers: {len(response.failed_tickers)}")
+                backend_logger.info(f"BACKEND | Processing time: {response.processing_time_seconds:.2f}s")
         
         # Prepare response
         response_data = {

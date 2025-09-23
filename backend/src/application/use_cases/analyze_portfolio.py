@@ -10,6 +10,7 @@ from ...domain.value_objects.money import Money
 from ...domain.value_objects.percentage import Percentage
 from ...infrastructure.logging.logger_service import get_logger_service
 from ...infrastructure.logging.decorators import log_operation, log_calculation
+from ...infrastructure.services.metrics_calculator import MetricsCalculator
 
 @dataclass
 class AnalyzePortfolioRequest:
@@ -353,42 +354,6 @@ class AnalyzePortfolioUseCase:
         
         return missing_tickers, tickers_without_start_data, first_available_dates
     
-    def _calculate_var_95(self, returns: pd.Series) -> Percentage:
-        """Calculate VaR 95% with proper validation and error handling."""
-        if len(returns) < 5:
-            # Insufficient data for reliable VaR calculation
-            self._logger.warning(f"Insufficient data for VaR calculation: {len(returns)} observations")
-            return Percentage(0)  # Default to 0 when insufficient data
-        
-        # Calculate VaR using historical simulation method
-        var_95_raw = np.percentile(returns, 5) * 100
-        
-        # Validate VaR result - it should be negative (representing a loss)
-        if var_95_raw > 0:
-            self._logger.warning(f"VaR calculation resulted in positive value: {var_95_raw:.2f}%. This may indicate insufficient negative returns in the data.")
-            
-            # Check if we have any negative returns at all
-            negative_returns = returns[returns < 0]
-            if not negative_returns.empty:
-                # Use the worst negative return as VaR
-                var_95_raw = negative_returns.min() * 100
-                self._logger.info(f"Using worst negative return as VaR: {var_95_raw:.2f}%")
-            else:
-                # No negative returns - this is very unusual for financial data
-                # In this case, we cannot calculate a meaningful VaR, so we set it to 0
-                # This indicates that there's no historical loss to base VaR on
-                self._logger.warning("No negative returns found - setting VaR to 0% (no historical losses)")
-                var_95_raw = 0
-        
-        # Additional validation: VaR should not be more extreme than the worst return
-        # Only apply this validation if we have a meaningful VaR (negative)
-        if var_95_raw < 0:
-            worst_return = returns.min() * 100
-            if var_95_raw < worst_return:
-                self._logger.warning(f"VaR ({var_95_raw:.2f}%) is more extreme than worst return ({worst_return:.2f}%) - using worst return")
-                var_95_raw = worst_return
-        
-        return Percentage(var_95_raw)
     
     def _calculate_portfolio_beta(self, portfolio: Portfolio, 
                                  price_history: Dict[Ticker, pd.Series],
@@ -482,84 +447,25 @@ class AnalyzePortfolioUseCase:
         """Calculate portfolio performance metrics using only complete data tickers."""
         self._logger.debug(f"Calculating portfolio metrics for {len(portfolio_values_analysis)} data points")
         
-        # Use only complete data for all calculations
-        if portfolio_values_analysis.empty:
-            # Fallback to total values if no complete data
-            portfolio_values_analysis = portfolio_values_total
-        
-        # Ensure we have data to work with
-        if portfolio_values_analysis.empty:
-            raise ValueError("No portfolio data available for metrics calculation")
-        
-        # Calculate returns using only complete data
+        # Validate and prepare data
+        portfolio_values_analysis = self._prepare_portfolio_data(portfolio_values_analysis, portfolio_values_total)
         returns = portfolio_values_analysis.pct_change().dropna()
         
-        # Basic metrics using complete data
-        start_value = Money(float(portfolio_values_analysis.iloc[0]))
-        end_value_analysis = Money(float(portfolio_values_analysis.iloc[-1]))
+        # Calculate basic metrics
+        start_value, end_value_analysis = self._calculate_basic_values(portfolio_values_analysis)
+        end_value_total, end_value_missing = self._calculate_display_values(portfolio_values_total, portfolio_values_missing)
         
-        # Check for division by zero
-        if start_value.amount == 0:
-            raise ValueError("Portfolio start value is zero - cannot calculate returns")
+        # Calculate return metrics
+        total_return = self._calculate_total_return(start_value, end_value_analysis)
+        annualized_return = self._calculate_annualized_return(returns, start_value, end_value_analysis)
         
-        total_return = Percentage(float((end_value_analysis.amount - start_value.amount) / start_value.amount) * 100)
+        # Calculate risk metrics using shared calculator
+        volatility, sharpe_ratio, max_drawdown, sortino_ratio = MetricsCalculator.calculate_risk_metrics(returns, risk_free_rate)
+        calmar_ratio = MetricsCalculator.calculate_calmar_ratio(annualized_return, max_drawdown)
+        var_95 = MetricsCalculator.calculate_var_95(returns)
         
-        # Calculate separate end values for display
-        end_value_total = Money(float(portfolio_values_total.iloc[-1])) if not portfolio_values_total.empty else Money(0)
-        end_value_missing = Money(float(portfolio_values_missing.iloc[-1])) if not portfolio_values_missing.empty else Money(0)
-        
-        # Annualized return
-        days = len(returns)
-        if not returns.empty:
-            total_return_ratio = float(end_value_analysis.amount / start_value.amount)
-            annualized_return = Percentage(
-                (total_return_ratio ** (252 / days) - 1) * 100
-            )
-        else:
-            annualized_return = Percentage(0)
-        
-        # Risk metrics
-        volatility = Percentage(returns.std() * np.sqrt(252) * 100)
-        
-        # Sharpe ratio
-        rf_daily = risk_free_rate / 252
-        excess_returns = returns - rf_daily
-        excess_std = excess_returns.std()
-        sharpe_ratio = np.sqrt(252) * excess_returns.mean() / excess_std if excess_std > 0 else 0
-        
-        # Max drawdown
-        cumulative_returns = (1 + returns).cumprod()
-        max_drawdown = Percentage(
-            ((cumulative_returns - cumulative_returns.cummax()) / cumulative_returns.cummax()).min() * 100
-        )
-        
-        # Sortino ratio
-        downside_returns = returns[returns < 0]
-        downside_std = downside_returns.std() if not downside_returns.empty else 0
-        sortino_ratio = (
-            np.sqrt(252) * excess_returns.mean() / downside_std 
-            if downside_std > 0 else 0
-        )
-        
-        # Calmar ratio
-        calmar_ratio = (
-            float(annualized_return.value) / abs(float(max_drawdown.value)) 
-            if float(max_drawdown.value) != 0 else 0
-        )
-        
-        # VaR (95%) - Historical simulation method with validation
-        # For VaR 95%, we take the 5th percentile of returns (worst 5% of outcomes)
-        # This represents the maximum expected loss with 95% confidence
-        var_95 = self._calculate_var_95(returns)
-        
-        # Beta calculation against S&P 500
-        if (portfolio is not None and price_history is not None and 
-            benchmark_data is not None and hasattr(benchmark_data, 'empty') and not benchmark_data.empty and 
-            date_range is not None):
-            beta = self._calculate_portfolio_beta(portfolio, price_history, benchmark_data, date_range)
-        else:
-            self._logger.warning("Insufficient data for portfolio Beta calculation - using default value")
-            beta = 1.0
+        # Calculate beta
+        beta = self._calculate_portfolio_beta_safe(portfolio, price_history, benchmark_data, date_range)
         
         return PortfolioMetrics(
             total_return=total_return,
@@ -576,3 +482,53 @@ class AnalyzePortfolioUseCase:
             end_value_analysis=end_value_analysis,  # Only complete data
             end_value_missing=end_value_missing  # Only missing data
         )
+    
+    def _prepare_portfolio_data(self, portfolio_values_analysis: pd.Series, portfolio_values_total: pd.Series) -> pd.Series:
+        """Prepare portfolio data for calculations."""
+        if portfolio_values_analysis.empty:
+            portfolio_values_analysis = portfolio_values_total
+        
+        if portfolio_values_analysis.empty:
+            raise ValueError("No portfolio data available for metrics calculation")
+        
+        return portfolio_values_analysis
+    
+    def _calculate_basic_values(self, portfolio_values: pd.Series) -> tuple[Money, Money]:
+        """Calculate basic start and end values."""
+        start_value = Money(float(portfolio_values.iloc[0]))
+        end_value = Money(float(portfolio_values.iloc[-1]))
+        
+        if start_value.amount == 0:
+            raise ValueError("Portfolio start value is zero - cannot calculate returns")
+        
+        return start_value, end_value
+    
+    def _calculate_display_values(self, portfolio_values_total: pd.Series, portfolio_values_missing: pd.Series) -> tuple[Money, Money]:
+        """Calculate display values for total and missing data."""
+        end_value_total = Money(float(portfolio_values_total.iloc[-1])) if not portfolio_values_total.empty else Money(0)
+        end_value_missing = Money(float(portfolio_values_missing.iloc[-1])) if not portfolio_values_missing.empty else Money(0)
+        return end_value_total, end_value_missing
+    
+    def _calculate_total_return(self, start_value: Money, end_value: Money) -> Percentage:
+        """Calculate total return percentage."""
+        return Percentage(float((end_value.amount - start_value.amount) / start_value.amount) * 100)
+    
+    def _calculate_annualized_return(self, returns: pd.Series, start_value: Money, end_value: Money) -> Percentage:
+        """Calculate annualized return percentage."""
+        days = len(returns)
+        if not returns.empty:
+            total_return_ratio = float(end_value.amount / start_value.amount)
+            return Percentage((total_return_ratio ** (252 / days) - 1) * 100)
+        return Percentage(0)
+    
+    
+    def _calculate_portfolio_beta_safe(self, portfolio: Portfolio, price_history: Dict[Ticker, pd.Series], 
+                                     benchmark_data: pd.Series, date_range: DateRange) -> float:
+        """Calculate portfolio beta with safe fallback."""
+        if (portfolio is not None and price_history is not None and 
+            benchmark_data is not None and hasattr(benchmark_data, 'empty') and not benchmark_data.empty and 
+            date_range is not None):
+            return self._calculate_portfolio_beta(portfolio, price_history, benchmark_data, date_range)
+        else:
+            self._logger.warning("Insufficient data for portfolio Beta calculation - using default value")
+            return 1.0

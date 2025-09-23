@@ -212,37 +212,6 @@ class ParallelCalculationService:
                 processing_time=processing_time
             )
     
-    def get_optimal_worker_count(self, task_count: int) -> int:
-        """
-        Calculate optimal number of workers for given task count.
-        
-        Args:
-            task_count: Number of tasks to execute
-            
-        Returns:
-            Optimal number of workers
-        """
-        # For CPU-bound tasks, more workers than CPU cores can be counterproductive
-        # For I/O-bound tasks, more workers can be beneficial
-        # Financial calculations are mostly CPU-bound with some I/O
-        
-        import os
-        cpu_count = os.cpu_count() or 4
-        
-        if task_count <= cpu_count:
-            return task_count
-        elif task_count <= cpu_count * 2:
-            return min(task_count, cpu_count)
-        else:
-            return min(cpu_count * 2, self.max_workers)
-    
-    def get_performance_metrics(self) -> Dict[str, Any]:
-        """Get performance metrics for the parallel calculation service."""
-        return {
-            "max_workers": self.max_workers,
-            "active_timings": self._performance_monitor.get_active_timings(),
-            "service_type": "parallel_calculation"
-        }
 
 
 # Global instance

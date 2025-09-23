@@ -32,8 +32,9 @@ class LoggerService:
     def _setup_directories(self):
         """Create necessary log directories."""
         os.makedirs(self.logs_dir, exist_ok=True)
-        os.makedirs(os.path.join(self.logs_dir, "backend"), exist_ok=True)
         os.makedirs(os.path.join(self.logs_dir, "frontend"), exist_ok=True)
+        os.makedirs(os.path.join(self.logs_dir, "backend"), exist_ok=True)
+        os.makedirs(os.path.join(self.logs_dir, "CLI"), exist_ok=True)
         os.makedirs(os.path.join(self.logs_dir, "total"), exist_ok=True)
     
     def _setup_logging(self):
@@ -47,20 +48,20 @@ class LoggerService:
         )
     
     def start_session(self) -> str:
-        """Start a new backend logging session."""
-        # Generate session ID with timestamp (same pattern as frontend)
+        """Start a new CLI logging session."""
+        # Generate session ID with timestamp
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        self.session_id = f"backend-{timestamp}"
+        self.session_id = f"CLI-{timestamp}"
         self.session_start_time = datetime.now()
         
         # Create session-specific logger
         session_logger = self._create_logger(
-            name="session",
-            log_file=os.path.join(self.logs_dir, "backend", f"backend-{timestamp}.log")
+            name="CLI-session",
+            log_file=os.path.join(self.logs_dir, "CLI", f"CLI-{timestamp}.log")
         )
         
         # Log session start
-        session_logger.info(f"=== BACKEND SESSION STARTED: {self.session_id} ===")
+        session_logger.info(f"=== CLI SESSION STARTED: {self.session_id} ===")
         session_logger.info(f"Session started at: {self.session_start_time}")
         
         return self.session_id
@@ -80,85 +81,19 @@ class LoggerService:
             self.session_id = None
             self.session_start_time = None
     
-    def start_frontend_session(self, request_id: str = None) -> str:
-        """Start a new frontend logging session based on request ID."""
-        if not request_id:
-            request_id = f"req-{datetime.now().strftime('%Y%m%d-%H%M%S-%f')[:-3]}"
-        
-        # Create frontend session-specific logger
-        frontend_logger = self._create_logger(
-            name="frontend",
-            log_file=os.path.join(self.logs_dir, "frontend", f"frontend-{request_id}.log")
-        )
-        
-        # Log frontend session start
-        frontend_logger.info(f"=== FRONTEND SESSION STARTED: {request_id} ===")
-        frontend_logger.info(f"Frontend session started at: {datetime.now()}")
-        
-        return request_id
-    
-    def start_backend_session(self, session_name: str = None) -> str:
-        """Start a new backend logging session with optional name."""
-        # Generate session ID with timestamp (same pattern as frontend)
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        if session_name:
-            session_id = f"backend-{session_name}-{timestamp}"
-        else:
-            session_id = f"backend-{timestamp}"
-        
-        # Create backend session-specific logger
-        backend_logger = self._create_logger(
-            name="backend-session",
-            log_file=os.path.join(self.logs_dir, "backend", f"{session_id}.log")
-        )
-        
-        # Log backend session start
-        backend_logger.info(f"=== BACKEND SESSION STARTED: {session_id} ===")
-        backend_logger.info(f"Backend session started at: {datetime.now()}")
-        if session_name:
-            backend_logger.info(f"Session name: {session_name}")
-        
-        return session_id
-    
-    def get_frontend_logger(self, request_id: str) -> logging.Logger:
-        """Get a logger for a specific frontend request session."""
-        logger_name = f"frontend-{request_id}"
-        
-        if logger_name not in self._loggers:
-            # Create frontend session logger
-            self._loggers[logger_name] = self._create_logger(
-                name=logger_name,
-                log_file=os.path.join(self.logs_dir, "frontend", f"frontend-{request_id}.log")
-            )
-        else:
-            # If we have an active frontend session, ensure it has a frontend handler
-            if not any(isinstance(h, logging.FileHandler) and 
-                      f"frontend-{request_id}.log" in h.baseFilename 
-                      for h in self._loggers[logger_name].handlers):
-                frontend_log_file = os.path.join(self.logs_dir, "frontend", f"frontend-{request_id}.log")
-                frontend_handler = logging.FileHandler(frontend_log_file, mode='a', encoding='utf-8')
-                frontend_handler.setLevel(logging.DEBUG)
-                frontend_formatter = logging.Formatter(
-                    '%(asctime)s | %(levelname)-8s | %(name)-20s | %(funcName)-20s:%(lineno)-4d | %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S'
-                )
-                frontend_handler.setFormatter(frontend_formatter)
-                self._loggers[logger_name].addHandler(frontend_handler)
-        
-        return self._loggers[logger_name]
     
     def get_logger(self, name: str) -> logging.Logger:
         """Get or create a logger for the given name."""
         if name not in self._loggers:
             self._loggers[name] = self._create_logger(name)
         else:
-            # If we have an active session and this logger doesn't have a session handler,
+            # If we have an active CLI session and this logger doesn't have a session handler,
             # add one to it
-            if (self.session_id and name != "session" and 
+            if (self.session_id and name != "CLI-session" and 
                 not any(isinstance(h, logging.FileHandler) and 
                        f"session-{self.session_id}.log" in h.baseFilename 
                        for h in self._loggers[name].handlers)):
-                session_log_file = os.path.join(self.logs_dir, "backend", f"session-{self.session_id}.log")
+                session_log_file = os.path.join(self.logs_dir, "CLI", f"session-{self.session_id}.log")
                 session_handler = logging.FileHandler(session_log_file, mode='a', encoding='utf-8')
                 session_handler.setLevel(logging.DEBUG)
                 session_formatter = logging.Formatter(
@@ -205,17 +140,27 @@ class LoggerService:
             )
         
         file_handler.setLevel(logging.DEBUG)
+        
+        # Determine the component type for better total log organization
+        component = "UNKNOWN"
+        if "CLI" in name or name == "CLI-session" or name in ["main", "session", "total"]:
+            component = "CLI"
+        elif "frontend" in name or "portfolio" in name:
+            component = "FRONTEND"
+        elif "backend" in name or any(x in name for x in ["api", "business", "infrastructure", "application", "domain", "validation", "file", "performance"]):
+            component = "BACKEND"
+        
         file_formatter = logging.Formatter(
-            f'%(asctime)s | %(levelname)-8s | %(name)-20s | %(funcName)-20s:%(lineno)-4d | LOG_ID:{log_id} | %(message)s',
+            f'%(asctime)s | {component:8s} | %(levelname)-8s | %(name)-20s | %(funcName)-20s:%(lineno)-4d | LOG_ID:{log_id} | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
         
-        # If this is not the session logger and we have an active session, 
-        # also add a handler to the session log file
-        if name != "session" and self.session_id and not log_file:
-            session_log_file = os.path.join(self.logs_dir, "sessions", f"session-{self.session_id}.log")
+        # If this is not the CLI session logger and we have an active session, 
+        # also add a handler to the CLI session log file
+        if name != "CLI-session" and self.session_id and not log_file:
+            session_log_file = os.path.join(self.logs_dir, "CLI", f"session-{self.session_id}.log")
             session_handler = logging.FileHandler(session_log_file, mode='a', encoding='utf-8')
             session_handler.setLevel(logging.DEBUG)
             session_handler.setFormatter(file_formatter)
@@ -281,43 +226,6 @@ class LoggerService:
             message += f" | {detail_str}"
         logger.info(message)
     
-    def log_frontend_request(self, request_id: str, method: str, endpoint: str, 
-                           duration: Optional[float] = None, status: Optional[str] = None,
-                           details: Optional[Dict[str, Any]] = None):
-        """Log frontend API requests."""
-        logger = self.get_frontend_logger(request_id)
-        message = f"REQ | {method} {endpoint}"
-        if status:
-            message += f" | Status: {status}"
-        if duration:
-            message += f" | Duration: {duration:.4f}s"
-        if details:
-            detail_str = " | ".join([f"{k}: {v}" for k, v in details.items()])
-            message += f" | {detail_str}"
-        logger.info(message)
-    
-    def log_frontend_error(self, request_id: str, error: str, endpoint: str = None, 
-                          details: Optional[Dict[str, Any]] = None):
-        """Log frontend errors."""
-        logger = self.get_frontend_logger(request_id)
-        message = f"ERR | {error}"
-        if endpoint:
-            message += f" | Endpoint: {endpoint}"
-        if details:
-            detail_str = " | ".join([f"{k}: {v}" for k, v in details.items()])
-            message += f" | {detail_str}"
-        logger.error(message)
-    
-    def log_frontend_operation(self, request_id: str, operation: str, 
-                              success: bool, details: Optional[Dict[str, Any]] = None):
-        """Log frontend operations."""
-        logger = self.get_frontend_logger(request_id)
-        status = "SUCCESS" if success else "FAILED"
-        message = f"OP | {operation} | {status}"
-        if details:
-            detail_str = " | ".join([f"{k}: {v}" for k, v in details.items()])
-            message += f" | {detail_str}"
-        logger.info(message)
     
     @contextmanager
     def time_operation(self, operation_name: str, details: Optional[Dict[str, Any]] = None):

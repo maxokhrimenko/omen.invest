@@ -983,4 +983,4 @@ For questions or updates to this documentation, please refer to the project's te
 ---
 
 *Last updated: January 2025*
-*Version: 1.0.0*
+*Version: 4.4.5*

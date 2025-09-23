@@ -42,9 +42,9 @@ class PortfolioController:
         print("\n📁 Load Portfolio")
         print("─" * 50)
         
-        file_path = input("Enter portfolio file path (default: ../input/test.csv): ").strip()
+        file_path = input("Enter portfolio file path (default: input/test.csv): ").strip()
         if not file_path:
-            file_path = "../input/test.csv"
+            file_path = "input/test.csv"
         
         self._logger.info(f"User selected file path: {file_path}")
         self._logger_service.log_user_action("load_portfolio", {"file_path": file_path})

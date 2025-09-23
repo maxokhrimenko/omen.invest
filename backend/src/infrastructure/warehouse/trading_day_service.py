@@ -1,6 +1,5 @@
 import pandas as pd
 from typing import Set
-from datetime import datetime, date
 from ...domain.value_objects.date_range import DateRange
 from ..logging.logger_service import get_logger_service
 from ..logging.decorators import log_operation
@@ -18,7 +17,7 @@ class TradingDayService:
         """
         Get trading days in the given range.
         
-        This uses a simple heuristic: Monday-Friday are trading days,
+        This uses a heuristic: Monday-Friday are trading days,
         excluding major US holidays. For production use, this should
         be enhanced with actual market calendar data.
         """
