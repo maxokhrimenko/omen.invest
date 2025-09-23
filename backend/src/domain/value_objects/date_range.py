@@ -4,7 +4,12 @@ from typing import Union
 class DateRange:
     def __init__(self, start: Union[str, date], end: Union[str, date, None] = None):
         self._start = self._parse_date(start)
-        self._end = self._parse_date(end) if end else date.today()
+        if end:
+            self._end = self._parse_date(end)
+        else:
+            # Use previous working day as default end date for financial data consistency
+            from ...infrastructure.utils.date_utils import get_previous_working_day
+            self._end = get_previous_working_day()
         self._validate()
     
     def _parse_date(self, date_input: Union[str, date]) -> date:

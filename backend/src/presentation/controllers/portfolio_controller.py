@@ -10,6 +10,7 @@ from ...domain.value_objects.date_range import DateRange
 from ...infrastructure.logging.logger_service import get_logger_service
 from ...infrastructure.logging.decorators import log_user_action
 from ...infrastructure.color_metrics_service import ColorMetricsService
+from ...infrastructure.utils.date_utils import get_previous_working_day_string
 from ...infrastructure.table_formatter import TableFormatter
 from ...infrastructure.repositories.warehouse_market_repository import WarehouseMarketRepository
 
@@ -221,9 +222,9 @@ class PortfolioController:
         if not start_date:
             start_date = self._default_start_date
         
-        end_date = input("Enter end date (YYYY-MM-DD, default: today): ").strip()
+        end_date = input("Enter end date (YYYY-MM-DD, default: previous working day): ").strip()
         if not end_date:
-            end_date = date.today().isoformat()
+            end_date = get_previous_working_day_string()
         
         return DateRange(start_date, end_date)
     

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import type { DateRange } from '../components/portfolio/DateRangeSelector';
 import { apiService } from '../services/api';
 import { logger } from '../utils/logger';
+import { useToast } from '../contexts/ToastContext';
+import { calculateAnalysisTimeout, formatTimeout } from '../utils/timeoutCalculator';
 
 export interface PortfolioMetrics {
   totalReturn: string;
@@ -62,6 +64,7 @@ export const usePortfolioAnalysis = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange | null>(null);
+  const { showToast, hideToast } = useToast();
 
   // No localStorage caching - rely on warehouse system for data persistence
   // This ensures fresh data and eliminates cache inconsistency issues
@@ -86,6 +89,23 @@ export const usePortfolioAnalysis = () => {
   const runAnalysis = useCallback(async (startDate: string, endDate: string, tickerCount?: number) => {
     setIsLoading(true);
     setError(null);
+
+    // Calculate estimated timeout for toast message
+    const estimatedTimeout = tickerCount 
+      ? calculateAnalysisTimeout(tickerCount, startDate, endDate)
+      : null;
+    
+    const estimatedTimeText = estimatedTimeout 
+      ? ` (Estimated: ${formatTimeout(estimatedTimeout)})`
+      : '';
+
+    // Show loading toast
+    const loadingToastId = showToast({
+      type: 'loading',
+      title: 'Analysis in Progress',
+      message: `Analyzing ${tickerCount || 'portfolio'} tickers${estimatedTimeText}...`,
+      persistent: true
+    });
 
     try {
       logger.info('Starting portfolio analysis', { 
@@ -146,6 +166,15 @@ export const usePortfolioAnalysis = () => {
       setAnalysisResults(analysisResults);
       saveAnalysisResults(analysisResults);
       
+      // Hide loading toast and show success toast
+      hideToast(loadingToastId);
+      showToast({
+        type: 'success',
+        title: 'Analysis Complete',
+        message: `Successfully analyzed ${tickerResponse.length} tickers${estimatedTimeText}`,
+        duration: 3000
+      });
+      
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
       logger.error('Portfolio analysis failed', err as Error, {
@@ -156,10 +185,19 @@ export const usePortfolioAnalysis = () => {
         message: errorMessage
       });
       setError(errorMessage);
+      
+      // Hide loading toast and show error toast
+      hideToast(loadingToastId);
+      showToast({
+        type: 'error',
+        title: 'Analysis Failed',
+        message: errorMessage,
+        duration: 5000
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDateRange, saveAnalysisResults]);
+  }, [selectedDateRange, saveAnalysisResults, showToast, hideToast]);
 
   return {
     analysisResults,

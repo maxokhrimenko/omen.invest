@@ -40,6 +40,7 @@ import json
 from src.domain.entities.position import Position
 from src.domain.entities.ticker import Ticker
 from src.domain.value_objects.date_range import DateRange
+from src.infrastructure.utils.date_utils import is_date_after_previous_working_day
 
 # Pydantic models for API responses
 class PositionResponse(BaseModel):
@@ -542,15 +543,15 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
                 )
             raise HTTPException(status_code=400, detail="Start date cannot be after end date")
         
-        if end_dt > datetime.now():
+        if is_date_after_previous_working_day(end_date):
             if portfolio_uuid:
                 portfolio_session_manager.log_portfolio_error(
                     portfolio_uuid=portfolio_uuid,
-                    error="End date in future",
+                    error="End date after previous working day",
                     operation="portfolio_analysis",
                     details={"end_date": end_date}
                 )
-            raise HTTPException(status_code=400, detail="End date cannot be in the future")
+            raise HTTPException(status_code=400, detail="End date cannot be after the previous working day")
             
     except ValueError as e:
         if portfolio_uuid:
@@ -711,8 +712,8 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
         if start_dt > end_dt:
             raise HTTPException(status_code=400, detail="Start date cannot be after end date")
         
-        if end_dt > datetime.now():
-            raise HTTPException(status_code=400, detail="End date cannot be in the future")
+        if is_date_after_previous_working_day(end_date):
+            raise HTTPException(status_code=400, detail="End date cannot be after the previous working day")
             
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
@@ -799,6 +800,246 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
                 details={"start_date": start_date, "end_date": end_date}
             )
         raise HTTPException(status_code=500, detail=f"Ticker analysis failed: {str(e)}")
+
+# Admin API Endpoints
+
+@app.post("/api/admin/logs/clear-all")
+async def clear_all_logs():
+    """Clear all application logs."""
+    try:
+        import subprocess
+        import os
+        
+        # Get the project root directory
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        script_path = os.path.join(project_root, "backend", "admin", "logs_clear.py")
+        
+        # Run the logs clear script
+        result = subprocess.run(
+            ["python", script_path, "--clear-all", "--force"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode == 0:
+            return {"success": True, "message": "All logs cleared successfully"}
+        else:
+            return {"success": False, "message": f"Error clearing logs: {result.stderr}"}
+            
+    except subprocess.TimeoutExpired:
+        return {"success": False, "message": "Log clearing operation timed out"}
+    except Exception as e:
+        return {"success": False, "message": f"Error executing log clear: {str(e)}"}
+
+@app.post("/api/admin/warehouse/clear-all")
+async def clear_all_warehouse():
+    """Clear all warehouse data."""
+    try:
+        import subprocess
+        import os
+        
+        # Get the project root directory
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        script_path = os.path.join(project_root, "backend", "admin", "clear_warehouse.py")
+        
+        # Run the warehouse clear script
+        result = subprocess.run(
+            ["python", script_path, "--clear-all"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            input="yes\n"  # Auto-confirm the operation
+        )
+        
+        if result.returncode == 0:
+            return {"success": True, "message": "All warehouse data cleared successfully"}
+        else:
+            return {"success": False, "message": f"Error clearing warehouse: {result.stderr}"}
+            
+    except subprocess.TimeoutExpired:
+        return {"success": False, "message": "Warehouse clearing operation timed out"}
+    except Exception as e:
+        return {"success": False, "message": f"Error executing warehouse clear: {str(e)}"}
+
+@app.get("/api/admin/warehouse/stats")
+async def get_warehouse_stats():
+    """Get warehouse statistics."""
+    try:
+        import subprocess
+        import os
+        import json
+        
+        # Get the project root directory
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        script_path = os.path.join(project_root, "backend", "admin", "clear_warehouse.py")
+        
+        # Run the warehouse stats script
+        result = subprocess.run(
+            ["python", script_path, "--stats"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode == 0:
+            # Parse the output to extract key statistics
+            output = result.stdout
+            
+            # Extract basic stats from the output
+            stats = {
+                "tickers": [],
+                "total_records": 0,
+                "database_size": 0,
+                "database_exists": False
+            }
+            
+            # Try to extract ticker count and other info from the output
+            lines = output.split('\n')
+            for line in lines:
+                if "Tickers:" in line:
+                    try:
+                        ticker_count = int(line.split("Tickers:")[1].strip().split()[0])
+                        stats["ticker_count"] = ticker_count
+                    except:
+                        pass
+                elif "Total Records:" in line:
+                    try:
+                        total_records = int(line.split("Total Records:")[1].strip().replace(",", ""))
+                        stats["total_records"] = total_records
+                    except:
+                        pass
+                elif "Database Size:" in line:
+                    try:
+                        size_str = line.split("Database Size:")[1].strip()
+                        stats["database_size_str"] = size_str
+                    except:
+                        pass
+            
+            return {"success": True, "data": stats}
+        else:
+            return {"success": False, "message": f"Error getting warehouse stats: {result.stderr}"}
+            
+    except subprocess.TimeoutExpired:
+        return {"success": False, "message": "Warehouse stats operation timed out"}
+    except Exception as e:
+        return {"success": False, "message": f"Error executing warehouse stats: {str(e)}"}
+
+@app.get("/api/admin/warehouse/tickers")
+async def get_warehouse_tickers(search: str = ""):
+    """Get available tickers from warehouse with optional search filter."""
+    try:
+        import subprocess
+        import os
+        import json
+        
+        # Get the project root directory
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        script_path = os.path.join(project_root, "backend", "admin", "clear_warehouse.py")
+        
+        # Run the warehouse stats script to get ticker list
+        result = subprocess.run(
+            ["python", script_path, "--stats"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode == 0:
+            # Parse the output to extract ticker list
+            output = result.stdout
+            tickers = []
+            
+            # Look for ticker list in the output
+            lines = output.split('\n')
+            
+            # First, try to find the main tickers line
+            for i, line in enumerate(lines):
+                if "🏷️  Tickers:" in line or "Tickers:" in line:
+                    # Look for the next line which contains the actual ticker list
+                    if i + 1 < len(lines):
+                        next_line = lines[i + 1]
+                        if next_line.strip().startswith("   "):
+                            # Extract tickers from the indented line
+                            ticker_line = next_line.strip()
+                            # Split by comma and clean up
+                            ticker_list = [t.strip() for t in ticker_line.split(",")]
+                            # Filter out non-ticker entries (like "• Dividend Coverage")
+                            tickers = [t for t in ticker_list if t and t.isalpha() and not t.startswith("•")]
+                            break
+            
+            # If no tickers found in main section, try the breakdown section as fallback
+            if not tickers:
+                in_ticker_section = False
+                for line in lines:
+                    if "Storage Breakdown by Ticker:" in line:
+                        in_ticker_section = True
+                        continue
+                    elif in_ticker_section and line.strip():
+                        if line.startswith("   ") and ":" in line:
+                            # Extract ticker name (before the colon)
+                            ticker = line.strip().split(":")[0].strip()
+                            if ticker and not ticker.startswith("📊") and not ticker.startswith("•"):
+                                tickers.append(ticker)
+                        elif not line.startswith("   "):
+                            # End of ticker section
+                            break
+            
+            # Filter tickers based on search term (if provided)
+            if search and search.strip():
+                search_lower = search.lower()
+                tickers = [t for t in tickers if search_lower in t.lower()]
+            
+            # Convert to the format expected by frontend
+            ticker_options = [{"value": ticker, "label": ticker} for ticker in tickers]
+            
+            return {"success": True, "tickers": ticker_options}
+        else:
+            return {"success": False, "message": f"Error getting tickers: {result.stderr}"}
+            
+    except subprocess.TimeoutExpired:
+        return {"success": False, "message": "Ticker retrieval operation timed out"}
+    except Exception as e:
+        return {"success": False, "message": f"Error executing ticker retrieval: {str(e)}"}
+
+@app.post("/api/admin/warehouse/clear-ticker")
+async def clear_warehouse_ticker(request: dict):
+    """Clear data for a specific ticker."""
+    try:
+        import subprocess
+        import os
+        
+        ticker = request.get("ticker")
+        if not ticker:
+            return {"success": False, "message": "Ticker is required"}
+        
+        # Get the project root directory
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        script_path = os.path.join(project_root, "backend", "admin", "clear_warehouse.py")
+        
+        # Run the warehouse clear ticker script
+        result = subprocess.run(
+            ["python", script_path, "--clear-ticker", ticker],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            input="yes\n"  # Auto-confirm the operation
+        )
+        
+        if result.returncode == 0:
+            return {"success": True, "message": f"Data cleared for ticker: {ticker}"}
+        else:
+            return {"success": False, "message": f"Error clearing ticker {ticker}: {result.stderr}"}
+            
+    except subprocess.TimeoutExpired:
+        return {"success": False, "message": "Ticker clearing operation timed out"}
+    except Exception as e:
+        return {"success": False, "message": f"Error executing ticker clear: {str(e)}"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

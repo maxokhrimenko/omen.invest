@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CalendarSelector from './CalendarSelector';
+import { getPreviousWorkingDayString } from '../../utils/dateUtils';
 
 export interface DateRange {
   startDate: string;
@@ -51,6 +52,18 @@ const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
       endDate: getDateString(0, 'days'),
       label: '60 Months',
       type: 'preset'
+    },
+    {
+      startDate: getThisYearToDateStart(),
+      endDate: getPreviousWorkingDayString(),
+      label: 'This year to date',
+      type: 'preset'
+    },
+    {
+      startDate: getPreviousYearStart(),
+      endDate: getPreviousYearEnd(),
+      label: 'Previous year',
+      type: 'preset'
     }
   ];
 
@@ -93,7 +106,7 @@ const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
             <button
               key={range.label}
               onClick={() => handlePresetRange(range)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
+              className={`px-2 py-2 text-xs font-medium rounded-lg border transition-all duration-200 ${
                 selectedRange?.label === range.label
                   ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -119,6 +132,11 @@ const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
 
 // Helper function to calculate date strings
 function getDateString(amount: number, unit: 'days' | 'months' | 'years', offset: number = 0): string {
+  // For end dates (amount = 0, unit = 'days'), use previous working day
+  if (amount === 0 && unit === 'days') {
+    return getPreviousWorkingDayString();
+  }
+  
   const date = new Date();
   
   if (unit === 'days') {
@@ -130,6 +148,41 @@ function getDateString(amount: number, unit: 'days' | 'months' | 'years', offset
   }
   
   return date.toISOString().split('T')[0];
+}
+
+// Helper function to get start of current year (January 1st)
+function getThisYearToDateStart(): string {
+  const currentYear = new Date().getFullYear();
+  const date = new Date(currentYear, 0, 1);
+  // Use local date to avoid timezone issues
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Helper function to get start of previous year (January 1st of previous year)
+function getPreviousYearStart(): string {
+  const currentYear = new Date().getFullYear();
+  const previousYear = currentYear - 1;
+  const date = new Date(previousYear, 0, 1);
+  // Use local date to avoid timezone issues
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Helper function to get end of previous year (December 31st of previous year)
+function getPreviousYearEnd(): string {
+  const currentYear = new Date().getFullYear();
+  const previousYear = currentYear - 1;
+  const date = new Date(previousYear, 11, 31);
+  // Use local date to avoid timezone issues
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export default DateRangeSelector;

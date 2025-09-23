@@ -1,8 +1,8 @@
-# 🏗️ Repository Structure - Parallel Processing & Warehouse Optimization System
+# 🏗️ Repository Structure - Administration System & Enhanced Date Validation
 
 ## Overview
 
-This document outlines the implemented full-stack repository structure with backend, frontend, and database components. The application features a FastAPI backend and React frontend implementation with parallel processing architecture, warehouse optimizations, data fetching, and performance improvements delivering 3-5x speedup across all operations.
+This document outlines the implemented full-stack repository structure with backend, frontend, and database components. The application features a FastAPI backend and React frontend implementation with parallel processing architecture, warehouse optimizations, comprehensive administration system, enhanced date validation, and performance improvements delivering 3-5x speedup across all operations.
 
 ## 🎯 Design Principles
 
@@ -14,6 +14,17 @@ This document outlines the implemented full-stack repository structure with back
 - **Logging**: Logging system with correlation IDs and session tracking
 - **Error Resilience**: Error handling with React error boundaries
 - **Performance Optimization**: Memoization and data processing
+
+## 🎯 Key Features (v4.4.4)
+
+### Administration System & Enhanced Date Validation
+- **Administration API Endpoints**: Complete set of administrative endpoints for system management
+- **Warehouse Management**: Tools for warehouse data management and cleanup
+- **Log Management**: Administrative tools for log clearing and management  
+- **Date Validation Enhancement**: Previous working day logic for financial data consistency
+- **Frontend Administration Interface**: Dedicated administration page with warehouse management
+- **Toast Notification System**: Context-based toast notifications for user feedback
+- **Enhanced Date Validation**: Previous working day logic, timezone support, and financial data consistency
 
 ## 🎯 Key Features (v4.4.3)
 
@@ -106,6 +117,8 @@ omen.invest/
 │   │   │   │   ├── __init__.py
 │   │   │   │   ├── trading_day_service.py
 │   │   │   │   └── warehouse_service.py
+│   │   │   ├── 📁 utils/                # Utility functions
+│   │   │   │   └── date_utils.py        # Date validation and working day calculations  
 │   │   │   ├── color_metrics_service.py
 │   │   │   └── table_formatter.py
 │   │   ├── 📁 presentation/             # Presentation layer
@@ -152,14 +165,18 @@ omen.invest/
 │   │   ├── 📁 pages/                    # Application pages
 │   │   │   ├── DashboardPage.tsx
 │   │   │   ├── PortfolioAnalysisPage.tsx
-│   │   │   └── PortfolioUploadPage.tsx
+│   │   │   ├── PortfolioUploadPage.tsx
+│   │   │   └── AdministrationPage.tsx   # Administration interface
 │   │   ├── 📁 hooks/                    # Custom React hooks
 │   │   │   └── usePortfolioAnalysis.ts
 │   │   ├── 📁 services/                 # API services
 │   │   │   └── api.ts                   # API service with logging
+│   │   ├── 📁 contexts/                 # React contexts
+│   │   │   └── ToastContext.tsx         # Toast notification system
 │   │   ├── 📁 utils/                    # Utility functions
 │   │   │   ├── logger.ts                # Frontend logging service
-│   │   │   └── timeoutCalculator.ts     # Timeout calculations
+│   │   │   ├── timeoutCalculator.ts     # Timeout calculations
+│   │   │   └── dateUtils.ts             # Date utility functions
 │   │   ├── 📁 types/                    # TypeScript type definitions
 │   │   │   ├── api.ts
 │   │   │   └── portfolio.ts
@@ -357,4 +374,4 @@ from backend.src.infrastructure.repositories.csv_portfolio_repository import Csv
 
 ---
 
-*This structure document reflects the implemented full-stack structure for version 4.4.0 of the Portfolio Analysis Tool, featuring frontend architecture, logging systems, and user experience.*
+*This structure document reflects the implemented full-stack structure for version 4.4.4 of the Portfolio Analysis Tool, featuring administration system, enhanced date validation, frontend architecture, logging systems, and user experience.*

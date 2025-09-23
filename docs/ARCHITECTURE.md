@@ -33,6 +33,16 @@ The data validation system has been improved with validation logic:
 4. **Period-Aware Validation**: Coverage thresholds adapt to analysis period for accuracy
 5. **Tolerance System**: 5-day business day tolerance for start date validation
 
+### Administration System (v4.4.4)
+The administration system provides comprehensive system management capabilities:
+
+1. **Administration API Endpoints**: Complete set of administrative endpoints for system management
+2. **Warehouse Management**: Tools for warehouse data management and cleanup
+3. **Log Management**: Administrative tools for log clearing and management
+4. **Date Validation Enhancement**: Previous working day logic for financial data consistency
+5. **Frontend Administration Interface**: Dedicated administration page with warehouse management
+6. **Toast Notification System**: Context-based toast notifications for user feedback
+
 ### Frontend Architecture (v4.4.3)
 The frontend architecture has been overhauled with features:
 
@@ -97,6 +107,8 @@ portfolio-analysis-tool/
 │   │   │   │   └── performance_monitor.py # Performance monitoring
 │   │   │   ├── color_metrics_service.py # Color-coding service for metrics
 │   │   │   ├── table_formatter.py # Table formatting utility
+│   │   │   ├── utils/             # Utility functions
+│   │   │   │   └── date_utils.py  # Date validation and working day calculations
 │   │   │   └── config/            # Configuration management
 │   │   │       └── __init__.py
 │   │   └── presentation/          # 🎨 Presentation Layer
@@ -124,7 +136,8 @@ portfolio-analysis-tool/
 │   │   ├── pages/                 # Page components
 │   │   │   ├── DashboardPage.tsx  # Main dashboard
 │   │   │   ├── PortfolioAnalysisPage.tsx # Portfolio analysis page
-│   │   │   └── PortfolioUploadPage.tsx # Portfolio upload page
+│   │   │   ├── PortfolioUploadPage.tsx # Portfolio upload page
+│   │   │   └── AdministrationPage.tsx # Administration interface
 │   │   ├── hooks/                 # Custom React hooks
 │   │   │   └── usePortfolioAnalysis.ts # Portfolio analysis hook
 │   │   ├── services/              # API services
@@ -132,6 +145,8 @@ portfolio-analysis-tool/
 │   │   ├── utils/                 # Utility functions
 │   │   │   ├── logger.ts          # Frontend logging service
 │   │   │   └── timeoutCalculator.ts # Timeout calculations
+│   │   ├── contexts/              # React contexts
+│   │   │   └── ToastContext.tsx   # Toast notification system
 │   │   ├── types/                 # TypeScript type definitions
 │   │   │   ├── api.ts             # API types
 │   │   │   └── portfolio.ts       # Portfolio types
@@ -344,6 +359,56 @@ class SomeUseCase:
     def execute(self, request: SomeRequest) -> SomeResponse:
         # Business logic
 ```
+
+## 🛠️ Administration System (v4.4.4)
+
+The administration system provides comprehensive system management capabilities with dedicated API endpoints and frontend interface.
+
+### Administration API Endpoints
+
+#### Administrative Operations
+- **`/api/admin/logs/clear-all`**: Clear all application logs with timeout protection
+- **`/api/admin/warehouse/clear-all`**: Clear all warehouse data with confirmation
+- **`/api/admin/warehouse/stats`**: Get comprehensive warehouse statistics and metrics
+- **`/api/admin/warehouse/tickers`**: Retrieve available tickers with search filtering
+- **`/api/admin/warehouse/clear-ticker`**: Clear data for specific ticker symbols
+
+#### Implementation Features
+- **Subprocess Management**: Safe execution of administrative scripts with timeout protection
+- **Error Handling**: Comprehensive error handling for administrative operations
+- **Response Formatting**: Standardized API responses for administrative operations
+- **Security**: Safe parameter handling and validation
+
+### Enhanced Date Validation System
+
+#### Previous Working Day Logic
+```python
+# Date validation for financial data consistency
+def is_date_after_previous_working_day(date_str: str) -> bool:
+    end_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    previous_working_day = get_previous_working_day()
+    return end_date > previous_working_day
+```
+
+#### Date Range Enhancement
+- **DateRange Class**: Updated to use previous working day as default end date
+- **Financial Data Consistency**: Ensures analysis uses complete trading day data
+- **Timezone Support**: Added pytz dependency for proper timezone handling
+- **API Validation**: Enhanced date validation with business day awareness
+
+### Frontend Administration Interface
+
+#### AdministrationPage Component
+- **Warehouse Management**: Tools for warehouse data management and cleanup
+- **System Monitoring**: Display of system statistics and performance metrics
+- **User Interface**: Clean, responsive interface for administrative operations
+- **Error Handling**: Comprehensive error handling and user feedback
+
+#### Toast Notification System
+- **ToastProvider Context**: Context-based toast notifications for user feedback
+- **User Experience**: Enhanced user feedback with toast notifications
+- **Error Reporting**: Clear error reporting and success notifications
+- **State Management**: Global toast state management
 
 ## 🔧 Infrastructure Layer
 
@@ -1192,4 +1257,4 @@ The current architecture is designed to support these enhancements without major
 
 ---
 
-*This architecture documentation reflects version 4.4.0 of the Portfolio Analysis Tool with enhanced frontend architecture, improved logging systems, and better user experience.*
+*This architecture documentation reflects version 4.4.4 of the Portfolio Analysis Tool with comprehensive administration system, enhanced date validation, warehouse management capabilities, and improved user interface with administrative tools.*

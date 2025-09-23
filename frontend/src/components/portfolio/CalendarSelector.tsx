@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { isDateAfterPreviousWorkingDay } from '../../utils/dateUtils';
 import { Calendar as CalendarIcon, Edit3 } from 'lucide-react';
 
 interface CalendarSelectorProps {
@@ -22,9 +23,21 @@ const CalendarSelector: React.FC<CalendarSelectorProps> = ({
   const [endYearInput, setEndYearInput] = useState(new Date().getFullYear().toString());
 
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    'Jan', 'Jul', 'Feb', 'Aug', 'Mar', 'Sep',
+    'Apr', 'Oct', 'May', 'Nov', 'Jun', 'Dec'
   ];
+
+  // Map display index to actual month number (0-11)
+  const getActualMonth = (displayIndex: number): number => {
+    const monthMapping = [0, 6, 1, 7, 2, 8, 3, 9, 4, 10, 5, 11]; // Jan=0, Jul=6, Feb=1, etc.
+    return monthMapping[displayIndex];
+  };
+
+  // Map actual month number (0-11) to display index
+  const getDisplayIndex = (actualMonth: number): number => {
+    const displayMapping = [0, 2, 4, 6, 8, 10, 1, 3, 5, 7, 9, 11]; // 0->0, 1->2, 2->4, etc.
+    return displayMapping[actualMonth];
+  };
 
   // Always show current year and 4 years before it
   const currentYear = new Date().getFullYear();
@@ -61,7 +74,9 @@ const CalendarSelector: React.FC<CalendarSelectorProps> = ({
   };
 
   const getFirstDayOfMonth = (year: number, month: number) => {
-    return new Date(year, month, 1).getDay();
+    const day = new Date(year, month, 1).getDay();
+    // Convert Sunday (0) to 6, Monday (1) to 0, etc. to make Monday the first day
+    return (day + 6) % 7;
   };
 
   const handleStartDateClick = (year: number, month: number, day: number) => {
@@ -95,14 +110,43 @@ const CalendarSelector: React.FC<CalendarSelectorProps> = ({
     const firstDay = getFirstDayOfMonth(year, month);
     const days = [];
 
-    // Add empty cells for days before the first day of the month
+    // Add days from previous month to fill the first row
+    const prevMonth = month === 0 ? 11 : month - 1;
+    const prevYear = month === 0 ? year - 1 : year;
+    const daysInPrevMonth = getDaysInMonth(prevYear, prevMonth);
+    
     for (let i = 0; i < firstDay; i++) {
-      days.push(null);
+      days.push({
+        day: daysInPrevMonth - firstDay + i + 1,
+        isCurrentMonth: false,
+        isPrevMonth: true,
+        isNextMonth: false
+      });
     }
 
-    // Add days of the month
+    // Add days of the current month
     for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day);
+      days.push({
+        day: day,
+        isCurrentMonth: true,
+        isPrevMonth: false,
+        isNextMonth: false
+      });
+    }
+
+    // Add days from next month to fill remaining cells (always show 6 rows = 42 days)
+    const totalDays = firstDay + daysInMonth;
+    const remainingDays = 42 - totalDays; // 6 rows * 7 days = 42 total days
+    
+    if (remainingDays > 0) {
+      for (let day = 1; day <= remainingDays; day++) {
+        days.push({
+          day: day,
+          isCurrentMonth: false,
+          isPrevMonth: false,
+          isNextMonth: true
+        });
+      }
     }
 
     return days;
@@ -110,10 +154,7 @@ const CalendarSelector: React.FC<CalendarSelectorProps> = ({
 
 
   const isDateInFuture = (year: number, month: number, day: number) => {
-    const date = new Date(year, month, day);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999); // End of today
-    return date > today;
+    return isDateAfterPreviousWorkingDay(year, month, day);
   };
 
   const isStartDateSelected = (year: number, month: number, day: number) => {
@@ -207,12 +248,12 @@ const CalendarSelector: React.FC<CalendarSelectorProps> = ({
             <div className="w-20">
               <label className="block text-xs font-medium text-gray-600 mb-2">Month</label>
               <div className="grid grid-cols-2 gap-1">
-                {months.map((month, index) => (
+                {months.map((month, displayIndex) => (
                   <button
                     key={month}
-                    onClick={() => setStartMonth(index)}
-                    className={`px-2 py-1 text-xs rounded transition-colors w-full ${
-                      index === startMonth
+                    onClick={() => setStartMonth(getActualMonth(displayIndex))}
+                    className={`px-1 py-1 text-xs rounded transition-colors w-full ${
+                      getActualMonth(displayIndex) === startMonth
                         ? 'bg-blue-100 text-blue-700 font-medium'
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
@@ -227,36 +268,36 @@ const CalendarSelector: React.FC<CalendarSelectorProps> = ({
             <div className="flex-1">
               <div className="grid grid-cols-7 gap-1">
                 {/* Day headers */}
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) => (
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day) => (
                   <div key={day} className="text-xs font-medium text-gray-500 text-center py-1">
                     {day}
                   </div>
                 ))}
                 
                 {/* Calendar days */}
-                {startCalendarDays.map((day, index) => {
-                  if (day === null) {
-                    return <div key={index} className="h-6" />;
-                  }
-
-                  const isFuture = isDateInFuture(startYear, startMonth, day);
-                  const isSelected = isStartDateSelected(startYear, startMonth, day);
-                  const isToday = startYear === new Date().getFullYear() && 
+                {startCalendarDays.map((dayObj, index) => {
+                  const { day, isCurrentMonth, isPrevMonth, isNextMonth } = dayObj;
+                  
+                  const isFuture = isCurrentMonth && isDateInFuture(startYear, startMonth, day);
+                  const isSelected = isCurrentMonth && isStartDateSelected(startYear, startMonth, day);
+                  const isToday = isCurrentMonth && startYear === new Date().getFullYear() && 
                                  startMonth === new Date().getMonth() && 
                                  day === new Date().getDate();
 
                   return (
                     <button
-                      key={day}
-                      onClick={() => !isFuture && handleStartDateClick(startYear, startMonth, day)}
-                      disabled={isFuture}
+                      key={index}
+                      onClick={() => isCurrentMonth && !isFuture && handleStartDateClick(startYear, startMonth, day)}
+                      disabled={!isCurrentMonth || isFuture}
                       className={`h-6 w-6 text-xs rounded transition-all duration-200 ${
                         isSelected
                           ? 'bg-blue-600 text-white font-medium'
                           : isToday
-                          ? 'bg-gray-200 text-gray-900 font-medium'
+                          ? 'bg-yellow-200 text-yellow-900 font-medium'
                           : isFuture
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : isPrevMonth || isNextMonth
+                          ? 'text-gray-300 cursor-not-allowed'
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                     >
@@ -335,12 +376,12 @@ const CalendarSelector: React.FC<CalendarSelectorProps> = ({
             <div className="w-20">
               <label className="block text-xs font-medium text-gray-600 mb-2">Month</label>
               <div className="grid grid-cols-2 gap-1">
-                {months.map((month, index) => (
+                {months.map((month, displayIndex) => (
                   <button
                     key={month}
-                    onClick={() => setEndMonth(index)}
-                    className={`px-2 py-1 text-xs rounded transition-colors w-full ${
-                      index === endMonth
+                    onClick={() => setEndMonth(getActualMonth(displayIndex))}
+                    className={`px-1 py-1 text-xs rounded transition-colors w-full ${
+                      getActualMonth(displayIndex) === endMonth
                         ? 'bg-blue-100 text-blue-700 font-medium'
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
@@ -355,36 +396,36 @@ const CalendarSelector: React.FC<CalendarSelectorProps> = ({
             <div className="flex-1">
               <div className="grid grid-cols-7 gap-1">
                 {/* Day headers */}
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) => (
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day) => (
                   <div key={day} className="text-xs font-medium text-gray-500 text-center py-1">
                     {day}
                   </div>
                 ))}
                 
                 {/* Calendar days */}
-                {endCalendarDays.map((day, index) => {
-                  if (day === null) {
-                    return <div key={index} className="h-6" />;
-                  }
-
-                  const isFuture = isDateInFuture(endYear, endMonth, day);
-                  const isSelected = isEndDateSelected(endYear, endMonth, day);
-                  const isToday = endYear === new Date().getFullYear() && 
+                {endCalendarDays.map((dayObj, index) => {
+                  const { day, isCurrentMonth, isPrevMonth, isNextMonth } = dayObj;
+                  
+                  const isFuture = isCurrentMonth && isDateInFuture(endYear, endMonth, day);
+                  const isSelected = isCurrentMonth && isEndDateSelected(endYear, endMonth, day);
+                  const isToday = isCurrentMonth && endYear === new Date().getFullYear() && 
                                  endMonth === new Date().getMonth() && 
                                  day === new Date().getDate();
 
                   return (
                     <button
-                      key={day}
-                      onClick={() => !isFuture && handleEndDateClick(endYear, endMonth, day)}
-                      disabled={isFuture}
+                      key={index}
+                      onClick={() => isCurrentMonth && !isFuture && handleEndDateClick(endYear, endMonth, day)}
+                      disabled={!isCurrentMonth || isFuture}
                       className={`h-6 w-6 text-xs rounded transition-all duration-200 ${
                         isSelected
                           ? 'bg-blue-600 text-white font-medium'
                           : isToday
-                          ? 'bg-gray-200 text-gray-900 font-medium'
+                          ? 'bg-yellow-200 text-yellow-900 font-medium'
                           : isFuture
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : isPrevMonth || isNextMonth
+                          ? 'text-gray-300 cursor-not-allowed'
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                     >

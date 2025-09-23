@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Upload, BarChart3, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import { Upload, BarChart3, CheckCircle, AlertCircle, TrendingUp, Settings } from 'lucide-react';
 import PortfolioAnalysisPage from './pages/PortfolioAnalysisPage';
+import AdministrationPage from './pages/AdministrationPage';
 import { apiService } from './services/api';
 import Logo from './components/Logo';
 import ErrorBoundary from './components/ErrorBoundary';
 import { logger } from './utils/logger';
+import { ToastProvider } from './contexts/ToastContext';
 
 
 const DashboardPage = ({ portfolio, setPortfolio }: { portfolio: any, setPortfolio: (portfolio: any) => void }) => {
@@ -354,6 +356,14 @@ const Sidebar = ({ portfolio }: { portfolio: any }) => {
     }
   ];
 
+  const adminItem = {
+    path: '/administration',
+    label: 'Administration',
+    icon: Settings,
+    badge: null,
+    disabled: false
+  };
+
   const getBadgeClasses = (badge: any) => {
     if (!badge) return '';
     const baseClasses = 'inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium whitespace-nowrap min-w-fit';
@@ -368,7 +378,7 @@ const Sidebar = ({ portfolio }: { portfolio: any }) => {
   };
 
   return (
-    <div className="w-72 bg-white border-r border-gray-200 h-screen">
+    <div className="w-72 bg-white border-r border-gray-200 h-screen flex flex-col">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 flex items-center justify-center">
@@ -381,14 +391,14 @@ const Sidebar = ({ portfolio }: { portfolio: any }) => {
             <p className="text-sm text-gray-500 mt-1">Bought the peak,<br />lost it all in a week</p>
             <div className="mt-2">
               <span className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 whitespace-nowrap">
-                v4.4.3
+                v4.4.4
               </span>
             </div>
           </div>
         </div>
       </div>
       
-      <nav className="p-4 space-y-2">
+      <nav className="p-4 space-y-2 flex-1">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
@@ -437,6 +447,57 @@ const Sidebar = ({ portfolio }: { portfolio: any }) => {
           );
         })}
       </nav>
+
+      {/* Administration link at the bottom */}
+      <div className="p-4 border-t border-gray-200">
+        {(() => {
+          const Icon = adminItem.icon;
+          const active = isActive(adminItem.path);
+          const isDisabled = adminItem.disabled;
+          
+          const menuItem = (
+            <div
+              className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
+                isDisabled
+                  ? 'text-gray-400 cursor-not-allowed opacity-50'
+                  : active
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Icon className={`w-5 h-5 mr-3 ${
+                isDisabled 
+                  ? 'text-gray-400' 
+                  : active 
+                  ? 'text-blue-600' 
+                  : 'text-gray-400'
+              }`} />
+              <div className="flex-1 flex items-center justify-between min-w-0">
+                <span className="font-medium truncate">{adminItem.label}</span>
+                {adminItem.badge && (
+                  <span className={`${getBadgeClasses(adminItem.badge)} ml-2 flex-shrink-0`}>
+                    {adminItem.badge.text}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+          
+          if (isDisabled) {
+            return (
+              <div onClick={(e) => e.preventDefault()}>
+                {menuItem}
+              </div>
+            );
+          }
+          
+          return (
+            <Link to={adminItem.path}>
+              {menuItem}
+            </Link>
+          );
+        })()}
+      </div>
     </div>
   );
 };
@@ -494,6 +555,9 @@ const MainLayout = () => {
       case '/portfolio/analysis':
         document.title = 'Altidus - Analysis Dashboard';
         break;
+      case '/administration':
+        document.title = 'Altidus - Administration';
+        break;
       default:
         document.title = 'Altidus - Portfolio Analysis';
     }
@@ -506,6 +570,7 @@ const MainLayout = () => {
         <Routes>
           <Route path="/" element={<DashboardPage portfolio={portfolio} setPortfolio={setPortfolio} />} />
           <Route path="/portfolio/analysis" element={<PortfolioAnalysisPage />} />
+          <Route path="/administration" element={<AdministrationPage />} />
         </Routes>
       </div>
     </div>
@@ -515,9 +580,11 @@ const MainLayout = () => {
 function App() {
   return (
     <ErrorBoundary>
-      <Router>
-        <MainLayout />
-      </Router>
+      <ToastProvider>
+        <Router>
+          <MainLayout />
+        </Router>
+      </ToastProvider>
     </ErrorBoundary>
   );
 }

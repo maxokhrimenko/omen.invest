@@ -39,7 +39,7 @@ Investment portfolio analysis tool providing comprehensive financial metrics and
 N/A - Personal project
 
 **High-level function of the system in one paragraph.**  
-The Portfolio Analysis Tool is a full-stack application that analyzes investment portfolios using Clean Architecture principles. The backend is a Python-based CLI application that loads portfolio data from CSV files, fetches real-time market data via Yahoo Finance API with warehouse caching, and calculates financial metrics including returns, risk ratios, volatility, and dividend analysis with frequency detection and annualization. The system features a read-through caching layer using embedded SQLite that provides 100x+ performance improvements for repeated requests, dividend absence caching to eliminate unnecessary API calls, and trading-day aware gap filling. The frontend is prepared for modern web development with React/TypeScript, providing both portfolio-level consolidated analysis and individual ticker analysis with interactive web interface, featuring color-coded metrics based on performance thresholds, multiple display formats (cards and table views), and visual presentation with performance feedback. The annualized dividend calculation system detects payment frequencies (Monthly, Quarterly, Semi-Annual, Annual, Irregular) and provides annualized dividend metrics for comparison across all stocks.
+The Portfolio Analysis Tool is a full-stack application that analyzes investment portfolios using Clean Architecture principles. The backend is a Python-based CLI application that loads portfolio data from CSV files, fetches real-time market data via Yahoo Finance API with warehouse caching, and calculates financial metrics including returns, risk ratios, volatility, and dividend analysis with frequency detection and annualization. The system features a read-through caching layer using embedded SQLite that provides 100x+ performance improvements for repeated requests, dividend absence caching to eliminate unnecessary API calls, and trading-day aware gap filling. The frontend is prepared for modern web development with React/TypeScript, providing both portfolio-level consolidated analysis and individual ticker analysis with interactive web interface, featuring color-coded metrics based on performance thresholds, multiple display formats (cards and table views), and visual presentation with performance feedback. The annualized dividend calculation system detects payment frequencies (Monthly, Quarterly, Semi-Annual, Annual, Irregular) and provides annualized dividend metrics for comparison across all stocks. The system includes a comprehensive administration system with warehouse management capabilities, enhanced date validation using previous working day logic for financial data consistency, and administrative API endpoints for system maintenance and data management.
 
 **Entry points (CLI/Service/Workers):**  
 - `backend/main.py` - Primary CLI application entry point
@@ -61,6 +61,7 @@ Evidence: backend/main.py:L78-L79
 | Statistical Analysis | scipy | >=1.7.0 | requirements.txt | requirements.txt:L4 |
 | Testing | pytest | >=6.0.0 | requirements.txt | requirements.txt:L5 |
 | Configuration | pyyaml | >=5.4.0 | requirements.txt | requirements.txt:L6 |
+| Timezone Handling | pytz | >=2023.3 | requirements.txt | requirements.txt:L7 |
 
 ## 3. Repository Map
 **Top-level directories & roles:**  
@@ -298,7 +299,73 @@ coverage_threshold = 0.1 if estimated_trading_days > 100 else 0.05
 
 **Evidence:** analyze_portfolio.py:L295-L354, analyze_portfolio.py:L76-L78
 
-## 8. Portfolio Analysis & Visualization (v4.4.0)
+## 8. Administration System & Enhanced Date Validation (v4.4.4)
+
+**Purpose:**  
+Comprehensive administration system with warehouse management capabilities, enhanced date validation for financial data consistency, and improved user interface with administrative tools.
+
+**Key Features:**
+
+#### Administration System
+- **Administration API Endpoints**: Complete set of administrative endpoints for system management
+  - `/api/admin/logs/clear-all` - Clear all application logs with timeout protection
+  - `/api/admin/warehouse/clear-all` - Clear all warehouse data with confirmation
+  - `/api/admin/warehouse/stats` - Get comprehensive warehouse statistics and metrics
+  - `/api/admin/warehouse/tickers` - Retrieve available tickers with search filtering
+  - `/api/admin/warehouse/clear-ticker` - Clear data for specific ticker symbols
+- **Administration Frontend Page**: New dedicated administration interface with warehouse management
+- **Toast Notification System**: Context-based toast notifications for user feedback
+- **Enhanced Sidebar**: Administration section with Settings icon and dedicated navigation
+
+#### Enhanced Date Validation System
+- **Previous Working Day Logic**: Intelligent date validation using previous working day instead of current date
+- **Financial Data Consistency**: Ensures analysis uses complete trading day data
+- **Timezone Support**: Added pytz dependency for proper timezone handling
+- **Date Range Improvements**: Updated DateRange class to use previous working day as default end date
+
+**Technical Implementation:**
+
+#### Administration System Architecture
+```python
+# Administrative API endpoints with subprocess management
+@app.post("/api/admin/logs/clear-all")
+async def clear_all_logs():
+    # Safe subprocess execution with timeout protection
+    result = subprocess.run(
+        ["python", script_path, "--clear-all", "--force"],
+        timeout=30, capture_output=True, text=True
+    )
+```
+
+#### Date Validation Enhancement
+```python
+# Previous working day validation
+def is_date_after_previous_working_day(date_str: str) -> bool:
+    # Intelligent date validation for financial data consistency
+    end_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    previous_working_day = get_previous_working_day()
+    return end_date > previous_working_day
+```
+
+#### Frontend Administration Integration
+- **AdministrationPage Component**: Dedicated administration interface
+- **ToastProvider Context**: Enhanced user feedback system
+- **Enhanced Navigation**: Administration section in sidebar
+- **Responsive Design**: Mobile-friendly administration interface
+
+**Performance Improvements:**
+- **Administrative Operations**: 30-60 second timeouts for administrative operations
+- **Date Processing**: Efficient previous working day calculations with timezone support
+- **Resource Management**: Optimized resource usage for administrative tasks
+- **Error Recovery**: Graceful error handling and user feedback
+
+**Evidence:** 
+- `backend/api.py:L801-L1045` - Administration API endpoints implementation
+- `frontend/src/App.tsx:L356-L447` - Administration page integration
+- `backend/src/infrastructure/utils/date_utils.py` - Date utility functions
+- `backend/src/domain/value_objects/date_range.py` - Enhanced DateRange class
+
+## 9. Portfolio Analysis & Visualization (v4.4.0)
 
 **Purpose:**  
 Overhaul of frontend architecture with logging system, improved error handling, data visualization, and backend optimizations. This release introduces logging capabilities, better user experience, and improved performance across all components.
@@ -430,6 +497,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 | Name | Type (svc/lib) | Responsibilities | Key Public APIs | Depends On | Evidence |
 |------|-----------------|------------------|-----------------|------------|----------|
 | PortfolioController | Controller | Orchestrate user interactions, format results | load_portfolio(), analyze_portfolio(), analyze_tickers(), compare_tickers() | All use cases | portfolio_controller.py:L11-L20 |
+| AdministrationAPI | API Endpoints | Administrative operations and system management | clear_all_logs(), clear_all_warehouse(), get_warehouse_stats(), get_warehouse_tickers(), clear_warehouse_ticker() | Subprocess, Admin Scripts | api.py:L801-L1045 |
 | LoadPortfolioUseCase | Use Case | Load portfolio from CSV files | execute(LoadPortfolioRequest) | PortfolioRepository | load_portfolio.py:L16-L33 |
 | AnalyzePortfolioUseCase | Use Case | Calculate portfolio-level metrics with data validation | execute(AnalyzePortfolioRequest) | MarketDataRepository | analyze_portfolio.py:L38-L86 |
 | AnalyzeTickerUseCase | Use Case | Calculate individual ticker metrics with data validation and annualized dividend analysis | execute(AnalyzeTickerRequest) | MarketDataRepository | analyze_ticker.py:L39-L91 |
@@ -442,6 +510,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 | LoggerService | Service | Logging management | get_logger(), log_performance(), log_user_action(), log_api_call() | logging | logger_service.py:L21-L235 |
 | ColorMetricsService | Service | Color-code financial metrics based on performance thresholds | get_color_for_metric(), colorize_percentage(), colorize_ratio() | None | color_metrics_service.py:L8-L159 |
 | TableFormatter | Utility | Format tables with color code handling | create_table(), format_table_row(), strip_ansi_codes() | re | table_formatter.py:L8-L95 |
+| DateUtils | Utility | Date validation and working day calculations | is_date_after_previous_working_day(), get_previous_working_day(), get_previous_working_day_string() | datetime, pytz | date_utils.py |
 | Portfolio | Entity | Portfolio aggregate root | get_tickers(), get_positions(), get_total_value() | Position, Ticker | portfolio.py:L6-L43 |
 | Ticker | Entity | Stock ticker symbol | symbol property | None | ticker.py:L1-L27 |
 | Position | Entity | Portfolio position | get_value(price) | Ticker, Money | position.py:L6-L37 |
@@ -489,6 +558,17 @@ For each operation, list:
 | Generate Report | CLI Menu Option 5 | None | Combined portfolio and ticker analysis | None | portfolio_controller.py:L127-L143 |
 | Settings | CLI Menu Option 6 | New start date or risk-free rate | Confirmation message | None | portfolio_controller.py:L145-L180 |
 | Warehouse Metrics | CLI Menu Option 7 | None | Warehouse performance metrics and statistics | None | portfolio_controller.py:L182-L200 |
+
+**Administration API Endpoints (REST API)**  
+For administrative operations and system management:
+
+| Endpoint/Operation | Method/Protocol | Request | Response | Auth | Evidence |
+|---|---|---|---|---|---|
+| Clear All Logs | POST /api/admin/logs/clear-all | None | Success/error message | None | api.py:L801-L825 |
+| Clear All Warehouse | POST /api/admin/warehouse/clear-all | None | Success/error message | None | api.py:L827-L851 |
+| Get Warehouse Stats | GET /api/admin/warehouse/stats | None | Warehouse statistics and metrics | None | api.py:L853-L900 |
+| Get Warehouse Tickers | GET /api/admin/warehouse/tickers | search (optional) | List of available tickers | None | api.py:L902-L970 |
+| Clear Warehouse Ticker | POST /api/admin/warehouse/clear-ticker | ticker (string) | Success/error message | None | api.py:L972-L1000 |
 
 ## 12. Events, Queues & Background Jobs
 | Topic/Queue | Producer(s) | Consumer(s) | Payload (schema) | Retry/DLQ | Schedule/Cron | Evidence |
