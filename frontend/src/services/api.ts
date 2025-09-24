@@ -120,7 +120,7 @@ class ApiService {
     return response.data;
   }
 
-  async analyzeTickers(startDate: string, endDate: string, tickerCount?: number): Promise<{ data: TickerAnalysis[]; failedTickers?: Array<{ ticker: string; firstAvailableDate?: string }> }> {
+  async analyzeTickers(startDate: string, endDate: string, tickerCount?: number): Promise<{ data: TickerAnalysis[]; failedTickers?: Array<{ ticker: string; firstAvailableDate?: string }>; warnings?: { missingTickers: string[]; tickersWithoutStartData: string[]; firstAvailableDates: { [ticker: string]: string } } }> {
     console.log('Calling analyzeTickers API...', { startDate, endDate });
     
     // Calculate dynamic timeout if ticker count is provided
@@ -130,18 +130,20 @@ class ApiService {
       console.log(`Using dynamic timeout: ${formatTimeout(timeout / 1000)} for ${tickerCount} tickers`);
     }
     
-    const response = await this.api.get<{ success: boolean; message: string; data: TickerAnalysis[]; failedTickers?: Array<{ ticker: string; firstAvailableDate?: string }> }>('/portfolio/tickers/analysis', {
+    const response = await this.api.get<{ success: boolean; message: string; data: TickerAnalysis[]; failedTickers?: Array<{ ticker: string; firstAvailableDate?: string }>; warnings?: { missingTickers: string[]; tickersWithoutStartData: string[]; firstAvailableDates: { [ticker: string]: string } } }>('/portfolio/tickers/analysis', {
       params: { start_date: startDate, end_date: endDate },
       timeout
     });
     console.log('analyzeTickers response:', { 
       success: response.data.success, 
       tickerCount: response.data.data.length,
-      failedTickers: response.data.failedTickers?.length || 0
+      failedTickers: response.data.failedTickers?.length || 0,
+      warnings: response.data.warnings
     });
     return {
       data: response.data.data,
-      failedTickers: response.data.failedTickers
+      failedTickers: response.data.failedTickers,
+      warnings: response.data.warnings
     };
   }
 

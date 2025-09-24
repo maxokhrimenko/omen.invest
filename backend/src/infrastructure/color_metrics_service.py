@@ -78,8 +78,16 @@ class ColorMetricsService(MetricsColorService):
         bad_threshold, excellent_threshold = thresholds[metric_name]
         
         # Handle cases for metrics where lower is better
-        if metric_name in ["max_drawdown", "volatility", "var_95", "beta"]:
-            # For max_drawdown, more negative is worse (closer to 0 is better)
+        if metric_name in ["volatility", "beta"]:
+            # For other metrics where lower is better
+            if value > bad_threshold:
+                return MetricLevel.BAD
+            elif value > excellent_threshold:
+                return MetricLevel.NORMAL
+            else:
+                return MetricLevel.EXCELLENT
+        elif metric_name in ["max_drawdown", "var_95"]:
+            # For max_drawdown and var_95, less negative is better (closer to 0 is better)
             if metric_name == "max_drawdown":
                 if value < bad_threshold:  # More negative than -30%
                     return MetricLevel.BAD
@@ -87,13 +95,12 @@ class ColorMetricsService(MetricsColorService):
                     return MetricLevel.NORMAL
                 else:  # Less negative than -15% (closer to 0)
                     return MetricLevel.EXCELLENT
-            else:
-                # For other metrics where lower is better
-                if value > bad_threshold:
+            elif metric_name == "var_95":
+                if value < bad_threshold:  # More negative than -2%
                     return MetricLevel.BAD
-                elif value > excellent_threshold:
+                elif value < excellent_threshold:  # Between -2% and -1%
                     return MetricLevel.NORMAL
-                else:
+                else:  # Less negative than -1% (closer to 0)
                     return MetricLevel.EXCELLENT
         else:
             # For metrics where higher is better

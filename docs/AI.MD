@@ -10,23 +10,25 @@
 - [7. Enhanced Data Validation & Analysis Accuracy (v4.4.1)](#7-enhanced-data-validation--analysis-accuracy-v441)
 - [8. Advanced Portfolio Analysis & Visualization (v4.4.0)](#8-advanced-portfolio-analysis--visualization-v440)
 - [9. Portfolio Dividend Metrics & CLI-Frontend Alignment (v4.4.7)](#9-portfolio-dividend-metrics--cli-frontend-alignment-v447)
-- [10. Services & Modules](#10-services--modules)
-- [11. Data Storage & Schema](#11-data-storage--schema)
-- [12. APIs & Contracts](#12-apis--contracts)
-- [13. Events, Queues & Background Jobs](#13-events-queues--background-jobs)
-- [14. Configuration & Secrets](#14-configuration--secrets)
-- [15. Build, Run & Deploy](#15-build-run--deploy)
-- [16. Observability](#16-observability)
-- [17. Testing & QA](#17-testing--qa)
-- [18. Performance & Scalability](#18-performance--scalability)
-- [19. Security & Compliance](#19-security--compliance)
-- [20. Core Flows (Sequence Diagrams)](#20-core-flows-sequence-diagrams)
-- [21. LLM/AI Integration (if any)](#21-llmai-integration-if-any)
-- [22. Extension Guide (How to Safely Change Things)](#22-extension-guide-how-to-safely-change-things)
-- [23. Data Validation & Missing Data Detection](#23-data-validation--missing-data-detection)
-- [24. Known Issues & TODOs](#24-known-issues--todos)
-- [25. Glossary & Domain Concepts](#25-glossary--domain-concepts)
-- [26. License & Third-Party Notices](#26-license--third-party-notices)
+- [10. Enhanced Ticker Analysis System (v4.4.8)](#10-enhanced-ticker-analysis-system-v448)
+- [11. Portfolio Analysis & Visualization (v4.4.0)](#11-portfolio-analysis--visualization-v440)
+- [12. Services & Modules](#12-services--modules)
+- [13. Data Storage & Schema](#13-data-storage--schema)
+- [14. APIs & Contracts](#14-apis--contracts)
+- [15. Events, Queues & Background Jobs](#15-events-queues--background-jobs)
+- [16. Configuration & Secrets](#16-configuration--secrets)
+- [17. Build, Run & Deploy](#17-build-run--deploy)
+- [18. Observability](#18-observability)
+- [19. Testing & QA](#19-testing--qa)
+- [20. Performance & Scalability](#20-performance--scalability)
+- [21. Security & Compliance](#21-security--compliance)
+- [22. Core Flows (Sequence Diagrams)](#22-core-flows-sequence-diagrams)
+- [23. LLM/AI Integration (if any)](#23-llmai-integration-if-any)
+- [24. Extension Guide (How to Safely Change Things)](#24-extension-guide-how-to-safely-change-things)
+- [25. Data Validation & Missing Data Detection](#25-data-validation--missing-data-detection)
+- [26. Known Issues & TODOs](#26-known-issues--todos)
+- [27. Glossary & Domain Concepts](#27-glossary--domain-concepts)
+- [28. License & Third-Party Notices](#28-license--third-party-notices)
 - [Appendix A. Module Index](#appendix-a-module-index)
 - [Appendix B. Evidence Index](#appendix-b-evidence-index)
 
@@ -482,6 +484,13 @@ Enhanced portfolio analysis with comprehensive dividend metrics and complete CLI
   - Loading and success messages updated to reflect portfolio-only analysis
   - Frontend behavior now matches CLI "Analyze Portfolio" option exactly
 
+#### Enhanced Ticker Analysis System (v4.4.8)
+- **Individual Ticker Analysis Page**: New dedicated page for individual ticker analysis
+- **Enhanced Data Validation**: Improved data availability warnings with detailed information
+- **Momentum Calculation Enhancement**: Better momentum calculation for shorter data periods
+- **API Response Enhancement**: Enhanced ticker analysis API with comprehensive data validation
+- **Color Metrics Service Improvement**: Better handling of negative metrics (VaR, max drawdown)
+
 **Technical Implementation:**
 
 #### Portfolio Dividend Metrics Calculation
@@ -529,7 +538,123 @@ print(f"📊 Total Div Yield:   {total_dividend_yield_colored}")
 - `backend/src/presentation/controllers/portfolio_controller.py` - CLI display enhancement
 - `frontend/src/components/portfolio/PortfolioChart.tsx` - Custom legend implementation
 
-## 10. Portfolio Analysis & Visualization (v4.4.0)
+## 10. Enhanced Ticker Analysis System (v4.4.8)
+
+**Purpose:**  
+Enhanced individual ticker analysis with improved data validation, better momentum calculations, and a dedicated frontend page for ticker analysis.
+
+**Key Features:**
+
+#### Individual Ticker Analysis Page
+- **Dedicated Frontend Page**: New `TickerAnalysisPage` component for individual ticker analysis
+- **Enhanced Navigation**: Updated sidebar with "Tickers Analysis" option
+- **Badge System**: "new" badge indicating the new feature
+- **Conditional Access**: Only available when portfolio is loaded
+
+#### Enhanced Data Validation
+- **Comprehensive Warnings**: Improved data availability warnings with detailed information
+- **Missing Tickers Detection**: Identifies tickers with no data available
+- **Start Date Validation**: Detects tickers without data at analysis start date
+- **First Available Dates**: Tracks when data first becomes available for problematic tickers
+- **Tolerance System**: 5-day business day tolerance for start date validation
+
+#### Momentum Calculation Enhancement
+- **Adaptive Momentum**: Better momentum calculation for shorter data periods
+- **Standard 12-1 Momentum**: Uses 1 year ago to 1 month ago when sufficient data available
+- **Fallback Calculation**: Uses start to 1 month ago when less than 1 year of data
+- **Insufficient Data Handling**: Returns 0 when less than 1 month of data available
+
+#### API Response Enhancement
+- **Enhanced Ticker Analysis API**: Improved `/api/tickers/analysis` endpoint
+- **Comprehensive Warnings**: Includes missing tickers, incomplete data, and first available dates
+- **Data Validation Fields**: Added `hasDataAtStart` and `firstAvailableDate` fields
+- **Processing Time Tracking**: Enhanced performance monitoring
+
+#### Color Metrics Service Improvement
+- **Better Negative Metrics Handling**: Improved logic for VaR and max drawdown color coding
+- **Separate Logic for Different Metrics**: Different handling for volatility/beta vs max drawdown/VaR
+- **More Accurate Color Coding**: Better visual representation of metric performance
+
+**Technical Implementation:**
+
+#### Enhanced Data Validation
+```python
+# Categorize tickers based on data availability
+missing_tickers = []
+tickers_without_start_data = []
+first_available_dates = {}
+
+for ticker in request.tickers:
+    if ticker not in all_price_data or all_price_data[ticker].empty:
+        missing_tickers.append(ticker.symbol)
+    else:
+        # Check if data is available at start date
+        prices = all_price_data[ticker]
+        start_timestamp = pd.Timestamp(request.date_range.start)
+        first_available_date = prices.index[0]
+        
+        # Allow up to 5 business days tolerance for start date
+        tolerance_days = 5
+        max_allowed_start = start_timestamp + pd.Timedelta(days=tolerance_days)
+        
+        if first_available_date > max_allowed_start:
+            tickers_without_start_data.append(ticker.symbol)
+            first_available_dates[ticker.symbol] = first_available_date.strftime('%Y-%m-%d')
+```
+
+#### Adaptive Momentum Calculation
+```python
+def _calculate_momentum(self, prices: pd.Series) -> Percentage:
+    """Calculate 12-1 momentum (skip last month) or available momentum if insufficient data."""
+    if len(prices) >= 252:
+        # Standard 12-1 momentum: 1 year ago to 1 month ago
+        price_252d = prices.iloc[-252]
+        price_21d = prices.iloc[-21]
+        return Percentage((price_21d - price_252d) / price_252d * 100)
+    elif len(prices) >= 21:
+        # If we have at least 1 month of data, calculate momentum from start to 1 month ago
+        price_start = prices.iloc[0]
+        price_21d = prices.iloc[-21]
+        return Percentage((price_21d - price_start) / price_start * 100)
+    else:
+        # Insufficient data for momentum calculation
+        return Percentage(0)
+```
+
+#### Enhanced API Response
+```python
+# Enhanced ticker analysis response
+{
+    "ticker": "AAPL",
+    "hasDataAtStart": True,
+    "firstAvailableDate": None,
+    "warnings": {
+        "missingTickers": [],
+        "tickersWithoutStartData": [],
+        "firstAvailableDates": {}
+    }
+}
+```
+
+**Data Model Changes:**
+- **AnalyzeTickersResponse**: Added `missing_tickers`, `tickers_without_start_data`, and `first_available_dates` fields
+- **API Response**: Enhanced with comprehensive data validation information
+- **Frontend Components**: New `TickerAnalysisPage` and enhanced `DataWarnings` component
+
+**Benefits:**
+- **Better User Experience**: Dedicated page for ticker analysis with clear data warnings
+- **Improved Data Quality**: More accurate data validation and warning system
+- **Enhanced Analysis**: Better momentum calculations for various data periods
+- **Clearer Feedback**: Comprehensive information about data availability issues
+
+**Evidence:** 
+- `frontend/src/pages/TickerAnalysisPage.tsx` - New ticker analysis page
+- `frontend/src/App.tsx` - Enhanced navigation with ticker analysis
+- `backend/src/application/use_cases/analyze_ticker.py` - Enhanced data validation
+- `backend/api.py` - Improved ticker analysis API response
+- `frontend/src/components/portfolio/DataWarnings.tsx` - Enhanced data warnings component
+
+## 11. Portfolio Analysis & Visualization (v4.4.0)
 
 **Purpose:**  
 Overhaul of frontend architecture with logging system, improved error handling, data visualization, and backend optimizations. This release introduces logging capabilities, better user experience, and improved performance across all components.
@@ -657,7 +782,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 - portfolio_session_manager.py:L1-L172 (Frontend logging)
 - PortfolioChart.tsx, RedesignedPortfolioMetrics.tsx (Frontend components)
 
-## 10. Services & Modules
+## 12. Services & Modules
 | Name | Type (svc/lib) | Responsibilities | Key Public APIs | Depends On | Evidence |
 |------|-----------------|------------------|-----------------|------------|----------|
 | PortfolioController | Controller | Orchestrate user interactions, format results | load_portfolio(), analyze_portfolio(), analyze_tickers(), compare_tickers() | All use cases | portfolio_controller.py:L11-L20 |
@@ -682,7 +807,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 | Percentage | Value Object | Percentage calculations | to_decimal(), format() | None | percentage.py:L4-L29 |
 | DateRange | Value Object | Date range handling | start, end properties | None | date_range.py:L4-L34 |
 
-## 11. Data Storage & Schema
+## 13. Data Storage & Schema
 **Stores:** CSV Files (local file system) + SQLite Warehouse Database  
 **Connection points & ORM models:**  
 - CSV files via pandas DataFrame
@@ -705,7 +830,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 **Migrations & seeds:** N/A - File-based storage, no migrations needed  
 Evidence: input/test.csv:L1-L16, csv_portfolio_repository.py:L35-L56, warehouse_service.py:L29-L84
 
-## 12. APIs & Contracts
+## 14. APIs & Contracts
 **CLI Interface (Interactive Menu System)**  
 For each operation, list:
 - Menu Option
@@ -734,12 +859,12 @@ For administrative operations and system management:
 | Get Warehouse Tickers | GET /api/admin/warehouse/tickers | search (optional) | List of available tickers | None | api.py:L902-L970 |
 | Clear Warehouse Ticker | POST /api/admin/warehouse/clear-ticker | ticker (string) | Success/error message | None | api.py:L972-L1000 |
 
-## 13. Events, Queues & Background Jobs
+## 15. Events, Queues & Background Jobs
 | Topic/Queue | Producer(s) | Consumer(s) | Payload (schema) | Retry/DLQ | Schedule/Cron | Evidence |
 |-------------|-------------|-------------|------------------|-----------|---------------|----------|
 | N/A | N/A | N/A | N/A | N/A | N/A | No event system or background jobs |
 
-## 14. Configuration & Secrets
+## 16. Configuration & Secrets
 | Variable/Config | Purpose | Default/Example | Source (.env, config.yml) | Required? | Evidence |
 |-----------------|---------|-----------------|----------------------------|-----------|----------|
 | Default start date | Analysis period start | "2024-03-01" | Hardcoded in controller | No | portfolio_controller.py:L22 |
@@ -751,7 +876,7 @@ For administrative operations and system management:
 No secrets or sensitive data - all data is public market information  
 Evidence: No authentication or secrets in codebase
 
-## 15. Build, Run & Deploy
+## 17. Build, Run & Deploy
 **Local dev:** commands to install, run, test.  
 ```bash
 # Backend Setup
@@ -783,7 +908,7 @@ npm test
 **CI/CD:** N/A - No CI/CD pipeline configured  
 Evidence: README.md:L101-L145
 
-## 16. Observability
+## 18. Observability
 **Logs:** formats, levels, sinks.  
 - **Logging system** with session-based separation
 - **Dual log streams**: Session-specific logs (`logs/sessions/`) and total logs (`logs/total/`)
@@ -804,7 +929,7 @@ Evidence: README.md:L101-L145
 **Dashboards & alerts:** N/A - No monitoring dashboards  
 Evidence: src/infrastructure/logging/logger_service.py, admin/logs_clear.py
 
-## 17. Testing & QA
+## 19. Testing & QA
 | Test Type | Where | How to Run | Coverage Hints | Evidence |
 |----------|------|------------|----------------|----------|
 | Unit Tests | tests/unit/ | pytest tests/unit/ | Domain entities and value objects | test_entities.py:L1-L147, test_value_objects.py:L1-L95 |
@@ -814,7 +939,7 @@ Evidence: src/infrastructure/logging/logger_service.py, admin/logs_clear.py
 **Linters/formatters:** N/A - No linter configuration found  
 Evidence: 38 total tests (34 unit + 4 integration), CHANGELOG.md:L56-L59
 
-## 18. Performance & Scalability
+## 20. Performance & Scalability
 **Bottlenecks & hot paths:**  
 - Yahoo Finance API calls (network latency) - **SOLVED with warehouse caching**
 - Large portfolio analysis (O(n) for each ticker)
@@ -834,7 +959,7 @@ Evidence: 38 total tests (34 unit + 4 integration), CHANGELOG.md:L56-L59
 - **API Efficiency**: Eliminates unnecessary external API calls
 Evidence: warehouse_market_repository.py:L14-L218, warehouse_service.py:L9-L317
 
-## 19. Security & Compliance
+## 21. Security & Compliance
 **Authn/z model:** None - No authentication required  
 **Data classification (PII/PHI/etc.):** Public market data only  
 **Supply-chain & license risks:**  
@@ -847,7 +972,7 @@ Evidence: warehouse_market_repository.py:L14-L218, warehouse_service.py:L9-L317
 - Error handling for external API failures
 Evidence: csv_portfolio_repository.py:L35-L56, portfolio_controller.py:L160-L180
 
-## 20. Core Flows (Sequence Diagrams)
+## 22. Core Flows (Sequence Diagrams)
 For each major flow, provide a Mermaid sequence diagram + brief notes.
 
 ### Portfolio Loading Flow
@@ -899,12 +1024,12 @@ sequenceDiagram
 
 Evidence: portfolio_controller.py:L25-L67, analyze_portfolio.py:L42-L86
 
-## 21. LLM/AI Integration (if any)
+## 23. LLM/AI Integration (if any)
 | Area | Model(s) & Version(s) | Prompt Template Location | Vector DB/Index | Tokenization Settings | Guardrails | Evidence |
 |------|-----------------------|--------------------------|-----------------|-----------------------|------------|----------|
 | N/A | N/A | N/A | N/A | N/A | N/A | No AI/LLM integration |
 
-## 22. Extension Guide (How to Safely Change Things)
+## 24. Extension Guide (How to Safely Change Things)
 **Where to add a new endpoint/worker/module:**  
 - New use cases: Add to `src/application/use_cases/`
 - New repositories: Add to `src/infrastructure/repositories/`
@@ -932,7 +1057,7 @@ Evidence: portfolio_controller.py:L25-L67, analyze_portfolio.py:L42-L86
 - Test changes locally before committing
 Evidence: ARCHITECTURE.md:L405-L422
 
-## 23. Data Validation & Missing Data Detection
+## 25. Data Validation & Missing Data Detection
 
 **Purpose:**  
 Data validation system that identifies and reports tickers with missing or incomplete data for portfolio analysis.
@@ -964,7 +1089,7 @@ Data validation system that identifies and reports tickers with missing or incom
 
 **Evidence:** analyze_portfolio.py:L172-L206, analyze_ticker.py:L70-L85, portfolio_controller.py:L316-L331
 
-## 24. Known Issues & TODOs
+## 26. Known Issues & TODOs
 - No known issues documented in code
 - No TODO comments found in codebase
 - Potential improvements:
@@ -974,7 +1099,7 @@ Data validation system that identifies and reports tickers with missing or incom
   - Add logging framework
 Evidence: No TODO comments or issue tracking found
 
-## 25. Glossary & Domain Concepts
+## 27. Glossary & Domain Concepts
 | Term | Meaning | Evidence |
 |------|---------|----------|
 | Portfolio | Collection of investment positions | portfolio.py:L6-L43 |
@@ -991,7 +1116,7 @@ Evidence: No TODO comments or issue tracking found
 | Repository Pattern | Data access abstraction | repositories.py:L9-L36 |
 | Value Object | Immutable domain concept | money.py:L4-L45 |
 
-## 26. License & Third-Party Notices
+## 28. License & Third-Party Notices
 | Package | Version | License | Obligations | Evidence |
 |---------|---------|---------|-------------|----------|
 | pandas | >=1.3.0 | BSD-3-Clause | Attribution required | requirements.txt:L1 |

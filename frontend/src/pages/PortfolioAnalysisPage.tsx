@@ -129,26 +129,6 @@ const PortfolioAnalysisPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Portfolio Summary */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Portfolio Summary</h2>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{portfolio.tickers.length}</div>
-              <div className="text-xs text-gray-500">Tickers</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{portfolio.totalPositions.toLocaleString()}</div>
-              <div className="text-xs text-gray-500">Positions</div>
-            </div>
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${analysisResults ? 'text-purple-600' : 'text-gray-400'}`}>
-                {analysisResults ? '✓' : '○'}
-              </div>
-              <div className="text-xs text-gray-500">Status</div>
-            </div>
-          </div>
-        </div>
 
         {/* Run New Analysis Section - Always on top */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">

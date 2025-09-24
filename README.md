@@ -2,7 +2,7 @@
 
 A comprehensive full-stack application for analyzing investment portfolios, built with clean architecture principles. The system consists of a FastAPI backend with clean architecture, a React frontend interface, and a robust database layer.
 
-> **🚀 Version 4.4.7 - Parallel Processing & Warehouse Optimization System**: This release introduces a comprehensive parallel processing architecture with advanced warehouse optimizations, delivering 3-5x performance improvements through multi-threaded calculations and intelligent data fetching.
+> **🚀 Version 4.4.8 - Portfolio Dividend Metrics & Frontend Chart Enhancement**: This release introduces comprehensive portfolio-level dividend metrics and completes the CLI-frontend alignment, ensuring consistent behavior across all interfaces with enhanced visual presentation and custom chart legends.
 
 ## 🏗️ Architecture Overview
 

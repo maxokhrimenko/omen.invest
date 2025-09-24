@@ -790,13 +790,15 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
                 "sortinoRatio": f"{metrics.sortino_ratio:.3f}",
                 "beta": f"{metrics.beta:.3f}",
                 "var95": f"{metrics.var_95.value:.2f}%",
-                "momentum12_1": f"{metrics.momentum_12_1.value:.2f}%",
+                "momentum12to1": f"{metrics.momentum_12_1.value:.2f}%",
                 "dividendYield": f"{metrics.dividend_yield.value:.2f}%",
                 "dividendAmount": f"${metrics.dividend_amount.amount:.2f}",
                 "dividendFrequency": metrics.dividend_frequency,
                 "annualizedDividend": f"${metrics.annualized_dividend.amount:.2f}",
                 "startPrice": f"${metrics.start_price.amount:.2f}",
-                "endPrice": f"${metrics.end_price.amount:.2f}"
+                "endPrice": f"${metrics.end_price.amount:.2f}",
+                "hasDataAtStart": True,  # All successful tickers have data at start
+                "firstAvailableDate": None  # Not available in batch response
             }
             ticker_results.append(ticker_data)
         
@@ -827,11 +829,15 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
             "success": True,
             "message": response.message,
             "data": ticker_results,
-            "processingTimeSeconds": response.processing_time_seconds
+            "processingTimeSeconds": response.processing_time_seconds,
+            "warnings": {
+                "missingTickers": response.missing_tickers or [],
+                "tickersWithoutStartData": response.tickers_without_start_data or [],
+                "firstAvailableDates": response.first_available_dates or {}
+            }
         }
         
         if response.failed_tickers:
-            response_data["warnings"] = f"Failed to analyze {len(response.failed_tickers)} tickers"
             response_data["failedTickers"] = [
                 {"ticker": ticker, "firstAvailableDate": None} 
                 for ticker in response.failed_tickers

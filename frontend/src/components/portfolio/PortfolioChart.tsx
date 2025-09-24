@@ -7,7 +7,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   ReferenceLine
 } from 'recharts';
@@ -170,96 +169,100 @@ const PortfolioChart: React.FC<PortfolioChartProps> = ({
   );
 
   return (
-    <div className="w-full h-full relative">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={chartData}
-          margin={{
-            top: 20,
-            right: 30,
-            left: 20,
-            bottom: 40,
-          }}
-        >
-          <CartesianGrid 
-            strokeDasharray="2 4" 
-            stroke="#e2e8f0" 
-            strokeOpacity={0.4}
-            vertical={false}
-          />
-          
-          <XAxis
-            dataKey="date"
-            type="category"
-            tickFormatter={formatXAxisTick}
-            tick={{ fontSize: 11, fill: '#64748b', fontWeight: '500' }}
-            axisLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
-            tickLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
-            interval="preserveStartEnd"
-            minTickGap={50}
-            angle={-45}
-            textAnchor="end"
-            height={60}
-          />
-          
-          <YAxis
-            tickFormatter={formatYAxisTick}
-            tick={{ fontSize: 11, fill: '#64748b', fontWeight: '500' }}
-            axisLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
-            tickLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
-            domain={[0, 'dataMax + 100']}
-            tickCount={6}
-          />
-          
-          <Tooltip content={<CustomTooltip />} />
-          
-          {/* Reference line at start value */}
-          <ReferenceLine 
-            y={startValue} 
-            stroke="#6366f1" 
-            strokeDasharray="4 4" 
-            strokeWidth={2}
-            strokeOpacity={0.8}
-          />
-          
-          
-          <Line
-            type="monotone"
-            dataKey="portfolio"
-            stroke="#3b82f6"
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
-            connectNulls={true}
-            name="Portfolio"
-          />
-          
-          <Line
-            type="monotone"
-            dataKey="sp500"
-            stroke="#10b981"
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }}
-            connectNulls={true}
-            name="S&P 500"
-          />
-          
-          <Line
-            type="monotone"
-            dataKey="nasdaq"
-            stroke="#f59e0b"
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 6, stroke: '#f59e0b', strokeWidth: 2 }}
-            connectNulls={true}
-            name="NASDAQ"
-          />
-        </LineChart>
-      </ResponsiveContainer>
+    <div className="w-full h-full flex flex-col">
+      <div className="flex-1">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={chartData}
+            margin={{
+              top: 10,
+              right: 30,
+              left: 20,
+              bottom: 10,
+            }}
+          >
+            <CartesianGrid 
+              strokeDasharray="2 4" 
+              stroke="#e2e8f0" 
+              strokeOpacity={0.4}
+              vertical={false}
+            />
+            
+            <XAxis
+              dataKey="date"
+              type="category"
+              tickFormatter={formatXAxisTick}
+              tick={{ fontSize: 11, fill: '#64748b', fontWeight: '500' }}
+              axisLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
+              tickLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
+              interval="preserveStartEnd"
+              minTickGap={50}
+              angle={-45}
+              textAnchor="end"
+              height={60}
+            />
+            
+            <YAxis
+              tickFormatter={formatYAxisTick}
+              tick={{ fontSize: 11, fill: '#64748b', fontWeight: '500' }}
+              axisLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
+              tickLine={{ stroke: '#e2e8f0', strokeWidth: 1 }}
+              domain={[0, 'dataMax + 100']}
+              tickCount={6}
+            />
+            
+            <Tooltip content={<CustomTooltip />} />
+            
+            {/* Reference line at start value */}
+            <ReferenceLine 
+              y={startValue} 
+              stroke="#6366f1" 
+              strokeDasharray="4 4" 
+              strokeWidth={2}
+              strokeOpacity={0.8}
+            />
+            
+            
+            <Line
+              type="monotone"
+              dataKey="portfolio"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
+              connectNulls={true}
+              name="Portfolio"
+            />
+            
+            <Line
+              type="monotone"
+              dataKey="sp500"
+              stroke="#10b981"
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }}
+              connectNulls={true}
+              name="S&P 500"
+            />
+            
+            <Line
+              type="monotone"
+              dataKey="nasdaq"
+              stroke="#f59e0b"
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 6, stroke: '#f59e0b', strokeWidth: 2 }}
+              connectNulls={true}
+              name="NASDAQ"
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
       
-      {/* Custom Legend */}
-      <CustomLegend />
+      {/* Custom Legend - positioned at bottom within container */}
+      <div className="flex-shrink-0 px-4 pt-3 pb-6">
+        <CustomLegend />
+      </div>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Dict
 import pandas as pd
 import numpy as np
 import time
@@ -59,6 +59,9 @@ class AnalyzeTickersResponse:
     success: bool
     message: str
     processing_time_seconds: float
+    missing_tickers: List[str] = None
+    tickers_without_start_data: List[str] = None
+    first_available_dates: Optional[Dict[str, str]] = None
 
 class AnalyzeTickerUseCase:
     def __init__(self, market_data_repo: MarketDataRepository):
@@ -176,8 +179,30 @@ class AnalyzeTickerUseCase:
             )
             benchmark_fetch_time = self._performance_monitor.end_timing("benchmark_data_fetch")
             
-            # Step 2: Process all tickers using parallel calculation
+            # Step 2: Analyze data availability and categorize tickers
             self._performance_monitor.start_timing("calculations")
+            
+            # Categorize tickers based on data availability
+            missing_tickers = []
+            tickers_without_start_data = []
+            first_available_dates = {}
+            
+            for ticker in request.tickers:
+                if ticker not in all_price_data or all_price_data[ticker].empty:
+                    missing_tickers.append(ticker.symbol)
+                else:
+                    # Check if data is available at start date
+                    prices = all_price_data[ticker]
+                    start_timestamp = pd.Timestamp(request.date_range.start)
+                    first_available_date = prices.index[0]
+                    
+                    # Allow up to 5 business days tolerance for start date
+                    tolerance_days = 5
+                    max_allowed_start = start_timestamp + pd.Timedelta(days=tolerance_days)
+                    
+                    if first_available_date > max_allowed_start:
+                        tickers_without_start_data.append(ticker.symbol)
+                        first_available_dates[ticker.symbol] = first_available_date.strftime('%Y-%m-%d')
             
             # Use parallel calculation service for better performance
             ticker_metrics, failed_tickers = self._parallel_calculation_service.calculate_ticker_metrics_parallel(
@@ -217,7 +242,10 @@ class AnalyzeTickerUseCase:
                 failed_tickers=failed_tickers,
                 success=True,
                 message=f"Analyzed {len(ticker_metrics)} tickers in {total_time:.2f} seconds",
-                processing_time_seconds=total_time
+                processing_time_seconds=total_time,
+                missing_tickers=missing_tickers,
+                tickers_without_start_data=tickers_without_start_data,
+                first_available_dates=first_available_dates
             )
             
         except Exception as e:
@@ -228,7 +256,10 @@ class AnalyzeTickerUseCase:
                 failed_tickers=[t.symbol for t in request.tickers],
                 success=False,
                 message=f"Batch analysis failed: {str(e)}",
-                processing_time_seconds=total_time
+                processing_time_seconds=total_time,
+                missing_tickers=[],
+                tickers_without_start_data=[],
+                first_available_dates={}
             )
     
     
@@ -281,12 +312,20 @@ class AnalyzeTickerUseCase:
         )
     
     def _calculate_momentum(self, prices: pd.Series) -> Percentage:
-        """Calculate 12-1 momentum (skip last month)."""
+        """Calculate 12-1 momentum (skip last month) or available momentum if insufficient data."""
         if len(prices) >= 252:
+            # Standard 12-1 momentum: 1 year ago to 1 month ago
             price_252d = prices.iloc[-252]
             price_21d = prices.iloc[-21]
             return Percentage((price_21d - price_252d) / price_252d * 100)
-        return Percentage(0)
+        elif len(prices) >= 21:
+            # If we have at least 1 month of data, calculate momentum from start to 1 month ago
+            price_start = prices.iloc[0]
+            price_21d = prices.iloc[-21]
+            return Percentage((price_21d - price_start) / price_start * 100)
+        else:
+            # Insufficient data for momentum calculation
+            return Percentage(0)
     
     def _calculate_dividend_metrics(self, dividends: pd.Series, prices: pd.Series, 
                                   date_range: DateRange, currency: str) -> tuple[Percentage, Money, str, Money]:

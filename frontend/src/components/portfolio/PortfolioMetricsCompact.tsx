@@ -7,8 +7,39 @@ interface PortfolioMetricsCompactProps {
 }
 
 const PortfolioMetricsCompact: React.FC<PortfolioMetricsCompactProps> = ({ metrics }) => {
-  const getMetricColor = (value: string, thresholds: { good: number; bad: number }) => {
+  const getMetricColor = (value: string, thresholds: { good: number; bad: number }, metricName?: string) => {
     const numValue = parseFloat(value.replace(/[%,$]/g, ''));
+    
+    // Handle VaR (95%) - lower (more negative) is worse
+    if (metricName === 'VaR (95%)') {
+      if (numValue < thresholds.bad) return 'text-red-600 bg-red-50 border-red-200';
+      if (numValue < thresholds.good) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      return 'text-green-600 bg-green-50 border-green-200';
+    }
+    
+    // Handle Beta - closer to 1.0 is better
+    if (metricName === 'Beta') {
+      const distanceFromOne = Math.abs(numValue - 1.0);
+      if (distanceFromOne > 0.5) return 'text-red-600 bg-red-50 border-red-200'; // >1.5 or <0.5
+      if (distanceFromOne > 0.3) return 'text-yellow-600 bg-yellow-50 border-yellow-200'; // 0.7-1.3
+      return 'text-green-600 bg-green-50 border-green-200'; // 0.7-1.3
+    }
+    
+    // Handle Volatility - lower is better
+    if (metricName === 'Volatility') {
+      if (numValue > thresholds.bad) return 'text-red-600 bg-red-50 border-red-200';
+      if (numValue > thresholds.good) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      return 'text-green-600 bg-green-50 border-green-200';
+    }
+    
+    // Handle Max Drawdown - less negative is better
+    if (metricName === 'Max Drawdown') {
+      if (numValue < thresholds.bad) return 'text-red-600 bg-red-50 border-red-200';
+      if (numValue < thresholds.good) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      return 'text-green-600 bg-green-50 border-green-200';
+    }
+    
+    // Standard case where higher is better
     if (numValue >= thresholds.good) return 'text-green-600 bg-green-50 border-green-200';
     if (numValue <= thresholds.bad) return 'text-red-600 bg-red-50 border-red-200';
     return 'text-yellow-600 bg-yellow-50 border-yellow-200';
@@ -53,29 +84,29 @@ const PortfolioMetricsCompact: React.FC<PortfolioMetricsCompactProps> = ({ metri
     {
       name: 'Sortino Ratio',
       value: metrics.sortinoRatio,
-      thresholds: { good: 1.5, bad: 0.5 },
-      ranges: { green: '≥1.5', yellow: '0.5-1.5', red: '<0.5' },
+      thresholds: { good: 2.0, bad: 1.0 },
+      ranges: { green: '≥2.0', yellow: '1.0-2.0', red: '<1.0' },
       icon: Shield
     },
     {
       name: 'Calmar Ratio',
       value: metrics.calmarRatio,
-      thresholds: { good: 1.0, bad: 0.3 },
-      ranges: { green: '≥1.0', yellow: '0.3-1.0', red: '<0.3' },
+      thresholds: { good: 1.0, bad: 0.5 },
+      ranges: { green: '≥1.0', yellow: '0.5-1.0', red: '<0.5' },
       icon: Target
     },
     {
       name: 'VaR (95%)',
       value: metrics.var95,
-      thresholds: { good: -2, bad: -5 },
-      ranges: { green: '>-2%', yellow: '-5 to -2%', red: '<-5%' },
+      thresholds: { good: -1, bad: -2 },
+      ranges: { green: '>-1%', yellow: '-2 to -1%', red: '<-2%' },
       icon: AlertTriangle
     },
     {
       name: 'Beta',
       value: metrics.beta,
       thresholds: { good: 0.7, bad: 1.3 },
-      ranges: { green: '0.7-1.3', yellow: '<0.7 or >1.3', red: '<0.5 or >1.5' },
+      ranges: { green: '<0.7', yellow: '0.7-1.3', red: '>1.3' },
       icon: BarChart3
     }
   ];
@@ -84,7 +115,7 @@ const PortfolioMetricsCompact: React.FC<PortfolioMetricsCompactProps> = ({ metri
     <div className="space-y-2">
       {metricsData.map((metric, index) => {
         const Icon = metric.icon;
-        const colorClass = getMetricColor(metric.value, metric.thresholds);
+        const colorClass = getMetricColor(metric.value, metric.thresholds, metric.name);
         
         return (
           <div key={index} className={`flex items-center justify-between p-3 rounded-lg border ${colorClass}`}>

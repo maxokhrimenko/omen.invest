@@ -1036,6 +1036,28 @@ const isApiError = (error: unknown): error is ApiError => {
   - Message Updates: Loading and success messages updated to reflect portfolio-only analysis
   - Behavior Consistency: Frontend behavior now matches CLI "Analyze Portfolio" option exactly
 
+#### Enhanced Ticker Analysis System (v4.4.8)
+- **Individual Ticker Analysis Page**: New dedicated frontend page for ticker analysis
+  - Dedicated Frontend Page: New `TickerAnalysisPage` component
+  - Enhanced Navigation: Updated sidebar with "Tickers Analysis" option
+  - Badge System: "new" badge indicating the new feature
+  - Conditional Access: Only available when portfolio is loaded
+- **Enhanced Data Validation**: Improved data availability warnings and validation
+  - Comprehensive Warnings: Improved data availability warnings with detailed information
+  - Missing Tickers Detection: Identifies tickers with no data available
+  - Start Date Validation: Detects tickers without data at analysis start date
+  - First Available Dates: Tracks when data first becomes available for problematic tickers
+  - Tolerance System: 5-day business day tolerance for start date validation
+- **Momentum Calculation Enhancement**: Better momentum calculation for shorter data periods
+  - Adaptive Momentum: Better momentum calculation for shorter data periods
+  - Standard 12-1 Momentum: Uses 1 year ago to 1 month ago when sufficient data available
+  - Fallback Calculation: Uses start to 1 month ago when less than 1 year of data
+  - Insufficient Data Handling: Returns 0 when less than 1 month of data available
+- **Color Metrics Service Improvement**: Better handling of negative metrics
+  - Better Negative Metrics Handling: Improved logic for VaR and max drawdown color coding
+  - Separate Logic for Different Metrics: Different handling for volatility/beta vs max drawdown/VaR
+  - More Accurate Color Coding: Better visual representation of metric performance
+
 #### Portfolio Dividend Metrics System (v4.4.7)
 
 The portfolio dividend metrics system provides comprehensive dividend analysis at the portfolio level, enhancing the existing individual ticker dividend analysis with portfolio-wide calculations.
@@ -1071,6 +1093,151 @@ const CustomLegend = () => (
 - **Enhanced Portfolio Analysis**: Seamless integration with enhanced portfolio analysis endpoint
 - **Dividend Metrics Display**: Portfolio metrics display with dividend information
 - **Data Consistency**: Consistent data handling between frontend and backend
+
+#### Enhanced Ticker Analysis System (v4.4.8)
+
+The enhanced ticker analysis system provides improved individual ticker analysis with better data validation, adaptive momentum calculations, and a dedicated frontend page.
+
+##### TickerAnalysisPage Component
+- **Dedicated Frontend Page**: New `TickerAnalysisPage` component for individual ticker analysis
+- **Enhanced Navigation**: Updated sidebar with "Tickers Analysis" option and "new" badge
+- **Conditional Access**: Only available when portfolio is loaded
+- **Comprehensive Interface**: Complete ticker analysis interface with date range selection
+
+##### DataWarnings Component Enhancement
+- **Enhanced Data Availability Warnings**: Improved data availability warnings with detailed information
+- **Collapsible Warning Display**: Interactive warning display with expand/collapse functionality
+- **Missing Tickers Detection**: Identifies tickers with no data available
+- **Start Date Validation Warnings**: Detects tickers without data at analysis start date
+- **First Available Dates Tracking**: Tracks when data first becomes available for problematic tickers
+- **Improved User Experience**: Better visual presentation and user interaction
+
+##### API Integration
+- **Enhanced Ticker Analysis Endpoint**: Integration with `/api/tickers/analysis` endpoint
+- **Data Validation Fields**: Added `hasDataAtStart` and `firstAvailableDate` fields
+- **Comprehensive Warnings**: Includes missing tickers, incomplete data, and first available dates
+- **Processing Time Tracking**: Enhanced performance monitoring
+
+##### Technical Implementation
+```typescript
+// Enhanced DataWarnings Component
+const DataWarnings: React.FC<DataWarningsProps> = ({ warnings }) => {
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [showDetails, setShowDetails] = React.useState(false);
+
+  const hasWarnings = warnings.missingTickers.length > 0 || warnings.tickersWithoutStartData.length > 0;
+  
+  if (!hasWarnings) {
+    return null;
+  }
+
+  const totalProblematicTickers = warnings.missingTickers.length + warnings.tickersWithoutStartData.length;
+  const allProblematicTickers = [...warnings.missingTickers, ...warnings.tickersWithoutStartData];
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+      <div className="flex items-center justify-between">
+        {/* Left side - Warning info */}
+        <div className="flex items-center space-x-3 flex-1 min-w-0">
+          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-amber-800">
+                Data Notice: {totalProblematicTickers} ticker{totalProblematicTickers !== 1 ? 's' : ''} with data issues
+              </span>
+              {warnings.missingTickers.length > 0 && (
+                <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                  {warnings.missingTickers.length} missing
+                </span>
+              )}
+              {warnings.tickersWithoutStartData.length > 0 && (
+                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
+                  {warnings.tickersWithoutStartData.length} incomplete
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-amber-700 mt-1 truncate">
+              {allProblematicTickers.slice(0, 5).join(', ')}
+              {allProblematicTickers.length > 5 && ` +${allProblematicTickers.length - 5} more`}
+            </div>
+          </div>
+        </div>
+
+        {/* Right side - Action buttons */}
+        <div className="flex items-center space-x-2 flex-shrink-0">
+          <button
+            onClick={toggleDetails}
+            className="text-xs text-amber-700 hover:text-amber-800 px-2 py-1 rounded hover:bg-amber-100 transition-colors"
+          >
+            {showDetails ? 'Hide Details' : 'Show Details'}
+          </button>
+          <button
+            onClick={toggleCollapse}
+            className="text-amber-400 hover:text-amber-600 transition-colors p-1 rounded hover:bg-amber-100"
+            aria-label={isCollapsed ? "Expand data notice" : "Collapse data notice"}
+            type="button"
+          >
+            {isCollapsed ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronUp className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Detailed content when expanded */}
+      {!isCollapsed && showDetails && (
+        <div className="mt-3 pt-3 border-t border-amber-200 space-y-3">
+          {/* Missing Tickers */}
+          {warnings.missingTickers.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+              <div className="flex items-center mb-1">
+                <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+                <span className="text-xs font-medium text-red-800">No data available</span>
+              </div>
+              <div className="text-xs text-red-700 font-mono ml-4 break-all">
+                {warnings.missingTickers.join(', ')}
+              </div>
+            </div>
+          )}
+
+          {/* Incomplete Data */}
+          {warnings.tickersWithoutStartData.length > 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
+              <div className="flex items-center mb-1">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
+                <span className="text-xs font-medium text-yellow-800">Incomplete data at start date</span>
+              </div>
+              <div className="text-xs text-yellow-700 font-mono ml-4 break-all">
+                {warnings.tickersWithoutStartData.join(', ')}
+              </div>
+            </div>
+          )}
+
+          {/* First Available Dates */}
+          {Object.keys(warnings.firstAvailableDates).length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+              <div className="flex items-center mb-2">
+                <Calendar className="w-3 h-3 text-blue-600 mr-1" />
+                <span className="text-xs font-medium text-blue-800">First available dates</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+                {Object.entries(warnings.firstAvailableDates).map(([ticker, date]) => (
+                  <div key={ticker} className="flex items-center justify-between bg-white rounded px-2 py-1 text-xs">
+                    <span className="font-mono text-blue-700 font-medium truncate">{ticker}</span>
+                    <span className="text-blue-600 ml-1">{new Date(date).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+```
 
 #### Code Organization
 - **Extracted Inline Components**: Moved large `DashboardPage` component from `App.tsx` to dedicated file

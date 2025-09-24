@@ -1,5 +1,147 @@
 # Changelog
 
+## [4.4.8] - 2025-09-24
+
+### 🎯 Portfolio Dividend Metrics & Frontend Chart Enhancement
+
+This release introduces comprehensive portfolio-level dividend metrics and completes the CLI-frontend alignment, ensuring consistent behavior across all interfaces with enhanced visual presentation.
+
+### ✨ Added
+
+#### 💰 Portfolio Dividend Metrics System
+- **Portfolio Dividend Amount**: Total dividends received across all positions in the analysis period
+- **Annualized Dividend Yield**: Portfolio-level annualized dividend yield based on average portfolio value
+- **Total Dividend Yield**: Total dividend yield for the analysis period based on starting portfolio value
+- **Position-Level Calculations**: Individual position dividend calculations with quantity weighting
+- **Currency Support**: Proper currency handling for dividend amounts
+- **API Integration**: Enhanced portfolio analysis endpoint with dividend metrics
+- **CLI Display**: Added dividend metrics to portfolio analysis output with color coding
+
+#### 🎨 Frontend Chart Enhancement
+- **Custom Legend Implementation**: Enhanced portfolio chart with custom legend using Lucide React icons
+- **Visual Improvements**: Better chart presentation with TrendingUp, Building2, and BarChart3 icons
+- **Responsive Design**: Mobile-friendly legend with proper spacing and alignment
+- **Icon Integration**: Seamless integration of Lucide React icons for better visual representation
+
+### 🔄 Changed
+
+#### 🎯 Portfolio Analysis Enhancement
+- **PortfolioMetrics Class**: Added `dividend_amount`, `annualized_dividend_yield`, and `total_dividend_yield` fields
+- **API Response**: Enhanced portfolio analysis endpoint with dividend metrics in JSON response
+- **CLI Display**: Added dividend metrics to portfolio analysis output with color-coded formatting
+- **Calculation Logic**: Implemented portfolio-level dividend calculations with position weighting
+
+#### 🔧 Backend Architecture
+- **AnalyzePortfolioUseCase**: Enhanced with portfolio dividend metrics calculation
+- **Dividend History Fetching**: Added dividend data retrieval for all portfolio tickers
+- **Position-Level Calculations**: Individual position dividend calculations with quantity weighting
+- **Error Handling**: Comprehensive error handling for dividend data fetching
+
+#### 🎨 Frontend Integration
+- **Portfolio Chart**: Enhanced with custom legend implementation
+- **API Integration**: Seamless integration with enhanced portfolio analysis endpoint
+- **Metrics Display**: Portfolio metrics display with dividend information
+- **Data Consistency**: Consistent data handling between frontend and backend
+
+### 🐛 Fixed
+
+#### 🎯 Data Consistency
+- **Portfolio Analysis**: Ensured consistent dividend metrics across CLI and frontend
+- **API Response**: Fixed missing dividend metrics in portfolio analysis endpoint
+- **Display Formatting**: Proper formatting of dividend amounts and yields
+- **Error Handling**: Enhanced error handling for dividend data fetching
+
+#### 🔧 Frontend Issues
+- **Chart Legend**: Fixed chart legend display with custom implementation
+- **Icon Integration**: Proper integration of Lucide React icons
+- **Responsive Design**: Improved mobile-friendly legend layout
+- **Visual Consistency**: Consistent visual presentation across all components
+
+### 🏗️ Technical Implementation Details
+
+#### 💰 Portfolio Dividend Metrics Calculation
+```python
+def _calculate_portfolio_dividend_metrics(self, portfolio: Portfolio, dividend_history: Dict[Ticker, pd.Series], 
+                                        price_history: Dict[Ticker, pd.Series], start_value: Money, 
+                                        end_value: Money) -> tuple[Money, Percentage, Percentage]:
+    # Calculate total dividends received across all positions
+    # Calculate annualized dividend yield using average portfolio value
+    # Calculate total dividend yield for the analysis period
+```
+
+#### 🎨 Frontend Chart Enhancement
+```typescript
+// Enhanced Portfolio Chart with Custom Legend
+const CustomLegend = () => (
+  <div className="flex justify-center items-center gap-6 mt-2">
+    <div className="flex items-center gap-2">
+      <TrendingUp className="w-4 h-4 text-blue-600" />
+      <span className="text-sm font-medium text-gray-700">Portfolio</span>
+    </div>
+    {/* Additional legend items... */}
+  </div>
+);
+```
+
+#### 📊 API Response Enhancement
+```python
+# Enhanced portfolio analysis response
+{
+    "dividendAmount": f"${metrics.dividend_amount.amount:,.2f}",
+    "annualizedDividendYield": f"{metrics.annualized_dividend_yield.value:.2f}%",
+    "totalDividendYield": f"{metrics.total_dividend_yield.value:.2f}%"
+}
+```
+
+### 📊 Performance Improvements
+
+#### 🎯 Portfolio Analysis
+- **Dividend Calculations**: Efficient portfolio-level dividend calculations
+- **Position Weighting**: Proper quantity weighting for dividend calculations
+- **API Response**: Enhanced response times with additional dividend metrics
+- **Data Processing**: Optimized dividend data processing and calculation
+
+#### 🎨 Frontend Performance
+- **Chart Rendering**: Improved chart rendering with custom legend
+- **Icon Integration**: Efficient icon rendering and display
+- **Responsive Design**: Optimized mobile-friendly layout
+- **Visual Performance**: Enhanced visual presentation and user experience
+
+### 🎯 Benefits
+
+#### 👨‍💻 Developer Experience
+- **Comprehensive Metrics**: Complete dividend analysis at portfolio level
+- **Consistent API**: Enhanced API responses with dividend metrics
+- **Code Organization**: Well-structured dividend calculation methods
+- **Error Handling**: Robust error handling for dividend data operations
+
+#### 👤 User Experience
+- **Complete Analysis**: Full dividend metrics for portfolio evaluation
+- **Visual Clarity**: Enhanced chart presentation with custom legend
+- **Consistent Interface**: Unified experience across CLI and frontend
+- **Data Completeness**: Comprehensive portfolio analysis with dividend information
+
+#### 🏢 System Reliability
+- **Data Consistency**: Consistent dividend metrics across all interfaces
+- **API Completeness**: Enhanced API responses with all necessary metrics
+- **Error Recovery**: Robust error handling for dividend data operations
+- **Performance**: Optimized calculations and data processing
+
+### 🔮 Future Enhancements
+
+#### 🚀 Planned Features
+- **Advanced Dividend Analysis**: More sophisticated dividend metrics and calculations
+- **Dividend Forecasting**: Predictive dividend analysis and forecasting
+- **Enhanced Visualizations**: More advanced chart types and visualizations
+- **Export Capabilities**: Dividend metrics export functionality
+
+#### 🛠️ Technical Roadmap
+- **Performance Optimization**: Further optimization of dividend calculations
+- **Advanced Analytics**: Machine learning-based dividend analysis
+- **Real-time Updates**: Live dividend data integration
+- **Enhanced Reporting**: Advanced dividend reporting and analytics
+
+
 ## [4.4.7] - 2025-01-27
 
 ### 🎯 Portfolio Dividend Metrics & CLI-Frontend Alignment

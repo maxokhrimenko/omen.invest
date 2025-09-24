@@ -84,7 +84,7 @@ const PortfolioMetricsDisplay: React.FC<PortfolioMetricsDisplayProps> = ({
         <div className="w-3/5 flex flex-col">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Comparison</h3>
           <div 
-            className="border border-gray-200 rounded-lg flex-1 min-h-[400px] flex flex-col"
+            className="border border-gray-200 rounded-lg flex-1 min-h-[400px] flex flex-col p-4"
           >
             <PortfolioChart
               portfolioValues={timeSeriesData.portfolioValues}
