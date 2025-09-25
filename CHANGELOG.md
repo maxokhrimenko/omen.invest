@@ -1,5 +1,144 @@
 # Changelog
 
+## [4.4.9] - 2025-09-25
+
+### 🎯 Enhanced Data Warning Tooltips & UI Improvements
+
+This release introduces significant improvements to the data warning tooltip system with viewport-aware positioning, better user experience, and enhanced visual feedback for data quality issues.
+
+### ✨ Added
+
+#### 🎨 Advanced Tooltip System
+- **Viewport-Aware Positioning**: Smart tooltip positioning that automatically adjusts to stay within viewport boundaries
+- **Dynamic Positioning Logic**: Tooltips intelligently position themselves above or below triggers based on available space
+- **Responsive Design**: Tooltips adapt to different screen sizes and orientations
+- **Smooth Animations**: Enhanced tooltip appearance with proper z-index management and transitions
+- **Event Handling**: Comprehensive mouse enter/leave event handling with proper cleanup
+
+#### 🔧 Enhanced User Experience
+- **Fixed Positioning**: Tooltips use fixed positioning to prevent layout shifts and scrolling issues
+- **Proper Z-Index Management**: Tooltips appear above all other content with z-index 9999
+- **Viewport Boundary Detection**: Automatic adjustment when tooltips would extend beyond screen edges
+- **Improved Accessibility**: Better tooltip visibility and interaction patterns
+- **Consistent Styling**: Unified tooltip appearance across all components
+
+### 🔄 Changed
+
+#### 🎯 Frontend Component Architecture
+- **TickerMetricsCards Component**: Replaced inline tooltip implementation with reusable DataWarningTooltip component
+- **TickerMetricsTable Component**: Enhanced with same advanced tooltip system for consistency
+- **Component Reusability**: Created shared DataWarningTooltip component for consistent behavior
+- **State Management**: Improved tooltip state management with proper React hooks usage
+- **Performance Optimization**: Better event listener management and cleanup
+
+#### 🎨 UI/UX Improvements
+- **Tooltip Positioning**: Replaced relative positioning with fixed positioning for better reliability
+- **Visual Consistency**: Standardized tooltip appearance across cards and table views
+- **Better Spacing**: Improved tooltip spacing and arrow positioning
+- **Enhanced Readability**: Better text wrapping and line height for tooltip content
+- **Mobile Optimization**: Improved tooltip behavior on mobile devices
+
+### 🐛 Fixed
+
+#### 🎯 Tooltip Issues
+- **Viewport Overflow**: Fixed tooltips extending beyond screen boundaries
+- **Z-Index Problems**: Resolved tooltip layering issues with proper z-index management
+- **Positioning Accuracy**: Fixed tooltip positioning calculations for better alignment
+- **Event Handling**: Improved mouse event handling and cleanup
+- **Layout Shifts**: Eliminated layout shifts caused by tooltip positioning
+
+#### 🔧 Component Issues
+- **Memory Leaks**: Fixed potential memory leaks with proper event listener cleanup
+- **Performance**: Optimized tooltip rendering and positioning calculations
+- **Responsiveness**: Improved tooltip behavior on window resize and scroll events
+- **Cross-Component Consistency**: Ensured consistent tooltip behavior across all components
+
+### 🏗️ Technical Implementation Details
+
+#### 🎨 Advanced Tooltip Architecture
+```typescript
+// Viewport-aware positioning with dynamic adjustment
+const updatePosition = useCallback(() => {
+  const triggerRect = triggerRef.current.getBoundingClientRect();
+  const tooltipRect = tooltipRef.current.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  // Calculate ideal position with boundary checks
+  let top = triggerRect.top - tooltipRect.height - 8;
+  let left = triggerRect.left + (triggerRect.width / 2);
+
+  // Adjust for viewport boundaries
+  if (left - (tooltipRect.width / 2) < 8) {
+    left = 8 + (tooltipRect.width / 2);
+  } else if (left + (tooltipRect.width / 2) > viewportWidth - 8) {
+    left = viewportWidth - 8 - (tooltipRect.width / 2);
+  }
+
+  if (top < 8) {
+    top = triggerRect.bottom + 8;
+  }
+
+  setPosition({ top, left });
+}, []);
+```
+
+#### 🔧 Component Integration
+- **Reusable Component**: DataWarningTooltip component used across TickerMetricsCards and TickerMetricsTable
+- **Props Interface**: Clean props interface with message and children props
+- **Event Management**: Proper event listener setup and cleanup in useEffect
+- **State Management**: useState and useRef hooks for tooltip visibility and positioning
+- **Performance**: useCallback for optimized event handlers and positioning logic
+
+### 📊 Performance Improvements
+
+#### 🎯 Tooltip Performance
+- **Efficient Positioning**: Optimized positioning calculations with minimal DOM queries
+- **Event Optimization**: Proper event listener management with cleanup
+- **Memory Management**: Better memory usage with proper component lifecycle management
+- **Rendering Optimization**: Reduced unnecessary re-renders with proper state management
+
+#### 🔧 User Experience
+- **Smooth Interactions**: Enhanced tooltip appearance and disappearance animations
+- **Responsive Behavior**: Better tooltip behavior across different screen sizes
+- **Accessibility**: Improved tooltip accessibility and keyboard navigation
+- **Visual Clarity**: Better tooltip visibility and readability
+
+### 🎯 Benefits
+
+#### 👨‍💻 Developer Experience
+- **Reusable Components**: Shared tooltip component reduces code duplication
+- **Better Architecture**: Cleaner component structure with proper separation of concerns
+- **Easier Maintenance**: Centralized tooltip logic for easier updates and bug fixes
+- **Type Safety**: Full TypeScript integration with proper type definitions
+
+#### 👤 User Experience
+- **Better Data Warnings**: More reliable and visible data quality warnings
+- **Improved Accessibility**: Better tooltip visibility and interaction patterns
+- **Consistent Interface**: Unified tooltip behavior across all components
+- **Mobile Friendly**: Better tooltip behavior on mobile devices
+
+#### 🏢 System Reliability
+- **Viewport Awareness**: Tooltips always stay within visible screen area
+- **Performance**: Optimized tooltip rendering and positioning
+- **Memory Management**: Proper cleanup prevents memory leaks
+- **Cross-Platform**: Consistent behavior across different browsers and devices
+
+### 🔮 Future Enhancements
+
+#### 🚀 Planned Features
+- **Advanced Positioning**: More sophisticated positioning algorithms for complex layouts
+- **Animation Enhancements**: Smooth fade-in/fade-out animations for tooltips
+- **Keyboard Navigation**: Full keyboard accessibility for tooltip interactions
+- **Custom Styling**: User-configurable tooltip appearance and behavior
+
+#### 🛠️ Technical Roadmap
+- **Performance Monitoring**: Tooltip performance metrics and optimization
+- **Accessibility Testing**: Comprehensive accessibility testing and improvements
+- **Cross-Browser Testing**: Enhanced cross-browser compatibility testing
+- **Component Library**: Tooltip component library for broader application use
+
+
 ## [4.4.8] - 2025-09-24
 
 ### 🎯 Portfolio Dividend Metrics & Frontend Chart Enhancement

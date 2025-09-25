@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { AlertTriangle, Info } from 'lucide-react';
 import type { TickerAnalysis } from '../../types/portfolio';
 import { getMetricColorClasses, getMetricTextColor, parseMetricValue } from '../../utils/tickerColorCoding';
@@ -9,6 +9,91 @@ interface TickerMetricsTableProps {
   problematicTickers?: string[];
   firstAvailableDates?: { [ticker: string]: string };
 }
+
+// Proper tooltip component with viewport-aware positioning
+const DataWarningTooltip: React.FC<{ 
+  message: string; 
+  children: React.ReactNode;
+}> = ({ message, children }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  const updatePosition = useCallback(() => {
+    if (!triggerRef.current || !tooltipRef.current) return;
+
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Calculate ideal position (above the trigger, centered)
+    let top = triggerRect.top - tooltipRect.height - 8;
+    let left = triggerRect.left + (triggerRect.width / 2);
+
+    // Adjust if tooltip would go off-screen
+    if (left - (tooltipRect.width / 2) < 8) {
+      left = 8 + (tooltipRect.width / 2);
+    } else if (left + (tooltipRect.width / 2) > viewportWidth - 8) {
+      left = viewportWidth - 8 - (tooltipRect.width / 2);
+    }
+
+    if (top < 8) {
+      top = triggerRect.bottom + 8;
+    }
+
+    setPosition({ top, left });
+  }, []);
+
+  useEffect(() => {
+    if (isVisible) {
+      updatePosition();
+      window.addEventListener('resize', updatePosition);
+      window.addEventListener('scroll', updatePosition);
+      return () => {
+        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('scroll', updatePosition);
+      };
+    }
+  }, [isVisible, updatePosition]);
+
+  return (
+    <>
+      <div 
+        ref={triggerRef}
+        className="relative group"
+        onMouseEnter={() => setIsVisible(true)}
+        onMouseLeave={() => setIsVisible(false)}
+      >
+        {children}
+      </div>
+      
+      {isVisible && (
+        <div
+          ref={tooltipRef}
+          className="fixed z-[9999] pointer-events-none"
+          style={{
+            top: `${position.top}px`,
+            left: `${position.left}px`,
+            transform: 'translateX(-50%)'
+          }}
+        >
+          <div className="bg-amber-900 text-white text-sm rounded-lg px-4 py-3 shadow-xl w-80 whitespace-normal">
+            <div className="font-bold mb-2 text-base flex items-center">
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Data Warning
+            </div>
+            <div className="text-amber-100 leading-relaxed break-words">
+              {message}
+            </div>
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-amber-900"></div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
 
 // Tooltip component
 const MetricTooltip: React.FC<{ metricName: string; children: React.ReactNode; position?: 'left' | 'center' | 'right' }> = ({ metricName, children, position = 'center' }) => {
@@ -539,19 +624,9 @@ const TickerMetricsTable: React.FC<TickerMetricsTableProps> = ({
                       <div className="flex items-center space-x-1">
                         <span className="text-sm font-medium text-gray-900">{ticker.ticker}</span>
                         {isProblematicTicker(ticker.ticker) && (
-                          <div className="relative group">
+                          <DataWarningTooltip message={getWarningMessage(ticker.ticker) || ''}>
                             <AlertTriangle className="w-3 h-3 text-amber-500 cursor-help" />
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
-                              <div className="bg-amber-900 text-white text-sm rounded-lg px-4 py-3 min-w-64 max-w-80 shadow-xl">
-                                <div className="font-bold mb-2 text-base flex items-center">
-                                  <AlertTriangle className="w-4 h-4 mr-2" />
-                                  Data Warning
-                                </div>
-                                <div className="text-amber-100 leading-relaxed">{getWarningMessage(ticker.ticker)}</div>
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-amber-900 rotate-45"></div>
-                              </div>
-                            </div>
-                          </div>
+                          </DataWarningTooltip>
                         )}
                       </div>
                     </div>
