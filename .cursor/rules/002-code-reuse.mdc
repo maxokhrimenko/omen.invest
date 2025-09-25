@@ -1,0 +1,109 @@
+---
+description: Enforce code reuse principles and prohibit unnecessary file creation
+globs: **/*.py,**/*.ts,**/*.tsx,**/*.js,**/*.jsx
+tags: [code-reuse, architecture, maintainability]
+priority: 2
+version: 1.0.0
+---
+
+# Code Reuse and File Creation Rules
+
+## Context
+Before creating any new files or modules, developers must first examine existing code to identify reusable components and understand the impact on system architecture.
+
+## Requirements
+
+### Pre-Development Analysis
+- **MANDATORY**: Search the entire codebase for existing similar functionality
+- **MANDATORY**: Identify what can be reused, extended, or refactored
+- **MANDATORY**: Document why existing code cannot be reused before creating new code
+- **PROHIBITED**: Creating new files without first analyzing existing code structure
+
+### Code Reuse Patterns
+- **Service Composition**: Combine existing services rather than creating new ones
+- **Strategy Pattern**: Use existing interfaces for different algorithms
+- **Template Method Pattern**: Extend existing base classes for common workflows
+- **Dependency Injection**: Use existing abstractions and interfaces
+
+## Examples
+
+### Valid Examples
+```python
+# Reusing existing service
+class PortfolioAnalysisService:
+    def __init__(self, 
+                 metrics_calc: MetricsCalculator,  # Existing service
+                 data_fetcher: DataFetcher,        # Existing service
+                 validator: DataValidator):        # Existing service
+        self.metrics_calc = metrics_calc
+        self.data_fetcher = data_fetcher
+        self.validator = validator
+
+# Extending existing functionality
+class EnhancedMetricsCalculator(MetricsCalculator):
+    def calculate_advanced_metrics(self, data: Any) -> Dict:
+        base_metrics = self.calculate(data)
+        # Add new functionality
+        return {**base_metrics, 'advanced': self._compute_advanced(data)}
+```
+
+### Invalid Examples
+```python
+# Creating new service without checking existing
+class NewDataProcessor:  # Should check if DataProcessor exists
+    def process_data(self, data: Any) -> Any:
+        pass
+
+# Duplicating existing functionality
+class AnotherMetricsCalculator:  # MetricsCalculator already exists
+    def calculate_return(self, prices: List[float]) -> float:
+        pass
+```
+
+## File Creation Rules
+
+### Prohibited Actions
+- **NEVER** create new files without first searching the codebase
+- **NEVER** duplicate existing functionality
+- **NEVER** create files that violate clean architecture principles
+
+### Required Actions
+- **ALWAYS** search for existing similar functionality first
+- **ALWAYS** document why existing code cannot be reused
+- **ALWAYS** follow the clean architecture layer structure
+- **ALWAYS** create proper interfaces and abstractions
+
+## Clean Architecture Compliance
+
+### Layer Structure
+```
+presentation/     # UI, Controllers, CLI
+application/      # Use Cases, Interfaces
+domain/          # Entities, Value Objects, Business Rules
+infrastructure/  # Repositories, External Services, Database
+```
+
+### Layer Dependencies
+- **Presentation** → **Application** → **Domain**
+- **Infrastructure** → **Application** (via interfaces)
+- **NO** direct dependencies between presentation and infrastructure
+- **NO** domain dependencies on external frameworks
+
+## Search Commands
+```bash
+# Search for similar functionality
+grep -r "pattern" src/
+find . -name "*.py" | xargs grep -l "keyword"
+
+# Search for existing services
+grep -r "class.*Service" src/
+grep -r "class.*Repository" src/
+grep -r "class.*UseCase" src/
+```
+
+## Documentation Requirements
+When creating new code, document:
+- Why existing code cannot be reused
+- What existing components are being extended
+- How the new code fits into the architecture
+- What dependencies are being created or modified

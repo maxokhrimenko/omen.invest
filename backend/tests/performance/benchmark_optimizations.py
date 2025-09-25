@@ -19,7 +19,6 @@ from src.domain.entities.ticker import Ticker
 from src.domain.value_objects.date_range import DateRange
 from src.application.use_cases.analyze_ticker import AnalyzeTickerUseCase, AnalyzeTickersRequest
 from src.infrastructure.repositories.warehouse_market_repository import WarehouseMarketRepository
-from src.infrastructure.logging.logger_service import initialize_logging
 
 
 @dataclass
@@ -38,8 +37,6 @@ class PerformanceBenchmark:
     """Performance benchmark for portfolio analysis optimizations."""
     
     def __init__(self):
-        self.logger_service = initialize_logging("logs/benchmark")
-        self.logger = self.logger_service.get_logger("benchmark")
         
         # Initialize repositories
         self.market_repo = WarehouseMarketRepository(warehouse_enabled=True)
@@ -63,7 +60,7 @@ class PerformanceBenchmark:
     
     def run_benchmark(self, ticker_count: int, iterations: int = 3) -> BenchmarkResult:
         """Run benchmark for specified number of tickers."""
-        self.logger.info(f"Running benchmark for {ticker_count} tickers, {iterations} iterations")
+        print(f"Running benchmark for {ticker_count} tickers, {iterations} iterations")
         
         # Select test tickers
         test_tickers = self.test_tickers[:ticker_count]
@@ -75,7 +72,7 @@ class PerformanceBenchmark:
         memory_usages = []
         
         for i in range(iterations):
-            self.logger.info(f"Running iteration {i+1}/{iterations}")
+            print(f"Running iteration {i+1}/{iterations}")
             
             # Measure memory before
             import psutil
@@ -103,7 +100,7 @@ class PerformanceBenchmark:
             failed_counts.append(len(response.failed_tickers))
             memory_usages.append(memory_after - memory_before)
             
-            self.logger.info(f"Iteration {i+1} completed in {execution_times[-1]:.3f}s")
+            print(f"Iteration {i+1} completed in {execution_times[-1]:.3f}s")
         
         # Calculate averages
         avg_execution_time = sum(execution_times) / len(execution_times)
@@ -122,12 +119,12 @@ class PerformanceBenchmark:
             throughput_tickers_per_second=throughput
         )
         
-        self.logger.info(f"Benchmark completed: {result}")
+        print(f"Benchmark completed: {result}")
         return result
     
     def run_scalability_test(self, ticker_counts: List[int]) -> List[BenchmarkResult]:
         """Run scalability test with different ticker counts."""
-        self.logger.info(f"Running scalability test with ticker counts: {ticker_counts}")
+        print(f"Running scalability test with ticker counts: {ticker_counts}")
         
         results = []
         for ticker_count in ticker_counts:
@@ -135,7 +132,7 @@ class PerformanceBenchmark:
                 result = self.run_benchmark(ticker_count, iterations=2)
                 results.append(result)
             except Exception as e:
-                self.logger.error(f"Benchmark failed for {ticker_count} tickers: {str(e)}")
+                print(f"Benchmark failed for {ticker_count} tickers: {str(e)}")
                 continue
         
         return results
@@ -214,11 +211,11 @@ class PerformanceBenchmark:
         with open(f"logs/{filename}", "w") as f:
             f.write(report)
         
-        self.logger.info(f"Benchmark results saved to logs/{filename}")
+        print(f"Benchmark results saved to logs/{filename}")
     
     def run_full_benchmark(self):
         """Run a benchmark suite."""
-        self.logger.info("Starting benchmark suite")
+        print("Starting benchmark suite")
         
         # Test different ticker counts
         ticker_counts = [5, 10, 20, 50]
@@ -232,7 +229,7 @@ class PerformanceBenchmark:
         # Print summary
         print(self.generate_report(results))
         
-        self.logger.info("Benchmark suite completed")
+        print("Benchmark suite completed")
 
 
 def main():

@@ -1,0 +1,235 @@
+---
+description: Enforce testing standards and coverage requirements
+globs: **/*.py,**/*.ts,**/*.tsx,**/*.js,**/*.jsx
+tags: [testing, coverage, quality-assurance]
+priority: 5
+version: 1.0.0
+---
+
+# Testing Standards and Coverage
+
+## Context
+All code changes must include appropriate tests with defined coverage requirements to ensure code quality and prevent regressions.
+
+## Requirements
+
+### Test Coverage Requirements
+- **Domain Layer**: 100% coverage (business logic must be fully tested)
+- **Application Layer**: 90% coverage (use cases and workflows)
+- **Infrastructure Layer**: 80% coverage (external integrations)
+- **Presentation Layer**: 70% coverage (UI components and controllers)
+
+### Test Organization
+```
+tests/
+├── unit/           # Unit tests for individual components
+├── integration/    # Integration tests for component interactions
+└── e2e/           # End-to-end tests for complete workflows
+```
+
+### Test Naming Conventions
+- **Unit Tests**: `test_component_name.py`
+- **Integration Tests**: `test_component_integration.py`
+- **E2E Tests**: `test_workflow_name.py`
+
+## Test Types
+
+### Unit Tests
+Test individual components in isolation with mocked dependencies.
+
+#### Valid Example
+```python
+# test_portfolio_entity.py
+import pytest
+from src.domain.entities.portfolio import Portfolio
+from src.domain.entities.position import Position
+from src.domain.entities.ticker import Ticker
+
+class TestPortfolio:
+    def test_create_portfolio_with_positions(self):
+        # Arrange
+        ticker = Ticker("AAPL")
+        position = Position(ticker, 10)
+        
+        # Act
+        portfolio = Portfolio([position])
+        
+        # Assert
+        assert len(portfolio.positions) == 1
+        assert portfolio.positions[0].ticker.symbol == "AAPL"
+        assert portfolio.positions[0].quantity == 10
+
+    def test_calculate_total_value(self):
+        # Arrange
+        ticker = Ticker("AAPL")
+        position = Position(ticker, 10)
+        portfolio = Portfolio([position])
+        
+        # Act
+        total_value = portfolio.calculate_total_value({"AAPL": 150.0})
+        
+        # Assert
+        assert total_value == 1500.0
+```
+
+### Integration Tests
+Test component interactions with real dependencies.
+
+#### Valid Example
+```python
+# test_portfolio_analysis_integration.py
+import pytest
+from src.application.use_cases.analyze_portfolio_use_case import AnalyzePortfolioUseCase
+from src.infrastructure.repositories.csv_portfolio_repository import CsvPortfolioRepository
+from src.infrastructure.repositories.yfinance_market_repository import YFinanceMarketRepository
+
+class TestPortfolioAnalysisIntegration:
+    def test_analyze_portfolio_with_real_data(self):
+        # Arrange
+        portfolio_repo = CsvPortfolioRepository()
+        market_repo = YFinanceMarketRepository()
+        use_case = AnalyzePortfolioUseCase(portfolio_repo, market_repo)
+        
+        # Act
+        result = use_case.execute(analyze_request)
+        
+        # Assert
+        assert result.success is True
+        assert result.metrics is not None
+        assert result.metrics.total_return > 0
+```
+
+### End-to-End Tests
+Test complete workflows from user input to output.
+
+#### Valid Example
+```python
+# test_portfolio_analysis_e2e.py
+import pytest
+from src.presentation.cli.menu import MainMenu
+from src.presentation.controllers.portfolio_controller import PortfolioController
+
+class TestPortfolioAnalysisE2E:
+    def test_complete_portfolio_analysis_workflow(self):
+        # Arrange
+        controller = PortfolioController()
+        
+        # Act
+        # Load portfolio
+        load_result = controller.load_portfolio("input/test.csv")
+        assert load_result.success is True
+        
+        # Analyze portfolio
+        analysis_result = controller.analyze_portfolio()
+        assert analysis_result.success is True
+        
+        # Assert
+        assert analysis_result.metrics is not None
+        assert len(analysis_result.metrics.ticker_metrics) > 0
+```
+
+## Test Requirements
+
+### Test Structure
+- **Arrange**: Set up test data and dependencies
+- **Act**: Execute the code under test
+- **Assert**: Verify the expected behavior
+
+### Mocking Guidelines
+- Mock external dependencies (APIs, databases, file systems)
+- Use real objects for domain entities and value objects
+- Mock infrastructure layer, test application layer with real domain
+
+### Test Data
+- Use realistic test data that reflects production scenarios
+- Create test fixtures for common data patterns
+- Use factories for complex object creation
+
+## Examples
+
+### Valid Test Examples
+```python
+# Good unit test
+def test_calculate_sharpe_ratio(self):
+    # Arrange
+    returns = [0.01, 0.02, -0.01, 0.03, 0.01]
+    risk_free_rate = 0.02
+    
+    # Act
+    sharpe_ratio = calculate_sharpe_ratio(returns, risk_free_rate)
+    
+    # Assert
+    assert isinstance(sharpe_ratio, float)
+    assert sharpe_ratio > 0
+
+# Good integration test
+def test_portfolio_repository_saves_and_loads(self):
+    # Arrange
+    repo = CsvPortfolioRepository()
+    portfolio = create_test_portfolio()
+    
+    # Act
+    repo.save(portfolio, "test_output.csv")
+    loaded_portfolio = repo.load("test_output.csv")
+    
+    # Assert
+    assert loaded_portfolio.positions == portfolio.positions
+```
+
+### Invalid Test Examples
+```python
+# Bad test - no assertions
+def test_calculate_metrics(self):
+    metrics = calculate_metrics(test_data)
+    # No assertions!
+
+# Bad test - testing implementation details
+def test_portfolio_internal_structure(self):
+    portfolio = Portfolio([position])
+    assert portfolio._positions[0]._ticker._symbol == "AAPL"  # Testing private attributes
+
+# Bad test - too many responsibilities
+def test_everything(self):
+    # Tests loading, analysis, and display all in one test
+    pass
+```
+
+## Test Coverage Tools
+
+### Python Coverage
+```bash
+# Run tests with coverage
+pytest --cov=src --cov-report=html
+
+# Check specific coverage thresholds
+pytest --cov=src --cov-fail-under=80
+```
+
+### TypeScript Coverage
+```bash
+# Run tests with coverage
+npm test -- --coverage
+
+# Check coverage thresholds
+npm test -- --coverage --coverageThreshold='{"global":{"branches":80,"functions":80,"lines":80,"statements":80}}'
+```
+
+## Continuous Integration
+
+### Pre-commit Checks
+- [ ] All tests pass
+- [ ] Coverage requirements met
+- [ ] No test code in production files
+- [ ] Test names are descriptive
+
+### Code Review Requirements
+- [ ] Reviewer verifies test coverage
+- [ ] Reviewer checks test quality
+- [ ] Reviewer confirms test scenarios
+- [ ] Reviewer validates test data
+
+## Documentation Requirements
+- **Test files** must have docstrings explaining test purpose
+- **Complex test scenarios** must have inline comments
+- **Test data** must be documented with expected behavior
+- **Test failures** must include clear error messages

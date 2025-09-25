@@ -1,0 +1,166 @@
+---
+description: Enforce comprehensive dependency analysis before making changes
+globs: **/*.py,**/*.ts,**/*.tsx,**/*.js,**/*.jsx
+tags: [dependency-analysis, architecture, impact-analysis]
+priority: 4
+version: 1.0.0
+---
+
+# Dependency Analysis Rules
+
+## Context
+Before making any changes, developers must analyze dependencies to understand the impact on existing functionality and prevent unintended side effects.
+
+## Requirements
+
+### Pre-Change Analysis
+- **MANDATORY**: Map all dependencies before making changes
+- **MANDATORY**: Identify what existing functionality might be affected
+- **MANDATORY**: Understand the impact on clean architecture layers
+- **MANDATORY**: Verify that changes don't break existing contracts
+
+### Dependency Mapping
+- **Incoming Dependencies**: What depends on the code you're changing
+- **Outgoing Dependencies**: What your changes will depend on
+- **Interface Contracts**: What APIs and interfaces will be affected
+- **Data Flow**: How data flows through the system
+
+## Analysis Process
+
+### Step 1: Identify Affected Components
+```bash
+# Find all usages of a class or function
+grep -r "ClassName" src/
+grep -r "function_name" src/
+
+# Find all imports
+grep -r "from.*module" src/
+grep -r "import.*module" src/
+```
+
+### Step 2: Map Dependencies
+- **Direct Dependencies**: Classes/functions directly used
+- **Indirect Dependencies**: Dependencies of dependencies
+- **Interface Dependencies**: Abstract interfaces and contracts
+- **Data Dependencies**: Shared data structures and models
+
+### Step 3: Impact Assessment
+- **Breaking Changes**: Will existing API contracts change?
+- **Data Changes**: Will database schemas or data structures change?
+- **Configuration Changes**: Will configuration files change?
+- **Test Impact**: What tests will need updates?
+
+## Examples
+
+### Valid Analysis Process
+```python
+# Before changing PortfolioRepository interface
+# 1. Find all usages
+grep -r "PortfolioRepository" src/
+# Found: 3 files use this interface
+
+# 2. Check interface contract
+class PortfolioRepository(ABC):
+    @abstractmethod
+    def load(self, file_path: str) -> Portfolio: pass
+    @abstractmethod
+    def save(self, portfolio: Portfolio, file_path: str) -> None: pass
+
+# 3. Identify affected implementations
+class CsvPortfolioRepository(PortfolioRepository): pass
+class DatabasePortfolioRepository(PortfolioRepository): pass
+
+# 4. Check usage patterns
+class LoadPortfolioUseCase:
+    def __init__(self, repo: PortfolioRepository):  # Depends on interface
+        self.repo = repo
+```
+
+### Invalid Analysis Process
+```python
+# Changing interface without analysis
+class PortfolioRepository(ABC):
+    @abstractmethod
+    def load(self, file_path: str) -> Portfolio: pass
+    @abstractmethod
+    def save(self, portfolio: Portfolio, file_path: str) -> None: pass
+    @abstractmethod
+    def delete(self, id: str) -> None: pass  # Added without checking usage
+
+# This breaks existing implementations and violates LSP
+```
+
+## Clean Architecture Impact
+
+### Layer Dependencies
+```
+presentation/     # Depends on application/
+application/      # Depends on domain/
+infrastructure/   # Depends on application/ (via interfaces)
+```
+
+### Change Impact by Layer
+- **Domain Changes**: May affect all layers
+- **Application Changes**: May affect presentation and infrastructure
+- **Infrastructure Changes**: Should not affect domain or application
+- **Presentation Changes**: Should not affect other layers
+
+## Dependency Analysis Checklist
+
+### Before Making Changes
+- [ ] Searched for all usages of modified code
+- [ ] Identified all dependent components
+- [ ] Mapped interface contracts
+- [ ] Checked for circular dependencies
+- [ ] Verified clean architecture compliance
+
+### During Development
+- [ ] Maintaining existing interface contracts
+- [ ] Following dependency inversion principle
+- [ ] Avoiding breaking changes
+- [ ] Updating dependent code as needed
+
+### After Development
+- [ ] Updated all affected tests
+- [ ] Verified no breaking changes
+- [ ] Updated documentation
+- [ ] Checked for circular dependencies
+- [ ] Validated clean architecture compliance
+
+## Tools and Commands
+
+### Dependency Analysis Commands
+```bash
+# Find all usages
+grep -r "pattern" src/
+find . -name "*.py" | xargs grep -l "keyword"
+
+# Find imports
+grep -r "import.*module" src/
+grep -r "from.*module" src/
+
+# Find class inheritance
+grep -r "class.*Repository" src/
+grep -r "class.*Service" src/
+grep -r "class.*UseCase" src/
+```
+
+### Architecture Validation
+```bash
+# Check layer dependencies
+python -m tools.architecture_validator
+
+# Check for circular dependencies
+python -m tools.dependency_checker
+
+# Validate interface contracts
+python -m tools.interface_validator
+```
+
+## Documentation Requirements
+When making changes, document:
+- What dependencies are affected
+- What interfaces are modified
+- What breaking changes are introduced
+- What migration steps are required
+- What tests need updates

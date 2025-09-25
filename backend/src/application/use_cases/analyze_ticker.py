@@ -8,8 +8,6 @@ from ...domain.entities.ticker import Ticker
 from ...domain.value_objects.date_range import DateRange
 from ...domain.value_objects.money import Money
 from ...domain.value_objects.percentage import Percentage
-from ...infrastructure.logging.logger_service import get_logger_service
-from ...infrastructure.logging.performance_monitor import get_performance_monitor
 from ...infrastructure.services.parallel_calculation_service import get_parallel_calculation_service
 from ...infrastructure.services.metrics_calculator import MetricsCalculator
 
@@ -66,9 +64,6 @@ class AnalyzeTickersResponse:
 class AnalyzeTickerUseCase:
     def __init__(self, market_data_repo: MarketDataRepository):
         self._market_data_repo = market_data_repo
-        self._logger_service = get_logger_service()
-        self._logger = self._logger_service.get_logger("application")
-        self._performance_monitor = get_performance_monitor()
         self._parallel_calculation_service = get_parallel_calculation_service()
     
     def execute(self, request: AnalyzeTickerRequest) -> AnalyzeTickerResponse:
@@ -153,35 +148,23 @@ class AnalyzeTickerUseCase:
     def execute_batch(self, request: AnalyzeTickersRequest) -> AnalyzeTickersResponse:
         """Execute multiple ticker analysis with smart batching and performance monitoring."""
         start_time = time.time()
-        self._performance_monitor.start_timing("batch_analysis")
         
         try:
-            self._logger.info(f"Starting batch analysis for {len(request.tickers)} tickers")
-            self._logger.info(f"Date range: {request.date_range.start} to {request.date_range.end}")
-            
             # Step 1: Batch fetch all data (3 calls instead of 3 * N calls)
-            self._performance_monitor.start_timing("price_data_fetch")
             all_price_data = self._market_data_repo.get_price_history_batch(
                 request.tickers, request.date_range
             )
-            price_fetch_time = self._performance_monitor.end_timing("price_data_fetch")
             
-            self._performance_monitor.start_timing("dividend_data_fetch")
             all_dividend_data = self._market_data_repo.get_dividend_history_batch(
                 request.tickers, request.date_range
             )
-            dividend_fetch_time = self._performance_monitor.end_timing("dividend_data_fetch")
             
             # Fetch benchmark data once (shared across all tickers)
-            self._performance_monitor.start_timing("benchmark_data_fetch")
             benchmark_data = self._market_data_repo.get_benchmark_data(
                 "^GSPC", request.date_range
             )
-            benchmark_fetch_time = self._performance_monitor.end_timing("benchmark_data_fetch")
             
             # Step 2: Analyze data availability and categorize tickers
-            self._performance_monitor.start_timing("calculations")
-            
             # Categorize tickers based on data availability
             missing_tickers = []
             tickers_without_start_data = []
@@ -215,27 +198,7 @@ class AnalyzeTickerUseCase:
                 calculation_func=lambda ticker, prices, dividends, risk_free_rate, date_range, benchmark_data: self._calculate_metrics(ticker, prices, dividends, risk_free_rate, date_range, benchmark_data)
             )
             
-            calculation_time = self._performance_monitor.end_timing("calculations")
-            total_time = self._performance_monitor.end_timing("batch_analysis")
-            
-            # Log detailed performance metrics
-            self._performance_monitor.log_batch_performance(
-                ticker_count=len(request.tickers),
-                total_time=total_time,
-                price_fetch_time=price_fetch_time,
-                dividend_fetch_time=dividend_fetch_time,
-                benchmark_fetch_time=benchmark_fetch_time,
-                calculation_time=calculation_time
-            )
-            
-            # Log performance summary
-            self._performance_monitor.log_performance_summary(
-                operation="batch_ticker_analysis",
-                ticker_count=len(request.tickers),
-                total_time=total_time,
-                success_count=len(ticker_metrics),
-                failed_count=len(failed_tickers)
-            )
+            total_time = time.time() - start_time
             
             return AnalyzeTickersResponse(
                 ticker_metrics=ticker_metrics,
@@ -249,8 +212,7 @@ class AnalyzeTickerUseCase:
             )
             
         except Exception as e:
-            total_time = self._performance_monitor.end_timing("batch_analysis")
-            self._logger.error(f"Batch analysis failed: {str(e)}")
+            total_time = time.time() - start_time
             return AnalyzeTickersResponse(
                 ticker_metrics=[],
                 failed_tickers=[t.symbol for t in request.tickers],
@@ -261,7 +223,6 @@ class AnalyzeTickerUseCase:
                 tickers_without_start_data=[],
                 first_available_dates={}
             )
-    
     
     def _calculate_metrics(self,
                           ticker: Ticker,
@@ -364,7 +325,6 @@ class AnalyzeTickerUseCase:
             benchmark_returns = benchmark_data.pct_change().dropna()
             return MetricsCalculator.calculate_beta(returns, benchmark_returns)
         else:
-            self._logger.warning(f"No benchmark data available for Beta calculation for {ticker.symbol}")
             return 1.0
     
     def _detect_dividend_frequency(self, dividends: pd.Series, date_range: DateRange) -> str:

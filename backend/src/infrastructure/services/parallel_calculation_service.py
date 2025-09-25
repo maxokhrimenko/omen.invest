@@ -9,8 +9,6 @@ import concurrent.futures
 import threading
 from typing import List, Dict, Any, Callable, Optional, Tuple
 from dataclasses import dataclass
-from ..logging.logger_service import get_logger_service
-from ..logging.performance_monitor import get_performance_monitor
 
 
 @dataclass
@@ -46,9 +44,6 @@ class ParallelCalculationService:
         Args:
             max_workers: Maximum number of worker threads. If None, uses CPU count.
         """
-        self._logger_service = get_logger_service()
-        self._logger = self._logger_service.get_logger("infrastructure")
-        self._performance_monitor = get_performance_monitor()
         
         # Determine optimal number of workers
         if max_workers is None:
@@ -57,8 +52,6 @@ class ParallelCalculationService:
         
         self.max_workers = max_workers
         self._thread_local = threading.local()
-        
-        self._logger.info(f"ParallelCalculationService initialized with {max_workers} workers")
     
     def calculate_ticker_metrics_parallel(
         self, 
@@ -85,21 +78,12 @@ class ParallelCalculationService:
         Returns:
             Tuple of (successful_metrics, failed_ticker_symbols)
         """
-        self._logger.info(f"Starting parallel calculation for {len(tickers)} tickers")
-        self._performance_monitor.start_timing("parallel_calculations")
         
         # Create calculation tasks
         tasks = []
         for i, ticker in enumerate(tickers):
             price_data = all_price_data.get(ticker)
             dividend_data = all_dividend_data.get(ticker)
-            
-            # Debug logging
-            self._logger.info(f"Task {i} - {ticker.symbol}:")
-            self._logger.info(f"  Price data type: {type(price_data)}")
-            self._logger.info(f"  Price data empty: {price_data.empty if hasattr(price_data, 'empty') else 'N/A'}")
-            self._logger.info(f"  Dividend data type: {type(dividend_data)}")
-            self._logger.info(f"  Dividend data empty: {dividend_data.empty if hasattr(dividend_data, 'empty') else 'N/A'}")
             
             task = CalculationTask(
                 task_id=f"ticker_{i}_{ticker.symbol}",
@@ -125,21 +109,6 @@ class ParallelCalculationService:
                 successful_metrics.append(result.result)
             else:
                 failed_tickers.append(result.task_id.split('_', 2)[2])  # Extract ticker symbol
-                self._logger.error(f"Calculation failed for {result.task_id}: {result.error}")
-        
-        calculation_time = self._performance_monitor.end_timing("parallel_calculations")
-        
-        # Log performance metrics
-        success_rate = (len(successful_metrics) / len(tickers)) * 100 if tickers else 0
-        avg_time_per_ticker = calculation_time / len(tickers) if tickers else 0
-        
-        self._logger.info(f"Parallel calculation completed:")
-        self._logger.info(f"  Total tickers: {len(tickers)}")
-        self._logger.info(f"  Successful: {len(successful_metrics)} ({success_rate:.1f}%)")
-        self._logger.info(f"  Failed: {len(failed_tickers)}")
-        self._logger.info(f"  Total time: {calculation_time:.3f}s")
-        self._logger.info(f"  Average per ticker: {avg_time_per_ticker:.3f}s")
-        self._logger.info(f"  Workers used: {self.max_workers}")
         
         return successful_metrics, failed_tickers
     
@@ -161,7 +130,6 @@ class ParallelCalculationService:
                     result = future.result()
                     results.append(result)
                 except Exception as e:
-                    self._logger.error(f"Unexpected error in task {task.task_id}: {str(e)}")
                     results.append(CalculationResult(
                         task_id=task.task_id,
                         success=False,
@@ -172,8 +140,6 @@ class ParallelCalculationService:
     
     def _execute_single_task(self, task: CalculationTask) -> CalculationResult:
         """Execute a single calculation task."""
-        start_time = self._performance_monitor.start_timing(f"task_{task.task_id}")
-        
         try:
             # Validate input data
             if task.price_data is None or task.price_data.empty or len(task.price_data) < 2:
@@ -194,7 +160,7 @@ class ParallelCalculationService:
                 task.benchmark_data
             )
             
-            processing_time = self._performance_monitor.end_timing(f"task_{task.task_id}")
+            processing_time = 0.0
             
             return CalculationResult(
                 task_id=task.task_id,
@@ -204,7 +170,7 @@ class ParallelCalculationService:
             )
             
         except Exception as e:
-            processing_time = self._performance_monitor.end_timing(f"task_{task.task_id}")
+            processing_time = 0.0
             return CalculationResult(
                 task_id=task.task_id,
                 success=False,

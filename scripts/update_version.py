@@ -32,7 +32,7 @@ VERSION_FILES = {
     },
     "frontend/src/App.tsx": {
         "pattern": r'v\d+\.\d+\.\d+',
-        "replacement": 'v{}',
+        "replacement": 'alpha {}',
         "description": "Frontend sidebar version display"
     },
     "backend/main.py": {

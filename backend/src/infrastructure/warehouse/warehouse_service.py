@@ -5,8 +5,6 @@ from typing import List, Dict, Set, Optional, Tuple
 from datetime import datetime, date
 from ...domain.entities.ticker import Ticker
 from ...domain.value_objects.date_range import DateRange
-from ..logging.logger_service import get_logger_service
-from ..logging.decorators import log_operation
 from ..config.warehouse_config import WarehouseConfig
 from ..services.warehouse_optimizer import get_warehouse_optimizer
 from ..services.parallel_data_fetcher import get_parallel_data_fetcher
@@ -23,8 +21,6 @@ class WarehouseService:
         else:
             self.db_path = db_path
             
-        self._logger_service = get_logger_service()
-        self._logger = self._logger_service.get_logger("infrastructure")
         self._warehouse_optimizer = get_warehouse_optimizer(self.db_path)
         self._parallel_data_fetcher = get_parallel_data_fetcher()
         self._ensure_database_exists()
@@ -134,7 +130,6 @@ class WarehouseService:
             
             conn.commit()
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def get_coverage(self, ticker: Ticker, date_range: DateRange) -> Set[str]:
         """Get the set of trading days already stored for a ticker in the given range."""
         with sqlite3.connect(self.db_path) as conn:
@@ -146,7 +141,6 @@ class WarehouseService:
             
             return {row[0] for row in cursor.fetchall()}
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def get_missing_ranges(self, ticker: Ticker, date_range: DateRange, 
                           trading_days: Set[str]) -> List[Tuple[str, str]]:
         """Calculate missing trading day ranges that need to be fetched from Yahoo."""
@@ -184,7 +178,6 @@ class WarehouseService:
         
         return ranges
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def store_price_data(self, ticker: Ticker, price_data: pd.Series) -> None:
         """Store price data for a ticker in the warehouse."""
         if price_data.empty:
@@ -221,7 +214,6 @@ class WarehouseService:
             
             conn.commit()
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def get_price_data(self, ticker: Ticker, date_range: DateRange) -> pd.Series:
         """Get price data for a ticker from the warehouse."""
         with sqlite3.connect(self.db_path) as conn:
@@ -244,14 +236,12 @@ class WarehouseService:
             series = pd.Series(prices, index=pd.DatetimeIndex(dates), name='Close')
             return series
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def get_database_size(self) -> int:
         """Get the size of the database file in bytes."""
         if os.path.exists(self.db_path):
             return os.path.getsize(self.db_path)
         return 0
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def store_dividend_data(self, ticker: Ticker, dividend_data: pd.Series, date_range: DateRange) -> None:
         """Store dividend data in the warehouse, including coverage information for periods with no dividends."""
         with sqlite3.connect(self.db_path) as conn:
@@ -296,7 +286,6 @@ class WarehouseService:
             ))
             conn.commit()
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def get_dividend_data(self, ticker: Ticker, date_range: DateRange) -> pd.Series:
         """Get dividend data from the warehouse."""
         with sqlite3.connect(self.db_path) as conn:
@@ -321,7 +310,6 @@ class WarehouseService:
             series = pd.Series(dividends, index=pd.DatetimeIndex(dates), name='Dividends')
             return series
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def get_dividend_coverage(self, ticker: Ticker, date_range: DateRange) -> Set[str]:
         """Get dividend coverage for a ticker in the given date range."""
         with sqlite3.connect(self.db_path) as conn:
@@ -335,7 +323,6 @@ class WarehouseService:
             rows = cursor.fetchall()
             return {row[0] for row in rows}
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def has_dividend_coverage(self, ticker: Ticker, date_range: DateRange) -> bool:
         """Check if we have dividend coverage information for a ticker in the given date range."""
         with sqlite3.connect(self.db_path) as conn:
@@ -350,7 +337,6 @@ class WarehouseService:
             
             return cursor.fetchone() is not None
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def store_benchmark_data(self, symbol: str, benchmark_data, date_range: DateRange) -> None:
         """Store benchmark data in the warehouse, including coverage information."""
         if benchmark_data.empty:
@@ -418,7 +404,6 @@ class WarehouseService:
             ))
             conn.commit()
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def get_benchmark_data(self, symbol: str, date_range: DateRange) -> pd.Series:
         """Get benchmark data from the warehouse."""
         with sqlite3.connect(self.db_path) as conn:
@@ -443,7 +428,6 @@ class WarehouseService:
             series = pd.Series(prices, index=pd.DatetimeIndex(dates), name='Close')
             return series
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def has_benchmark_coverage(self, symbol: str, date_range: DateRange) -> bool:
         """Check if we have benchmark coverage information for a symbol in the given date range."""
         with sqlite3.connect(self.db_path) as conn:
@@ -458,7 +442,6 @@ class WarehouseService:
             
             return cursor.fetchone() is not None
     
-    @log_operation("warehouse", include_args=True, include_result=True)
     def get_price_history_batch(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
         """Get price history for multiple tickers using optimized queries and parallel missing data fetching."""
         if not tickers:
@@ -474,14 +457,12 @@ class WarehouseService:
                 missing_tickers.append(ticker)
         
         if missing_tickers:
-            self._logger.info(f"Found {len(missing_tickers)} tickers with missing data, fetching in parallel...")
             # Fetch missing data in parallel
             missing_data = self._fetch_missing_data_parallel(missing_tickers, date_range)
             result.update(missing_data)
         
         return result
 
-    @log_operation("warehouse", include_args=True, include_result=True)
     def get_dividend_history_batch(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
         """Get dividend history for multiple tickers using optimized queries and parallel missing data fetching."""
         if not tickers:
@@ -497,7 +478,6 @@ class WarehouseService:
                 missing_tickers.append(ticker)
         
         if missing_tickers:
-            self._logger.info(f"Found {len(missing_tickers)} tickers with missing dividend data, fetching in parallel...")
             # Fetch missing dividend data in parallel
             missing_data = self._fetch_missing_dividend_data_parallel(missing_tickers, date_range)
             result.update(missing_data)
@@ -508,8 +488,6 @@ class WarehouseService:
         """Fetch missing data for multiple tickers in parallel using Yahoo Finance."""
         if not tickers:
             return {}
-        
-        self._logger.info(f"Fetching missing data for {len(tickers)} tickers in parallel...")
         
         # Create a function to fetch data for a single ticker
         def fetch_ticker_data(ticker, date_range):
@@ -527,7 +505,6 @@ class WarehouseService:
                 
                 return data
             except Exception as e:
-                self._logger.error(f"Error fetching data for {ticker.symbol}: {str(e)}")
                 return pd.Series(dtype='float64')
         
         # Use parallel data fetcher
@@ -544,15 +521,12 @@ class WarehouseService:
             else:
                 result[ticker] = pd.Series(dtype='float64')
         
-        self._logger.info(f"Parallel missing data fetch completed for {len(tickers)} tickers")
         return result
 
     def _fetch_missing_dividend_data_parallel(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
         """Fetch missing dividend data for multiple tickers in parallel using Yahoo Finance."""
         if not tickers:
             return {}
-        
-        self._logger.info(f"Fetching missing dividend data for {len(tickers)} tickers in parallel...")
         
         # Create a function to fetch dividend data for a single ticker
         def fetch_ticker_dividend_data(ticker: Ticker, date_range: DateRange) -> pd.Series:
@@ -561,13 +535,9 @@ class WarehouseService:
                 from ..repositories.yfinance_market_repository import YFinanceMarketRepository
                 yahoo_repo = YFinanceMarketRepository()
                 
-                self._logger.info(f"Fetching dividend history for 1 tickers: {ticker.symbol}")
-                self._logger.info(f"Date range: {date_range.start} to {date_range.end}")
                 data = yahoo_repo.get_dividend_history(ticker, date_range)
-                self._logger.info(f"Successfully processed 1 tickers out of 1 requested")
                 return data
             except Exception as e:
-                self._logger.error(f"Error fetching dividend data for {ticker.symbol} from Yahoo Finance: {e}")
                 return pd.Series(dtype='float64')
         
         # Use parallel data fetcher for Yahoo Finance calls
@@ -585,7 +555,6 @@ class WarehouseService:
         
         return aggregated_results
 
-    @log_operation("warehouse", include_args=True, include_result=True)
     def clear_data(self, ticker: Optional[Ticker] = None) -> None:
         """Clear data for a specific ticker or all data."""
         with sqlite3.connect(self.db_path) as conn:

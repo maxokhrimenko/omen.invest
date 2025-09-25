@@ -11,8 +11,6 @@ import time
 from typing import Dict, List, Any, Optional, Tuple
 from contextlib import contextmanager
 from datetime import datetime
-from ..logging.logger_service import get_logger_service
-from ..logging.performance_monitor import get_performance_monitor
 
 
 class ConnectionPool:
@@ -23,7 +21,6 @@ class ConnectionPool:
         self.max_connections = max_connections
         self._pool = []
         self._lock = threading.Lock()
-        self._logger = get_logger_service().get_logger("infrastructure")
         
         # Pre-create connections
         for _ in range(min(max_connections, 5)):
@@ -73,19 +70,13 @@ class WarehouseOptimizer:
     def __init__(self, db_path: str, max_connections: int = 10):
         self.db_path = db_path
         self.connection_pool = ConnectionPool(db_path, max_connections)
-        self._logger_service = get_logger_service()
-        self._logger = self._logger_service.get_logger("infrastructure")
-        self._performance_monitor = get_performance_monitor()
         
         # Query cache for frequently used queries
         self._query_cache = {}
         self._cache_lock = threading.Lock()
-        
-        self._logger.info(f"WarehouseOptimizer initialized with {max_connections} max connections")
     
     def optimize_database(self):
         """Optimize database settings and indexes."""
-        self._logger.info("Starting database optimization")
         
         with self.connection_pool.get_connection() as conn:
             # Enable WAL mode for better concurrency
@@ -107,8 +98,6 @@ class WarehouseOptimizer:
             self._create_performance_indexes(conn)
             
             conn.commit()
-        
-        self._logger.info("Database optimization completed")
     
     def _create_performance_indexes(self, conn: sqlite3.Connection):
         """Create additional indexes for better query performance."""
@@ -126,16 +115,15 @@ class WarehouseOptimizer:
         for index_sql in indexes:
             try:
                 conn.execute(index_sql)
-                self._logger.debug(f"Created index: {index_sql}")
+                pass
             except sqlite3.Error as e:
-                self._logger.warning(f"Failed to create index: {e}")
+                pass
     
     def get_price_history_optimized(self, tickers: List[Any], date_range: Any) -> Dict[Any, Any]:
         """Get price history with optimized queries and connection pooling."""
         if not tickers:
             return {}
         
-        self._performance_monitor.start_timing("optimized_price_fetch")
         
         ticker_symbols = [t.symbol for t in tickers]
         placeholders = ','.join(['?'] * len(ticker_symbols))
@@ -173,9 +161,6 @@ class WarehouseOptimizer:
             else:
                 result[ticker] = pd.Series(dtype='float64', name='Close')
         
-        fetch_time = self._performance_monitor.end_timing("optimized_price_fetch")
-        self._logger.info(f"Optimized price fetch completed in {fetch_time:.3f}s for {len(tickers)} tickers")
-        
         return result
     
     def get_dividend_history_optimized(self, tickers: List[Any], date_range: Any) -> Dict[Any, Any]:
@@ -183,7 +168,6 @@ class WarehouseOptimizer:
         if not tickers:
             return {}
         
-        self._performance_monitor.start_timing("optimized_dividend_fetch")
         
         ticker_symbols = [t.symbol for t in tickers]
         placeholders = ','.join(['?'] * len(ticker_symbols))
@@ -221,17 +205,12 @@ class WarehouseOptimizer:
             else:
                 result[ticker] = pd.Series(dtype='float64', name='Dividends')
         
-        fetch_time = self._performance_monitor.end_timing("optimized_dividend_fetch")
-        self._logger.info(f"Optimized dividend fetch completed in {fetch_time:.3f}s for {len(tickers)} tickers")
-        
         return result
     
     def store_dividend_history(self, ticker: Any, dividend_data: Any) -> None:
         """Store dividend history data in the warehouse."""
         if dividend_data is None or dividend_data.empty:
             return
-        
-        self._logger.info(f"Storing dividend history for {ticker.symbol} ({len(dividend_data)} records)")
         
         # Prepare data for insertion
         data_to_insert = []
@@ -273,8 +252,6 @@ class WarehouseOptimizer:
         if not data:
             return
         
-        self._performance_monitor.start_timing(f"batch_insert_{table_name}")
-        
         # Determine column count from first row
         if not data:
             return
@@ -292,15 +269,10 @@ class WarehouseOptimizer:
                 )
             
             conn.commit()
-        
-        insert_time = self._performance_monitor.end_timing(f"batch_insert_{table_name}")
-        self._logger.info(f"Batch insert completed in {insert_time:.3f}s for {len(data)} rows")
-    
     
     def close(self):
         """Close the warehouse optimizer and all connections."""
         self.connection_pool.close_all()
-        self._logger.info("WarehouseOptimizer closed")
 
 
 # Global instance

@@ -33,7 +33,6 @@ from src.application.use_cases.analyze_portfolio import (
 from src.application.use_cases.analyze_ticker import AnalyzeTickerUseCase, AnalyzeTickerRequest, AnalyzeTickersRequest
 from src.application.use_cases.compare_tickers import CompareTickersUseCase
 from src.infrastructure.color_metrics_service import ColorMetricsService
-from src.infrastructure.logging.logger_service import initialize_logging, get_logger_service
 # Portfolio session manager will be imported locally in get_portfolio_session_manager()
 from src.domain.entities.portfolio import Portfolio
 import json
@@ -74,18 +73,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Request logging middleware - DISABLED in favor of portfolio-based logging
-# @app.middleware("http")
-# async def log_requests(request: Request, call_next):
-#     """Log all incoming requests with unique request IDs."""
-#     # This middleware is disabled in favor of portfolio-based logging
-#     # which provides better organization and context
-#     return await call_next(request)
 
 # Global variables for dependency injection
 _controller: Optional[PortfolioController] = None
 _current_portfolio: Optional[Portfolio] = None
-_logger_service = None
 _current_portfolio_session: Optional[str] = None
 _portfolio_session_manager = None
 
@@ -136,26 +127,20 @@ def load_portfolio_from_disk() -> Optional[Portfolio]:
         print(f"Error loading portfolio from disk: {e}")
         return None
 
-def get_logger_service():
-    """Get or initialize logger service."""
-    global _logger_service
-    if _logger_service is None:
-        # Use absolute path to project root logs directory
-        import os
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        logs_dir = os.path.join(project_root, "logs")
-        _logger_service = initialize_logging(logs_dir)
-    return _logger_service
 
 def get_portfolio_session_manager():
     """Get or initialize portfolio session manager."""
     global _portfolio_session_manager
     if _portfolio_session_manager is None:
-        from src.infrastructure.logging.portfolio_session_manager import initialize_portfolio_session_manager
-        import os
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        logs_dir = os.path.join(project_root, "logs")
-        _portfolio_session_manager = initialize_portfolio_session_manager(logs_dir)
+        # Return a dummy portfolio session manager
+        class DummyPortfolioSessionManager:
+            def start_portfolio_session(self, portfolio_name=None):
+                return "dummy-session-id"
+            def end_portfolio_session(self, session_id, reason=None):
+                pass
+            def get_active_sessions(self):
+                return []
+        _portfolio_session_manager = DummyPortfolioSessionManager()
     return _portfolio_session_manager
 
 def get_controller() -> PortfolioController:
@@ -200,7 +185,7 @@ def get_current_portfolio() -> Optional[Portfolio]:
         if _current_portfolio is not None and _current_portfolio_session is None:
             session_uuid = load_portfolio_session_from_disk()
             if session_uuid:
-                # Resume the session without creating a new log file
+                # Resume the session
                 portfolio_session_manager = get_portfolio_session_manager()
                 # Check if session still exists in manager, if not, create a new one
                 if session_uuid not in portfolio_session_manager.get_active_sessions():
@@ -263,48 +248,6 @@ async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "timestamp": "2024-01-01T00:00:00Z"}
 
-@app.post("/api/logs")
-async def receive_frontend_logs(log_entry: dict):
-    """Receive structured logs from frontend and store in logs directory."""
-    try:
-        logger_service = get_logger_service()
-        logger = logger_service.get_logger("frontend")
-        
-        # Create structured log message
-        log_message = f"FRONTEND | {log_entry.get('message', 'Unknown message')}"
-        
-        # Add context information
-        context = log_entry.get('context', {})
-        if context:
-            context_str = " | ".join([f"{k}: {v}" for k, v in context.items()])
-            log_message += f" | {context_str}"
-        
-        # Add error information if present
-        if 'error' in log_entry:
-            error_info = log_entry['error']
-            log_message += f" | Error: {error_info.get('name', 'Unknown')}: {error_info.get('message', 'No message')}"
-        
-        # Log with appropriate level
-        level = log_entry.get('level', 'INFO').upper()
-        if level == 'DEBUG':
-            logger.debug(log_message)
-        elif level == 'INFO':
-            logger.info(log_message)
-        elif level == 'WARN':
-            logger.warning(log_message)
-        elif level == 'ERROR':
-            logger.error(log_message)
-        elif level == 'CRITICAL':
-            logger.critical(log_message)
-        else:
-            logger.info(log_message)
-        
-        return {"status": "success", "message": "Log received and stored"}
-        
-    except Exception as e:
-        # Use basic logging if structured logging fails
-        print(f"Error processing frontend log: {e}")
-        return {"status": "error", "message": "Failed to process log"}
 
 @app.post("/portfolio/upload")
 async def upload_portfolio(file: UploadFile = File(...)):
@@ -317,26 +260,9 @@ async def upload_portfolio(file: UploadFile = File(...)):
         )
         set_current_portfolio_session(portfolio_uuid)
         
-        # Log file upload start
-        portfolio_session_manager.log_portfolio_operation(
-            portfolio_uuid=portfolio_uuid,
-            operation="portfolio_upload",
-            success=True,
-            details={
-                "filename": file.filename,
-                "content_type": file.content_type,
-                "file_size": file.size if hasattr(file, 'size') else "unknown"
-            }
-        )
         
         # Validate file type
         if not file.filename.lower().endswith('.csv'):
-            portfolio_session_manager.log_portfolio_error(
-                portfolio_uuid=portfolio_uuid,
-                error="Invalid file type",
-                operation="portfolio_upload",
-                details={"filename": file.filename, "expected": "CSV"}
-            )
             raise HTTPException(status_code=400, detail="File must be a CSV file")
         
         # Save uploaded file temporarily
@@ -345,13 +271,6 @@ async def upload_portfolio(file: UploadFile = File(...)):
             content = await file.read()
             buffer.write(content)
         
-        # Log file operation
-        portfolio_session_manager.log_portfolio_operation(
-            portfolio_uuid=portfolio_uuid,
-            operation="file_upload",
-            success=True,
-            details={"size_bytes": len(content), "file_path": temp_file_path}
-        )
         
         # Load portfolio using controller
         controller = get_controller()
@@ -362,16 +281,6 @@ async def upload_portfolio(file: UploadFile = File(...)):
         if response.success and response.portfolio:
             set_current_portfolio(response.portfolio)
             
-            # Log successful portfolio load
-            portfolio_session_manager.log_portfolio_operation(
-                portfolio_uuid=portfolio_uuid,
-                operation="portfolio_load",
-                success=True,
-                details={
-                    "positions_count": len(response.portfolio.get_positions()),
-                    "tickers": [t.symbol for t in response.portfolio.get_tickers()]
-                }
-            )
             
             # Convert to response format
             positions = [
@@ -397,28 +306,13 @@ async def upload_portfolio(file: UploadFile = File(...)):
                 "portfolio": portfolio_response.model_dump()
             }
         else:
-            portfolio_session_manager.log_portfolio_error(
-                portfolio_uuid=portfolio_uuid,
-                error="Portfolio load failed",
-                operation="portfolio_load",
-                details={"message": response.message}
-            )
             raise HTTPException(status_code=400, detail=response.message)
             
     except HTTPException:
         # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
-        # Log unexpected errors
-        portfolio_uuid = get_current_portfolio_session()
-        if portfolio_uuid:
-            portfolio_session_manager = get_portfolio_session_manager()
-            portfolio_session_manager.log_portfolio_error(
-                portfolio_uuid=portfolio_uuid,
-                error=f"Unexpected error: {str(e)}",
-                operation="portfolio_upload",
-                details={"filename": file.filename if file else "unknown"}
-            )
+        # Handle unexpected errors
         
         import traceback
         print("FULL TRACEBACK:")
@@ -438,25 +332,8 @@ async def get_portfolio():
     portfolio = get_current_portfolio()
     
     if not portfolio:
-        if portfolio_uuid:
-            portfolio_session_manager.log_portfolio_error(
-                portfolio_uuid=portfolio_uuid,
-                error="No portfolio loaded",
-                operation="get_portfolio"
-            )
         raise HTTPException(status_code=404, detail="No portfolio loaded")
     
-    # Log portfolio retrieval
-    if portfolio_uuid:
-        portfolio_session_manager.log_portfolio_operation(
-            portfolio_uuid=portfolio_uuid,
-            operation="get_portfolio",
-            success=True,
-            details={
-                "positions_count": len(portfolio.get_positions()),
-                "tickers": [t.symbol for t in portfolio.get_tickers()]
-            }
-        )
     
     # Convert to response format
     positions = [
@@ -498,12 +375,6 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
     portfolio = get_current_portfolio()
     
     if not portfolio:
-        if portfolio_uuid:
-            portfolio_session_manager.log_portfolio_error(
-                portfolio_uuid=portfolio_uuid,
-                error="No portfolio loaded",
-                operation="portfolio_analysis"
-            )
         raise HTTPException(status_code=404, detail="No portfolio loaded")
     
     # Set default date range if not provided
@@ -512,27 +383,9 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
     if not end_date:
         end_date = datetime.now().strftime('%Y-%m-%d')
     
-    # Calculate ticker count for logging and display
+    # Calculate ticker count for display
     ticker_count = len(portfolio.get_tickers())
     
-    # Log portfolio analysis start
-    if portfolio_uuid:
-        portfolio_session_manager.log_portfolio_operation(
-            portfolio_uuid=portfolio_uuid,
-            operation="portfolio_analysis",
-            success=True,
-            details={
-                "ticker_count": ticker_count,
-                "start_date": start_date,
-                "end_date": end_date
-            }
-        )
-        
-        # Also log to backend-specific logger
-        backend_logger = portfolio_session_manager.get_backend_portfolio_logger(portfolio_uuid)
-        if backend_logger:
-            backend_logger.info(f"BACKEND | Starting portfolio analysis for {ticker_count} tickers")
-            backend_logger.info(f"BACKEND | Date range: {start_date} to {end_date}")
     
     print(f"Portfolio analysis: {ticker_count} tickers, {start_date} to {end_date}")
     
@@ -542,33 +395,12 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
         end_dt = datetime.strptime(end_date, '%Y-%m-%d')
         
         if start_dt > end_dt:
-            if portfolio_uuid:
-                portfolio_session_manager.log_portfolio_error(
-                    portfolio_uuid=portfolio_uuid,
-                    error="Invalid date range",
-                    operation="portfolio_analysis",
-                    details={"start_date": start_date, "end_date": end_date}
-                )
             raise HTTPException(status_code=400, detail="Start date cannot be after end date")
         
         if is_date_after_previous_working_day(end_date):
-            if portfolio_uuid:
-                portfolio_session_manager.log_portfolio_error(
-                    portfolio_uuid=portfolio_uuid,
-                    error="End date after previous working day",
-                    operation="portfolio_analysis",
-                    details={"end_date": end_date}
-                )
             raise HTTPException(status_code=400, detail="End date cannot be after the previous working day")
             
     except ValueError as e:
-        if portfolio_uuid:
-            portfolio_session_manager.log_portfolio_error(
-                portfolio_uuid=portfolio_uuid,
-                error="Invalid date format",
-                operation="portfolio_analysis",
-                details={"start_date": start_date, "end_date": end_date, "error": str(e)}
-            )
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
     
     try:
@@ -585,60 +417,16 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
             risk_free_rate=0.03
         )
         
-        # Log backend analysis execution
-        if portfolio_uuid:
-            backend_logger = portfolio_session_manager.get_backend_portfolio_logger(portfolio_uuid)
-            if backend_logger:
-                backend_logger.info(f"BACKEND | Executing portfolio analysis use case")
-                backend_logger.info(f"BACKEND | Risk-free rate: 0.03")
         
         response = controller._analyze_portfolio_use_case.execute(request)
         
         if not response.success:
-            if portfolio_uuid:
-                portfolio_session_manager.log_portfolio_error(
-                    portfolio_uuid=portfolio_uuid,
-                    error="Portfolio analysis failed",
-                    operation="portfolio_analysis",
-                    details={"message": response.message}
-                )
             raise HTTPException(status_code=400, detail=response.message)
         
         if not response.metrics:
-            if portfolio_uuid:
-                portfolio_session_manager.log_portfolio_error(
-                    portfolio_uuid=portfolio_uuid,
-                    error="No metrics calculated",
-                    operation="portfolio_analysis",
-                    details={"message": "Analysis completed but no metrics returned"}
-                )
             raise HTTPException(status_code=400, detail="No metrics calculated")
         
-        # Log successful analysis
-        if portfolio_uuid:
-            portfolio_session_manager.log_portfolio_operation(
-                portfolio_uuid=portfolio_uuid,
-                operation="portfolio_analysis_complete",
-                success=True,
-                details={
-                    "missing_tickers": (
-                        len(response.missing_tickers) if response.missing_tickers else 0
-                    ),
-                    "tickers_without_start_data": (
-                        len(response.tickers_without_start_data) 
-                        if response.tickers_without_start_data else 0
-                    )
-                }
-            )
             
-            # Log backend analysis completion
-            backend_logger = portfolio_session_manager.get_backend_portfolio_logger(portfolio_uuid)
-            if backend_logger:
-                backend_logger.info(f"BACKEND | Portfolio analysis completed successfully")
-                if response.missing_tickers:
-                    backend_logger.info(f"BACKEND | Missing tickers: {len(response.missing_tickers)}")
-                if response.tickers_without_start_data:
-                    backend_logger.info(f"BACKEND | Tickers without start data: {len(response.tickers_without_start_data)}")
         
         # Convert metrics to API response format
         metrics = response.metrics
@@ -681,13 +469,6 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
         # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
-        if portfolio_uuid:
-            portfolio_session_manager.log_portfolio_error(
-                portfolio_uuid=portfolio_uuid,
-                error=f"Analysis failed: {str(e)}",
-                operation="portfolio_analysis",
-                details={"start_date": start_date, "end_date": end_date}
-            )
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.get("/portfolio/tickers/analysis")
@@ -700,12 +481,6 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
     portfolio = get_current_portfolio()
     
     if not portfolio:
-        if portfolio_uuid:
-            portfolio_session_manager.log_portfolio_error(
-                portfolio_uuid=portfolio_uuid,
-                error="No portfolio loaded",
-                operation="ticker_analysis"
-            )
         raise HTTPException(status_code=404, detail="No portfolio loaded")
     
     # Set default date range if not provided
@@ -714,28 +489,9 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
     if not end_date:
         end_date = datetime.now().strftime('%Y-%m-%d')
     
-    # Log portfolio info for debugging
+    # Get portfolio info for processing
     ticker_count = len(portfolio.get_tickers())
     print(f"Ticker analysis: {ticker_count} tickers, {start_date} to {end_date}")
-    
-    # Log ticker analysis start
-    if portfolio_uuid:
-        portfolio_session_manager.log_portfolio_operation(
-            portfolio_uuid=portfolio_uuid,
-            operation="ticker_analysis",
-            success=True,
-            details={
-                "ticker_count": ticker_count,
-                "start_date": start_date,
-                "end_date": end_date
-            }
-        )
-        
-        # Also log to backend-specific logger
-        backend_logger = portfolio_session_manager.get_backend_portfolio_logger(portfolio_uuid)
-        if backend_logger:
-            backend_logger.info(f"BACKEND | Starting ticker analysis for {ticker_count} tickers")
-            backend_logger.info(f"BACKEND | Date range: {start_date} to {end_date}")
     
     # Validate date range
     try:
@@ -765,12 +521,6 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
             risk_free_rate=0.03
         )
         
-        # Log backend ticker analysis execution
-        if portfolio_uuid:
-            backend_logger = portfolio_session_manager.get_backend_portfolio_logger(portfolio_uuid)
-            if backend_logger:
-                backend_logger.info(f"BACKEND | Executing ticker analysis use case with batch processing")
-                backend_logger.info(f"BACKEND | Risk-free rate: 0.03")
         
         response = controller._analyze_ticker_use_case.execute_batch(request)
         
@@ -802,27 +552,7 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
             }
             ticker_results.append(ticker_data)
         
-        # Log ticker analysis completion
-        if portfolio_uuid:
-            portfolio_session_manager.log_portfolio_operation(
-                portfolio_uuid=portfolio_uuid,
-                operation="ticker_analysis_complete",
-                success=True,
-                details={
-                    "successful_tickers": len(ticker_results),
-                    "failed_tickers": len(response.failed_tickers),
-                    "total_tickers": ticker_count,
-                    "processing_time_seconds": response.processing_time_seconds
-                }
-            )
             
-            # Log backend ticker analysis completion
-            backend_logger = portfolio_session_manager.get_backend_portfolio_logger(portfolio_uuid)
-            if backend_logger:
-                backend_logger.info(f"BACKEND | Ticker analysis completed successfully")
-                backend_logger.info(f"BACKEND | Successful tickers: {len(ticker_results)}")
-                backend_logger.info(f"BACKEND | Failed tickers: {len(response.failed_tickers)}")
-                backend_logger.info(f"BACKEND | Processing time: {response.processing_time_seconds:.2f}s")
         
         # Prepare response
         response_data = {
@@ -846,46 +576,10 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
         return response_data
         
     except Exception as e:
-        if portfolio_uuid:
-            portfolio_session_manager.log_portfolio_error(
-                portfolio_uuid=portfolio_uuid,
-                error=f"Ticker analysis failed: {str(e)}",
-                operation="ticker_analysis",
-                details={"start_date": start_date, "end_date": end_date}
-            )
         raise HTTPException(status_code=500, detail=f"Ticker analysis failed: {str(e)}")
 
 # Admin API Endpoints
 
-@app.post("/api/admin/logs/clear-all")
-async def clear_all_logs():
-    """Clear all application logs."""
-    try:
-        import subprocess
-        import os
-        
-        # Get the project root directory
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        script_path = os.path.join(project_root, "backend", "admin", "logs_clear.py")
-        
-        # Run the logs clear script
-        result = subprocess.run(
-            ["python", script_path, "--clear-all", "--force"],
-            cwd=project_root,
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        
-        if result.returncode == 0:
-            return {"success": True, "message": "All logs cleared successfully"}
-        else:
-            return {"success": False, "message": f"Error clearing logs: {result.stderr}"}
-            
-    except subprocess.TimeoutExpired:
-        return {"success": False, "message": "Log clearing operation timed out"}
-    except Exception as e:
-        return {"success": False, "message": f"Error executing log clear: {str(e)}"}
 
 @app.post("/api/admin/warehouse/clear-all")
 async def clear_all_warehouse():

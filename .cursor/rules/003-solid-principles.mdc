@@ -1,0 +1,192 @@
+---
+description: Enforce SOLID principles compliance across all code
+globs: **/*.py,**/*.ts,**/*.tsx,**/*.js,**/*.jsx
+tags: [solid-principles, architecture, design-patterns]
+priority: 3
+version: 1.0.0
+---
+
+# SOLID Principles Compliance
+
+## Context
+All code must adhere to SOLID principles to ensure maintainability, scalability, and proper separation of concerns.
+
+## Requirements
+
+### Single Responsibility Principle (SRP)
+- Each class/module has one reason to change
+- Each function does one thing well
+- Separate concerns into different classes
+
+### Open/Closed Principle (OCP)
+- Open for extension, closed for modification
+- Use inheritance and composition
+- Create abstractions for extensibility
+
+### Liskov Substitution Principle (LSP)
+- Subtypes must be substitutable for base types
+- Derived classes should not break base class contracts
+- Maintain behavioral compatibility
+
+### Interface Segregation Principle (ISP)
+- Many specific interfaces better than one general interface
+- Clients should not depend on methods they don't use
+- Create focused, cohesive interfaces
+
+### Dependency Inversion Principle (DIP)
+- Depend on abstractions, not concretions
+- High-level modules should not depend on low-level modules
+- Use dependency injection
+
+## Examples
+
+### Single Responsibility Principle
+
+#### Valid Example
+```python
+# Each class has one responsibility
+class PortfolioRepository:
+    def load(self, file_path: str) -> Portfolio: pass
+    def save(self, portfolio: Portfolio, file_path: str) -> None: pass
+
+class MetricsCalculator:
+    def calculate_return(self, prices: List[float]) -> float: pass
+    def calculate_volatility(self, prices: List[float]) -> float: pass
+```
+
+#### Invalid Example
+```python
+# Multiple responsibilities
+class PortfolioManager:
+    def load_portfolio(self): pass
+    def calculate_metrics(self): pass
+    def send_email(self): pass
+    def save_to_database(self): pass
+```
+
+### Open/Closed Principle
+
+#### Valid Example
+```python
+# Open for extension, closed for modification
+class MetricsCalculator(ABC):
+    @abstractmethod
+    def calculate(self, data: Any) -> float: pass
+
+class ReturnCalculator(MetricsCalculator):
+    def calculate(self, data: Any) -> float: pass
+
+class VolatilityCalculator(MetricsCalculator):
+    def calculate(self, data: Any) -> float: pass
+```
+
+#### Invalid Example
+```python
+# Requires modification for new metrics
+class MetricsCalculator:
+    def calculate(self, metric_type: str, data: Any) -> float:
+        if metric_type == "return":
+            return self._calculate_return(data)
+        elif metric_type == "volatility":
+            return self._calculate_volatility(data)
+        # Adding new metrics requires modifying this class
+```
+
+### Liskov Substitution Principle
+
+#### Valid Example
+```python
+# Subtypes are substitutable
+class MarketDataRepository(ABC):
+    @abstractmethod
+    def get_price_history(self, ticker: str) -> List[float]: pass
+
+class YFinanceRepository(MarketDataRepository):
+    def get_price_history(self, ticker: str) -> List[float]: pass
+
+class WarehouseRepository(MarketDataRepository):
+    def get_price_history(self, ticker: str) -> List[float]: pass
+
+# Both can be used interchangeably
+def analyze_portfolio(repo: MarketDataRepository):
+    prices = repo.get_price_history("AAPL")
+    # Works with any implementation
+```
+
+### Interface Segregation Principle
+
+#### Valid Example
+```python
+# Specific interfaces
+class ReadableRepository(ABC):
+    @abstractmethod
+    def get(self, id: str) -> Any: pass
+
+class WritableRepository(ABC):
+    @abstractmethod
+    def save(self, entity: Any) -> None: pass
+
+class PortfolioRepository(ReadableRepository, WritableRepository):
+    def get(self, id: str) -> Portfolio: pass
+    def save(self, portfolio: Portfolio) -> None: pass
+```
+
+#### Invalid Example
+```python
+# Fat interface
+class Repository(ABC):
+    @abstractmethod
+    def get(self, id: str) -> Any: pass
+    @abstractmethod
+    def save(self, entity: Any) -> None: pass
+    @abstractmethod
+    def delete(self, id: str) -> None: pass
+    @abstractmethod
+    def search(self, query: str) -> List[Any]: pass
+    @abstractmethod
+    def export(self, format: str) -> bytes: pass
+```
+
+### Dependency Inversion Principle
+
+#### Valid Example
+```python
+# Depend on abstractions
+class AnalyzePortfolioUseCase:
+    def __init__(self, market_repo: MarketDataRepository):
+        self.market_repo = market_repo  # Depends on abstraction
+
+# Dependency injection
+def create_use_case() -> AnalyzePortfolioUseCase:
+    market_repo = YFinanceRepository()  # Concrete implementation
+    return AnalyzePortfolioUseCase(market_repo)
+```
+
+#### Invalid Example
+```python
+# Depend on concretions
+class AnalyzePortfolioUseCase:
+    def __init__(self):
+        self.market_repo = YFinanceRepository()  # Hard-coded dependency
+```
+
+## Architecture Compliance
+
+### Clean Architecture Layers
+- **Domain**: Business entities and rules (no external dependencies)
+- **Application**: Use cases and interfaces
+- **Infrastructure**: External concerns (databases, APIs)
+- **Presentation**: User interface (CLI, web)
+
+### Dependency Flow
+- **Presentation** → **Application** → **Domain**
+- **Infrastructure** → **Application** (via interfaces)
+- **NO** direct dependencies between presentation and infrastructure
+
+## Validation Checklist
+- [ ] Each class has a single responsibility
+- [ ] Code is open for extension, closed for modification
+- [ ] Subtypes can substitute base types
+- [ ] Interfaces are focused and specific
+- [ ] Dependencies are on abstractions, not concretions
+- [ ] Clean architecture layers are respected

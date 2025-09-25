@@ -1,0 +1,145 @@
+---
+description: Enforce strict naming and phrasing simplification across all code and documentation
+globs: **/*.py,**/*.ts,**/*.tsx,**/*.js,**/*.jsx,**/*.md,**/*.rst,**/*.txt,**/*.yaml,**/*.yml,**/*.json
+tags: [naming, conventions, code-quality, documentation]
+priority: 1
+version: 1.1.0
+---
+
+# Naming and Phrasing Rules
+
+## Context
+This project enforces strict naming and phrasing simplification. All identifiers must be short, direct, and functional without adjectives or descriptive embellishments.
+
+## Requirements
+
+### Eliminate Descriptive Language
+- Remove all adjectives, epithets, and descriptive embellishments
+- Use neutral, technical terminology only
+- Avoid expressive, emotional, or subjective language
+
+### Functional Naming
+- All names must be purpose-driven and minimalistic
+- Use existing, commonly understood technical terms
+- Maintain consistency across the entire codebase
+
+### Critical Dependency Rule
+When renaming any function, variable, class, or file:
+- Check ALL occurrences and usages across the entire codebase
+- Update ALL references accordingly
+- Verify all connections before finalizing changes
+
+## Naming Conventions
+
+### Python Backend
+- **Classes**: PascalCase, functional names only
+  - `ColorMetricsService` → `MetricsService`
+  - `PortfolioAnalysisUseCase` → `PortfolioAnalyzer`
+- **Functions/Methods**: snake_case, action-oriented
+  - `getBeautifulData()` → `fetchData()`
+  - `calculateAmazingMetrics()` → `calculateMetrics()`
+- **Variables**: snake_case, descriptive but minimal
+  - `superFastCacheLayer` → `cacheLayer`
+  - `amazingPortfolioData` → `portfolioData`
+- **Files**: snake_case, functional purpose
+  - `color_metrics_service.py` → `metrics_service.py`
+
+### TypeScript/React Frontend
+- **Components**: PascalCase, functional names
+  - `BeautifulPortfolioChart` → `PortfolioChart`
+  - `AmazingDataTable` → `DataTable`
+- **Functions/Variables**: camelCase, action-oriented
+  - `getBeautifulData()` → `fetchData()`
+  - `handleAmazingClick()` → `handleClick()`
+- **Files**: PascalCase for components, camelCase for utilities
+  - `BeautifulPortfolioChart.tsx` → `PortfolioChart.tsx`
+
+### Documentation Files
+- **Markdown Files**: Use functional, technical language
+  - "This amazing module provides..." → "This module provides..."
+  - "The wonderful performance improvements..." → "The performance improvements..."
+  - "Beautiful and intuitive interface..." → "Interface for..."
+- **Configuration Files**: snake_case for keys, functional names
+  - `BEAUTIFUL_API_ENDPOINT` → `API_ENDPOINT`
+  - `SUPER_FAST_CACHE_SIZE` → `CACHE_SIZE`
+- **Comments**: Technical language only
+  - `# This amazing function calculates...` → `# This function calculates...`
+  - `# Super fast optimization here` → `# Optimization for performance`
+
+## Examples
+
+### Valid Examples
+```python
+# Good naming
+class MetricsService:
+    def calculate_return(self, prices: List[float]) -> float:
+        return self._compute_return(prices)
+
+def fetch_data(self, source: str) -> Dict:
+    return self._retrieve_data(source)
+```
+
+### Invalid Examples
+```python
+# Bad naming - contains adjectives
+class BeautifulMetricsService:
+    def calculateAmazingReturn(self, prices: List[float]) -> float:
+        return self._computeSuperFastReturn(prices)
+
+def getBeautifulData(self, source: str) -> Dict:
+    return self._retrieveAmazingData(source)
+```
+
+### Documentation Examples
+
+#### Valid Examples
+```markdown
+# Good documentation
+This module provides portfolio analysis functionality with optimized performance.
+
+The system calculates financial metrics using historical price data.
+
+Interface for portfolio management with real-time updates.
+```
+
+```yaml
+# Good configuration
+api_endpoint: "https://api.example.com"
+cache_size: 1000
+timeout_value: 30
+```
+
+#### Invalid Examples
+```markdown
+# Bad documentation - contains adjectives
+This amazing module provides a wonderfully elegant solution for portfolio analysis with super fast performance.
+
+The beautiful performance improvements make the system incredibly efficient.
+
+Beautiful and intuitive interface for amazing portfolio management.
+```
+
+```yaml
+# Bad configuration - contains adjectives
+beautiful_api_endpoint: "https://api.example.com"
+super_fast_cache_size: 1000
+amazing_timeout_value: 30
+```
+
+## Scope
+- Variable names, function names, class names
+- File names and directory names
+- Configuration keys and constants
+- **Documentation files** (.md, .rst, .txt files)
+- **Configuration files** (.yaml, .yml, .json files)
+- Code comments and docstrings
+- API endpoint names
+- Database table/column names
+- Test names and descriptions
+- **Internal documentation** (README, architecture docs, etc.)
+
+## Exceptions
+- User-facing content (UI labels, messages, app content)
+- External API documentation for end users
+- Marketing materials or public-facing documentation
+- **Sidebar version display**: Must use "alpha X.X.X" format (e.g., "alpha 5.0.0")

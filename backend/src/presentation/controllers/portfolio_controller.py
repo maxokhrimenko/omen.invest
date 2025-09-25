@@ -7,8 +7,6 @@ from ...application.use_cases.compare_tickers import CompareTickersUseCase, Comp
 from ...domain.entities.portfolio import Portfolio
 from ...domain.entities.ticker import Ticker
 from ...domain.value_objects.date_range import DateRange
-from ...infrastructure.logging.logger_service import get_logger_service
-from ...infrastructure.logging.decorators import log_user_action
 from ...infrastructure.color_metrics_service import ColorMetricsService
 from ...infrastructure.utils.date_utils import get_previous_working_day_string
 from ...infrastructure.table_formatter import TableFormatter
@@ -29,16 +27,9 @@ class PortfolioController:
         self._current_portfolio: Optional[Portfolio] = None
         self._default_start_date = "2024-03-01"
         self._risk_free_rate = 0.03
-        
-        # Initialize logging
-        self._logger_service = get_logger_service()
-        self._logger = self._logger_service.get_logger("presentation")
-        self._logger.info("PortfolioController initialized")
     
-    @log_user_action("load_portfolio", include_inputs=True)
     def load_portfolio(self) -> None:
         """Load portfolio from file."""
-        self._logger.info("User initiated portfolio load")
         print("\n📁 Load Portfolio")
         print("─" * 50)
         
@@ -46,19 +37,14 @@ class PortfolioController:
         if not file_path:
             file_path = "input/test.csv"
         
-        self._logger.info(f"User selected file path: {file_path}")
-        self._logger_service.log_user_action("load_portfolio", {"file_path": file_path})
-        
         request = LoadPortfolioRequest(file_path=file_path)
         response = self._load_portfolio_use_case.execute(request)
         
         if response.success:
             self._current_portfolio = response.portfolio
-            self._logger.info(f"Portfolio loaded successfully: {response.message}")
             print(f"✅ {response.message}")
             self._display_portfolio_summary()
         else:
-            self._logger.error(f"Portfolio load failed: {response.message}")
             print(f"❌ {response.message}")
     
     def analyze_portfolio(self) -> None:
@@ -570,7 +556,6 @@ class PortfolioController:
         
         print("=" * 50)
     
-    @log_user_action("show_warehouse_metrics")
     def show_warehouse_metrics(self) -> None:
         """Display warehouse observability metrics."""
         print("\n🏪 Warehouse Metrics")
