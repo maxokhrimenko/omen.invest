@@ -102,18 +102,16 @@ class TestPortfolio:
         assert ticker1 in tickers
         assert ticker2 in tickers
     
-    def test_add_position(self):
+    def test_duplicate_ticker_handling(self):
         ticker1 = Ticker("AAPL")
         position1 = Position(ticker1, 10)
+        position2 = Position(ticker1, 5)  # Same ticker, different quantity
         
-        portfolio = Portfolio([position1])
+        # Portfolio should handle duplicate tickers by keeping the last one
+        portfolio = Portfolio([position1, position2])
         
-        ticker2 = Ticker("MSFT")
-        position2 = Position(ticker2, 5)
-        portfolio.add_position(position2)
-        
-        assert len(portfolio) == 2
-        assert portfolio.get_position(ticker2) == position2
+        assert len(portfolio) == 1
+        assert portfolio.get_position(ticker1) == position2
     
     def test_get_total_value(self):
         ticker1 = Ticker("AAPL")

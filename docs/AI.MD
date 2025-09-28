@@ -5,31 +5,32 @@
 - [2. Tech Stack & Tooling](#2-tech-stack--tooling)
 - [3. Repository Map](#3-repository-map)
 - [4. Architecture Overview](#4-architecture-overview)
-- [5. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)](#5-enhanced-ticker-comparison--frontend-architecture-improvements-v450)
-- [6. Annualized Dividend Calculation System (v4.1.1)](#6-annualized-dividend-calculation-system-v411)
-- [7. Parallel Processing & Warehouse Optimization System (v4.4.3)](#7-parallel-processing--warehouse-optimization-system-v443)
-- [8. Enhanced Data Validation & Analysis Accuracy (v4.4.1)](#8-enhanced-data-validation--analysis-accuracy-v441)
-- [9. Advanced Portfolio Analysis & Visualization (v4.4.0)](#9-advanced-portfolio-analysis--visualization-v440)
-- [10. Portfolio Dividend Metrics & CLI-Frontend Alignment (v4.4.7)](#10-portfolio-dividend-metrics--cli-frontend-alignment-v447)
-- [11. Enhanced Ticker Analysis System (v4.4.8)](#11-enhanced-ticker-analysis-system-v448)
-- [12. Portfolio Analysis & Visualization (v4.4.0)](#12-portfolio-analysis--visualization-v440)
-- [12. Services & Modules](#12-services--modules)
-- [13. Data Storage & Schema](#13-data-storage--schema)
-- [14. APIs & Contracts](#14-apis--contracts)
-- [15. Events, Queues & Background Jobs](#15-events-queues--background-jobs)
-- [16. Configuration & Secrets](#16-configuration--secrets)
-- [17. Build, Run & Deploy](#17-build-run--deploy)
-- [18. Observability](#18-observability)
-- [19. Testing & QA](#19-testing--qa)
-- [20. Performance & Scalability](#20-performance--scalability)
-- [21. Security & Compliance](#21-security--compliance)
-- [22. Core Flows (Sequence Diagrams)](#22-core-flows-sequence-diagrams)
-- [23. LLM/AI Integration (if any)](#23-llmai-integration-if-any)
-- [24. Extension Guide (How to Safely Change Things)](#24-extension-guide-how-to-safely-change-things)
-- [25. Data Validation & Missing Data Detection](#25-data-validation--missing-data-detection)
-- [26. Known Issues & TODOs](#26-known-issues--todos)
-- [27. Glossary & Domain Concepts](#27-glossary--domain-concepts)
-- [28. License & Third-Party Notices](#28-license--third-party-notices)
+- [5. Documentation & Version Management Updates (v4.5.1)](#5-documentation--version-management-updates-v451)
+- [6. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)](#6-enhanced-ticker-comparison--frontend-architecture-improvements-v450)
+- [7. Annualized Dividend Calculation System (v4.1.1)](#7-annualized-dividend-calculation-system-v411)
+- [8. Parallel Processing & Warehouse Optimization System (v4.4.3)](#8-parallel-processing--warehouse-optimization-system-v443)
+- [9. Enhanced Data Validation & Analysis Accuracy (v4.4.1)](#9-enhanced-data-validation--analysis-accuracy-v441)
+- [10. Advanced Portfolio Analysis & Visualization (v4.4.0)](#10-advanced-portfolio-analysis--visualization-v440)
+- [11. Portfolio Dividend Metrics & CLI-Frontend Alignment (v4.4.7)](#11-portfolio-dividend-metrics--cli-frontend-alignment-v447)
+- [12. Enhanced Ticker Analysis System (v4.4.8)](#12-enhanced-ticker-analysis-system-v448)
+- [13. Portfolio Analysis & Visualization (v4.4.0)](#13-portfolio-analysis--visualization-v440)
+- [14. Services & Modules](#14-services--modules)
+- [15. Data Storage & Schema](#15-data-storage--schema)
+- [16. APIs & Contracts](#16-apis--contracts)
+- [17. Events, Queues & Background Jobs](#17-events-queues--background-jobs)
+- [18. Configuration & Secrets](#18-configuration--secrets)
+- [19. Build, Run & Deploy](#19-build-run--deploy)
+- [20. Observability](#20-observability)
+- [21. Testing & QA](#21-testing--qa)
+- [22. Performance & Scalability](#22-performance--scalability)
+- [23. Security & Compliance](#23-security--compliance)
+- [24. Core Flows (Sequence Diagrams)](#24-core-flows-sequence-diagrams)
+- [25. LLM/AI Integration (if any)](#25-llmai-integration-if-any)
+- [26. Extension Guide (How to Safely Change Things)](#26-extension-guide-how-to-safely-change-things)
+- [27. Data Validation & Missing Data Detection](#27-data-validation--missing-data-detection)
+- [28. Known Issues & TODOs](#28-known-issues--todos)
+- [29. Glossary & Domain Concepts](#29-glossary--domain-concepts)
+- [30. License & Third-Party Notices](#30-license--third-party-notices)
 - [Appendix A. Module Index](#appendix-a-module-index)
 - [Appendix B. Evidence Index](#appendix-b-evidence-index)
 
@@ -43,7 +44,7 @@ Investment portfolio analysis tool providing comprehensive financial metrics and
 N/A - Personal project
 
 **High-level function of the system in one paragraph.**  
-The Portfolio Analysis Tool is a full-stack application that analyzes investment portfolios using Clean Architecture principles. The backend is a Python-based CLI application that loads portfolio data from CSV files, fetches real-time market data via Yahoo Finance API with warehouse caching, and calculates financial metrics including returns, risk ratios, volatility, and dividend analysis with frequency detection and annualization. The system features a read-through caching layer using embedded SQLite that provides 100x+ performance improvements for repeated requests, dividend absence caching to eliminate unnecessary API calls, and trading-day aware gap filling. The frontend is prepared for modern web development with React/TypeScript, providing both portfolio-level consolidated analysis and individual ticker analysis with interactive web interface, featuring color-coded metrics based on performance thresholds, multiple display formats (cards and table views), and visual presentation with performance feedback. The annualized dividend calculation system detects payment frequencies (Monthly, Quarterly, Semi-Annual, Annual, Irregular) and provides annualized dividend metrics for comparison across all stocks. The system includes a comprehensive administration system with warehouse management capabilities, enhanced date validation using previous working day logic for financial data consistency, and administrative API endpoints for system maintenance and data management.
+The Portfolio Analysis Tool is a comprehensive full-stack application that analyzes investment portfolios using Clean Architecture principles. The backend is a Python-based FastAPI application that loads portfolio data from CSV files, fetches real-time market data via Yahoo Finance API with warehouse caching, and calculates financial metrics including returns, risk ratios, volatility, and dividend analysis with frequency detection and annualization. The system features a read-through caching layer using embedded SQLite that provides 100x+ performance improvements for repeated requests, dividend absence caching to eliminate unnecessary API calls, and trading-day aware gap filling. The frontend is a modern React/TypeScript web application providing both portfolio-level consolidated analysis and individual ticker analysis with interactive web interface, featuring color-coded metrics based on performance thresholds, multiple display formats (cards and table views), and visual presentation with performance feedback. The annualized dividend calculation system detects payment frequencies (Monthly, Quarterly, Semi-Annual, Annual, Irregular) and provides annualized dividend metrics for comparison across all stocks. The system includes a comprehensive administration system with warehouse management capabilities, enhanced date validation using previous working day logic for financial data consistency, administrative API endpoints for system maintenance and data management, and a sophisticated ticker comparison system allowing side-by-side analysis of multiple tickers with enhanced frontend architecture and improved user experience.
 
 **Entry points (CLI/Service/Workers):**  
 - `backend/main.py` - Primary CLI application entry point
@@ -167,7 +168,50 @@ The system follows Clean Architecture with clear separation of concerns. The pre
 - No authentication or authorization required
 Evidence: yfinance_market_repository.py:L1-L135
 
-## 5. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)
+## 5. Documentation & Version Management Updates (v4.5.1)
+
+**Purpose:**  
+Comprehensive documentation updates, version management improvements, and system maintenance to ensure all documentation reflects the current state of the application.
+
+**Key Features:**
+
+#### Enhanced Documentation System
+- **Comprehensive Documentation Updates**: Updated all documentation files to reflect current system architecture and features
+- **Version Consistency**: Synchronized version numbers across all documentation and codebase
+- **Improved Technical Documentation**: Enhanced AI.MD, ARCHITECTURE.md, and structure.md with current system capabilities
+- **Design System Refinement**: Updated STYLE.MD with simplified design language and improved guidelines
+
+#### Version Management Improvements
+- **Automated Version Updates**: Enhanced version update script with better file detection and error handling
+- **Cross-Platform Compatibility**: Improved version update script compatibility across different operating systems
+- **Version Synchronization**: Ensured all version references are consistent across frontend, backend, and documentation
+
+**Technical Implementation:**
+
+#### Documentation Architecture
+- **Centralized Version Management**: All documentation now references v4.5.1 consistently
+- **Modular Documentation**: Each documentation file focuses on specific aspects of the system
+- **Cross-Reference Updates**: All internal links and references updated to current structure
+- **Version History**: Maintained comprehensive changelog with detailed version information
+
+#### Version Management System
+- **Automated Updates**: Enhanced version update script with better file detection
+- **Error Recovery**: Improved error handling and recovery mechanisms
+- **Platform Compatibility**: Better cross-platform support for version updates
+- **File Validation**: Enhanced file validation and error reporting
+
+**Benefits:**
+- **Consistent Documentation**: All documentation now reflects current system state
+- **Better Maintenance**: Easier to maintain and update documentation
+- **Version Clarity**: Clear version management and update process
+- **Code Quality**: Improved code organization and maintainability
+
+**Evidence:** 
+- `scripts/update_version.py` - Enhanced version update script
+- `CHANGELOG.md` - Comprehensive version history and changes
+- `docs/` - Updated documentation files across all components
+
+## 6. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)
 
 **Purpose:**  
 Comprehensive ticker comparison functionality with significant frontend architecture improvements, enhanced user experience, and better data visualization capabilities.
@@ -865,7 +909,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 - portfolio_session_manager.py:L1-L172 (Frontend logging)
 - PortfolioChart.tsx, RedesignedPortfolioMetrics.tsx (Frontend components)
 
-## 12. Services & Modules
+## 14. Services & Modules
 | Name | Type (svc/lib) | Responsibilities | Key Public APIs | Depends On | Evidence |
 |------|-----------------|------------------|-----------------|------------|----------|
 | MainController | Controller | Orchestrate user interactions, format results | load_portfolio(), analyze_portfolio(), analyze_tickers(), compare_tickers() | All use cases | main_controller.py:L11-L20 |
@@ -890,7 +934,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 | Percentage | Value Object | Percentage calculations | to_decimal(), format() | None | percentage.py:L4-L29 |
 | DateRange | Value Object | Date range handling | start, end properties | None | date_range.py:L4-L34 |
 
-## 13. Data Storage & Schema
+## 15. Data Storage & Schema
 **Stores:** CSV Files (local file system) + SQLite Warehouse Database  
 **Connection points & ORM models:**  
 - CSV files via pandas DataFrame
@@ -913,7 +957,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 **Migrations & seeds:** N/A - File-based storage, no migrations needed  
 Evidence: input/test.csv:L1-L16, csv_portfolio_repository.py:L35-L56, warehouse_service.py:L29-L84
 
-## 14. APIs & Contracts
+## 16. APIs & Contracts
 **CLI Interface (Interactive Menu System)**  
 For each operation, list:
 - Menu Option
@@ -942,12 +986,12 @@ For administrative operations and system management:
 | Get Warehouse Tickers | GET /api/admin/warehouse/tickers | search (optional) | List of available tickers | None | api.py:L902-L970 |
 | Clear Warehouse Ticker | POST /api/admin/warehouse/clear-ticker | ticker (string) | Success/error message | None | api.py:L972-L1000 |
 
-## 15. Events, Queues & Background Jobs
+## 17. Events, Queues & Background Jobs
 | Topic/Queue | Producer(s) | Consumer(s) | Payload (schema) | Retry/DLQ | Schedule/Cron | Evidence |
 |-------------|-------------|-------------|------------------|-----------|---------------|----------|
 | N/A | N/A | N/A | N/A | N/A | N/A | No event system or background jobs |
 
-## 16. Configuration & Secrets
+## 18. Configuration & Secrets
 | Variable/Config | Purpose | Default/Example | Source (.env, config.yml) | Required? | Evidence |
 |-----------------|---------|-----------------|----------------------------|-----------|----------|
 | Default start date | Analysis period start | "2024-03-01" | Hardcoded in controller | No | main_controller.py:L22 |
@@ -959,7 +1003,7 @@ For administrative operations and system management:
 No secrets or sensitive data - all data is public market information  
 Evidence: No authentication or secrets in codebase
 
-## 17. Build, Run & Deploy
+## 19. Build, Run & Deploy
 **Local dev:** commands to install, run, test.  
 ```bash
 # Backend Setup
@@ -991,7 +1035,7 @@ npm test
 **CI/CD:** N/A - No CI/CD pipeline configured  
 Evidence: README.md:L101-L145
 
-## 18. Observability
+## 20. Observability
 **Logs:** formats, levels, sinks.  
 - **Logging system** with session-based separation
 - **Dual log streams**: Session-specific logs (`logs/sessions/`) and total logs (`logs/total/`)
@@ -1012,7 +1056,7 @@ Evidence: README.md:L101-L145
 **Dashboards & alerts:** N/A - No monitoring dashboards  
 Evidence: src/infrastructure/logging/logger_service.py, admin/logs_clear.py
 
-## 19. Testing & QA
+## 21. Testing & QA
 | Test Type | Where | How to Run | Coverage Hints | Evidence |
 |----------|------|------------|----------------|----------|
 | Unit Tests | tests/unit/ | pytest tests/unit/ | Domain entities and value objects | test_entities.py:L1-L147, test_value_objects.py:L1-L95 |
@@ -1022,7 +1066,7 @@ Evidence: src/infrastructure/logging/logger_service.py, admin/logs_clear.py
 **Linters/formatters:** N/A - No linter configuration found  
 Evidence: 38 total tests (34 unit + 4 integration), CHANGELOG.md:L56-L59
 
-## 20. Performance & Scalability
+## 22. Performance & Scalability
 **Bottlenecks & hot paths:**  
 - Yahoo Finance API calls (network latency) - **SOLVED with warehouse caching**
 - Large portfolio analysis (O(n) for each ticker)
@@ -1042,7 +1086,7 @@ Evidence: 38 total tests (34 unit + 4 integration), CHANGELOG.md:L56-L59
 - **API Efficiency**: Eliminates unnecessary external API calls
 Evidence: warehouse_market_repository.py:L14-L218, warehouse_service.py:L9-L317
 
-## 21. Security & Compliance
+## 23. Security & Compliance
 **Authn/z model:** None - No authentication required  
 **Data classification (PII/PHI/etc.):** Public market data only  
 **Supply-chain & license risks:**  
@@ -1055,7 +1099,7 @@ Evidence: warehouse_market_repository.py:L14-L218, warehouse_service.py:L9-L317
 - Error handling for external API failures
 Evidence: csv_portfolio_repository.py:L35-L56, main_controller.py:L160-L180
 
-## 22. Core Flows (Sequence Diagrams)
+## 24. Core Flows (Sequence Diagrams)
 For each major flow, provide a Mermaid sequence diagram + brief notes.
 
 ### Portfolio Loading Flow
@@ -1107,12 +1151,12 @@ sequenceDiagram
 
 Evidence: main_controller.py:L25-L67, analyze_portfolio.py:L42-L86
 
-## 23. LLM/AI Integration (if any)
+## 25. LLM/AI Integration (if any)
 | Area | Model(s) & Version(s) | Prompt Template Location | Vector DB/Index | Tokenization Settings | Guardrails | Evidence |
 |------|-----------------------|--------------------------|-----------------|-----------------------|------------|----------|
 | N/A | N/A | N/A | N/A | N/A | N/A | No AI/LLM integration |
 
-## 24. Extension Guide (How to Safely Change Things)
+## 26. Extension Guide (How to Safely Change Things)
 **Where to add a new endpoint/worker/module:**  
 - New use cases: Add to `src/application/use_cases/`
 - New repositories: Add to `src/infrastructure/repositories/`
@@ -1140,7 +1184,7 @@ Evidence: main_controller.py:L25-L67, analyze_portfolio.py:L42-L86
 - Test changes locally before committing
 Evidence: ARCHITECTURE.md:L405-L422
 
-## 25. Data Validation & Missing Data Detection
+## 27. Data Validation & Missing Data Detection
 
 **Purpose:**  
 Data validation system that identifies and reports tickers with missing or incomplete data for portfolio analysis.
@@ -1172,7 +1216,7 @@ Data validation system that identifies and reports tickers with missing or incom
 
 **Evidence:** analyze_portfolio.py:L172-L206, analyze_ticker.py:L70-L85, main_controller.py:L316-L331
 
-## 26. Known Issues & TODOs
+## 28. Known Issues & TODOs
 - No known issues documented in code
 - No TODO comments found in codebase
 - Potential improvements:
@@ -1182,7 +1226,7 @@ Data validation system that identifies and reports tickers with missing or incom
   - Add logging framework
 Evidence: No TODO comments or issue tracking found
 
-## 27. Glossary & Domain Concepts
+## 29. Glossary & Domain Concepts
 | Term | Meaning | Evidence |
 |------|---------|----------|
 | Portfolio | Collection of investment positions | portfolio.py:L6-L43 |
@@ -1199,7 +1243,7 @@ Evidence: No TODO comments or issue tracking found
 | Repository Pattern | Data access abstraction | repositories.py:L9-L36 |
 | Value Object | Immutable domain concept | money.py:L4-L45 |
 
-## 28. License & Third-Party Notices
+## 30. License & Third-Party Notices
 | Package | Version | License | Obligations | Evidence |
 |---------|---------|---------|-------------|----------|
 | pandas | >=1.3.0 | BSD-3-Clause | Attribution required | requirements.txt:L1 |

@@ -6,14 +6,11 @@ Provides REST API endpoints for frontend integration
 
 import sys
 import os
-import time
-import uuid
 import json
 from pathlib import Path
 from typing import Optional, List
 from datetime import datetime, timedelta
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
@@ -21,7 +18,7 @@ import uvicorn
 # Add src to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from src.presentation.controllers.portfolio_controller import MainController
+from src.presentation.controllers.main_controller import MainController
 from src.infrastructure.repositories.csv_portfolio_repository import CsvPortfolioRepository
 from src.infrastructure.repositories.warehouse_market_repository import WarehouseMarketRepository
 from src.infrastructure.config.warehouse_config import WarehouseConfig
@@ -33,9 +30,7 @@ from src.application.use_cases.analyze_portfolio import (
 from src.application.use_cases.analyze_ticker import AnalyzeTickerUseCase, AnalyzeTickerRequest, AnalyzeTickersRequest
 from src.application.use_cases.compare_tickers import CompareTickersUseCase
 from src.infrastructure.color_metrics_service import ColorMetricsService
-# Portfolio session manager will be imported locally in get_portfolio_session_manager()
 from src.domain.entities.portfolio import Portfolio
-import json
 from src.domain.entities.position import Position
 from src.domain.entities.ticker import Ticker
 from src.domain.value_objects.date_range import DateRange
@@ -63,6 +58,98 @@ class TickerComparisonData(BaseModel):
     worstPerformer: dict  # TickerAnalysis data
     bestSharpe: dict  # TickerAnalysis data
     lowestRisk: dict  # TickerAnalysis data
+
+# Helper functions
+def _convert_metrics_to_api(metrics):
+    """Convert metrics to API format."""
+    return {
+        "ticker": metrics.ticker.symbol,
+        "annualizedReturn": f"{metrics.annualized_return.value:.2f}%",
+        "sharpeRatio": f"{metrics.sharpe_ratio:.2f}",
+        "volatility": f"{metrics.volatility.value:.2f}%",
+        "maxDrawdown": f"{metrics.max_drawdown.value:.2f}%"
+    }
+
+def _get_sort_value(metric, sort_key):
+    """Get sort value from metric attribute."""
+    value = getattr(metric, sort_key)
+    return value.value if hasattr(value, 'value') else value
+
+def _get_top_performers(metrics_list, sort_key, reverse=True, limit=5):
+    """Get top performers sorted by specified criteria."""
+    sorted_metrics = sorted(metrics_list, 
+                          key=lambda metric: _get_sort_value(metric, sort_key), 
+                          reverse=reverse)
+    return [_convert_metrics_to_api(metric) for metric in sorted_metrics[:limit]]
+
+async def _save_uploaded_file(file: UploadFile, temp_file_path: str) -> None:
+    """Save uploaded file to temporary location."""
+    with open(temp_file_path, "wb") as buffer:
+        content = await file.read()
+        buffer.write(content)
+
+def _create_portfolio_response(portfolio: Portfolio) -> PortfolioResponse:
+    """Create portfolio response from portfolio object."""
+    positions = [
+        PositionResponse(ticker=pos.ticker.symbol, position=float(pos.quantity))
+        for pos in portfolio.get_positions()
+    ]
+    
+    total_positions = sum(float(pos.quantity) for pos in portfolio.get_positions())
+    
+    return PortfolioResponse(
+        positions=positions,
+        totalPositions=int(total_positions),
+        tickers=[t.symbol for t in portfolio.get_tickers()]
+    )
+
+def _get_default_date_range(start_date: str, end_date: str) -> tuple[str, str]:
+    """Get default date range if not provided."""
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+    if not end_date:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+    return start_date, end_date
+
+def _validate_date_range(start_date: str, end_date: str) -> None:
+    """Validate date range parameters."""
+    try:
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+        
+        if start_dt > end_dt:
+            raise HTTPException(status_code=400, detail="Start date cannot be after end date")
+        
+        if is_date_after_previous_working_day(end_date):
+            previous_working_day = get_previous_working_day_string()
+            raise HTTPException(
+                status_code=400, 
+                detail=f"End date cannot be after the previous working day ({previous_working_day}). Please use a date on or before {previous_working_day}."
+            )
+            
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+def _convert_metrics_to_api_response(metrics) -> dict:
+    """Convert metrics to API response format."""
+    return {
+        "totalReturn": f"{metrics.total_return.value:.2f}%",
+        "annualizedReturn": f"{metrics.annualized_return.value:.2f}%",
+        "volatility": f"{metrics.volatility.value:.2f}%",
+        "sharpeRatio": f"{metrics.sharpe_ratio:.3f}",
+        "maxDrawdown": f"{metrics.max_drawdown.value:.2f}%",
+        "sortinoRatio": f"{metrics.sortino_ratio:.3f}",
+        "calmarRatio": f"{metrics.calmar_ratio:.3f}",
+        "var95": f"{metrics.var_95.value:.2f}%",
+        "beta": f"{metrics.beta:.3f}",
+        "startValue": f"${metrics.start_value.amount:,.2f}",
+        "endValue": f"${metrics.end_value.amount:,.2f}",
+        "endValueAnalysis": f"${metrics.end_value_analysis.amount:,.2f}",
+        "endValueMissing": f"${metrics.end_value_missing.amount:,.2f}",
+        "dividendAmount": f"${metrics.dividend_amount.amount:,.2f}",
+        "annualizedDividendYield": f"{metrics.annualized_dividend_yield.value:.2f}%",
+        "totalDividendYield": f"{metrics.total_dividend_yield.value:.2f}%"
+    }
 
 class CompareTickersResponse(BaseModel):
     success: bool
@@ -92,12 +179,9 @@ app.add_middleware(
 # Global variables for dependency injection
 _controller: Optional[MainController] = None
 _current_portfolio: Optional[Portfolio] = None
-_current_portfolio_session: Optional[str] = None
-_portfolio_session_manager = None
 
 # Persistent portfolio storage to survive server reloads
 PORTFOLIO_STORAGE_FILE = Path("/tmp/current_portfolio.json")
-PORTFOLIO_SESSION_STORAGE_FILE = Path("/tmp/current_portfolio_session.json")
 
 def save_portfolio_to_disk(portfolio: Optional[Portfolio]) -> None:
     """Save portfolio to disk for persistence across server reloads."""
@@ -143,20 +227,6 @@ def load_portfolio_from_disk() -> Optional[Portfolio]:
         return None
 
 
-def get_portfolio_session_manager():
-    """Get or initialize portfolio session manager."""
-    global _portfolio_session_manager
-    if _portfolio_session_manager is None:
-        # Return a dummy portfolio session manager
-        class DummyPortfolioSessionManager:
-            def start_portfolio_session(self, portfolio_name=None):
-                return "dummy-session-id"
-            def end_portfolio_session(self, session_id, reason=None):
-                pass
-            def get_active_sessions(self):
-                return []
-        _portfolio_session_manager = DummyPortfolioSessionManager()
-    return _portfolio_session_manager
 
 def get_controller() -> MainController:
     """Get or create portfolio controller instance."""
@@ -195,20 +265,6 @@ def get_current_portfolio() -> Optional[Portfolio]:
     # If portfolio is None (e.g., after server reload), try to load from disk
     if _current_portfolio is None:
         _current_portfolio = load_portfolio_from_disk()
-        
-        # If portfolio was loaded from disk, also try to resume the session
-        if _current_portfolio is not None and _current_portfolio_session is None:
-            session_uuid = load_portfolio_session_from_disk()
-            if session_uuid:
-                # Resume the session
-                portfolio_session_manager = get_portfolio_session_manager()
-                # Check if session still exists in manager, if not, create a new one
-                if session_uuid not in portfolio_session_manager.get_active_sessions():
-                    # Create a new session with the same UUID for continuity
-                    portfolio_session_manager.start_portfolio_session(
-                        portfolio_name=f"resumed-{session_uuid}"
-                    )
-                set_current_portfolio_session(session_uuid)
     
     return _current_portfolio
 
@@ -220,41 +276,6 @@ def set_current_portfolio(portfolio: Optional[Portfolio]) -> None:
     # Save to disk for persistence across server reloads
     save_portfolio_to_disk(portfolio)
 
-def get_current_portfolio_session() -> Optional[str]:
-    """Get current portfolio session UUID."""
-    return _current_portfolio_session
-
-def set_current_portfolio_session(session_uuid: Optional[str]) -> None:
-    """Set current portfolio session UUID."""
-    global _current_portfolio_session
-    _current_portfolio_session = session_uuid
-    
-    # Save session to disk for persistence
-    save_portfolio_session_to_disk(session_uuid)
-
-def save_portfolio_session_to_disk(session_uuid: Optional[str]) -> None:
-    """Save portfolio session to disk for persistence across server reloads."""
-    if session_uuid is None:
-        if PORTFOLIO_SESSION_STORAGE_FILE.exists():
-            PORTFOLIO_SESSION_STORAGE_FILE.unlink()
-        return
-    
-    session_data = {"session_uuid": session_uuid}
-    with open(PORTFOLIO_SESSION_STORAGE_FILE, 'w') as f:
-        json.dump(session_data, f)
-
-def load_portfolio_session_from_disk() -> Optional[str]:
-    """Load portfolio session from disk if it exists."""
-    if not PORTFOLIO_SESSION_STORAGE_FILE.exists():
-        return None
-    
-    try:
-        with open(PORTFOLIO_SESSION_STORAGE_FILE, 'r') as f:
-            session_data = json.load(f)
-        return session_data.get("session_uuid")
-    except Exception as e:
-        print(f"Error loading portfolio session from disk: {e}")
-        return None
 
 # API Endpoints
 
@@ -267,175 +288,84 @@ async def health_check():
 @app.post("/portfolio/upload")
 async def upload_portfolio(file: UploadFile = File(...)):
     """Upload portfolio CSV file."""
+    temp_file_path = None
     try:
-        # Start a new portfolio session
-        portfolio_session_manager = get_portfolio_session_manager()
-        portfolio_uuid = portfolio_session_manager.start_portfolio_session(
-            portfolio_name=file.filename.replace('.csv', '') if file.filename else None
-        )
-        set_current_portfolio_session(portfolio_uuid)
-        
-        
         # Validate file type
         if not file.filename.lower().endswith('.csv'):
             raise HTTPException(status_code=400, detail="File must be a CSV file")
         
         # Save uploaded file temporarily
         temp_file_path = f"/tmp/uploaded_portfolio_{file.filename}"
-        with open(temp_file_path, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
-        
+        await _save_uploaded_file(file, temp_file_path)
         
         # Load portfolio using controller
         controller = get_controller()
-        
         request = LoadPortfolioRequest(file_path=temp_file_path)
         response = controller._load_portfolio_use_case.execute(request)
         
         if response.success and response.portfolio:
             set_current_portfolio(response.portfolio)
-            
-            
-            # Convert to response format
-            positions = [
-                PositionResponse(ticker=pos.ticker.symbol, position=float(pos.quantity))
-                for pos in response.portfolio.get_positions()
-            ]
-            
-            # Calculate total positions as sum of all position quantities
-            total_positions = sum(float(pos.quantity) for pos in response.portfolio.get_positions())
-            
-            portfolio_response = PortfolioResponse(
-                positions=positions,
-                totalPositions=int(total_positions),
-                tickers=[t.symbol for t in response.portfolio.get_tickers()]
-            )
+            portfolio_response = _create_portfolio_response(response.portfolio)
             
             return {
                 "success": True,
-                "message": (
-                    f"Portfolio loaded successfully with "
-                    f"{len(response.portfolio.get_positions())} positions"
-                ),
+                "message": f"Portfolio loaded successfully with {len(response.portfolio.get_positions())} positions",
                 "portfolio": portfolio_response.model_dump()
             }
         else:
             raise HTTPException(status_code=400, detail=response.message)
             
     except HTTPException:
-        # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
-        # Handle unexpected errors
-        
         import traceback
         print("FULL TRACEBACK:")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         # Clean up temp file
-        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+        if temp_file_path and os.path.exists(temp_file_path):
             os.remove(temp_file_path)
 
 @app.get("/portfolio")
 async def get_portfolio():
     """Get current portfolio."""
-    portfolio_uuid = get_current_portfolio_session()
-    portfolio_session_manager = get_portfolio_session_manager()
-    
     portfolio = get_current_portfolio()
     
     if not portfolio:
         raise HTTPException(status_code=404, detail="No portfolio loaded")
     
-    
-    # Convert to response format
-    positions = [
-        PositionResponse(ticker=pos.ticker.symbol, position=float(pos.quantity))
-        for pos in portfolio.get_positions()
-    ]
-    
-    # Calculate total positions as sum of all position quantities
-    total_positions = sum(float(pos.quantity) for pos in portfolio.get_positions())
-    
-    portfolio_response = PortfolioResponse(
-        positions=positions,
-        totalPositions=int(total_positions),
-        tickers=[t.symbol for t in portfolio.get_tickers()]
-    )
-    
-    return portfolio_response
+    return _create_portfolio_response(portfolio)
 
 @app.delete("/portfolio")
 async def clear_portfolio():
     """Clear current portfolio."""
-    portfolio_uuid = get_current_portfolio_session()
-    
-    # End the portfolio session if it exists
-    if portfolio_uuid:
-        portfolio_session_manager = get_portfolio_session_manager()
-        portfolio_session_manager.end_portfolio_session(portfolio_uuid, reason="portfolio_cleared")
-        set_current_portfolio_session(None)
-    
     set_current_portfolio(None)  # This will also clear disk storage
     return ApiResponse(success=True, message="Portfolio cleared successfully")
 
 @app.get("/portfolio/analysis")
 async def analyze_portfolio(start_date: str = None, end_date: str = None):
     """Analyze current portfolio with date range parameters."""
-    portfolio_uuid = get_current_portfolio_session()
-    portfolio_session_manager = get_portfolio_session_manager()
-    
     portfolio = get_current_portfolio()
     
     if not portfolio:
         raise HTTPException(status_code=404, detail="No portfolio loaded")
     
     # Set default date range if not provided
-    if not start_date:
-        start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
-    if not end_date:
-        end_date = datetime.now().strftime('%Y-%m-%d')
-    
-    # Calculate ticker count for display
-    ticker_count = len(portfolio.get_tickers())
-    
-    
-    print(f"Portfolio analysis: {ticker_count} tickers, {start_date} to {end_date}")
+    start_date, end_date = _get_default_date_range(start_date, end_date)
     
     # Validate date range
-    try:
-        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-        
-        if start_dt > end_dt:
-            raise HTTPException(status_code=400, detail="Start date cannot be after end date")
-        
-        if is_date_after_previous_working_day(end_date):
-            previous_working_day = get_previous_working_day_string()
-            raise HTTPException(
-                status_code=400, 
-                detail=f"End date cannot be after the previous working day ({previous_working_day}). Please use a date on or before {previous_working_day}."
-            )
-            
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    _validate_date_range(start_date, end_date)
     
     try:
-        # Import required classes
-        
-        # Create date range
+        # Create date range and run analysis
         date_range = DateRange(start_date, end_date)
-        
-        # Get controller and run analysis
         controller = get_controller()
         request = AnalyzePortfolioRequest(
             portfolio=portfolio,
             date_range=date_range,
             risk_free_rate=0.03
         )
-        
         
         response = controller._analyze_portfolio_use_case.execute(request)
         
@@ -445,28 +375,8 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
         if not response.metrics:
             raise HTTPException(status_code=400, detail="No metrics calculated")
         
-            
-        
         # Convert metrics to API response format
-        metrics = response.metrics
-        portfolio_data = {
-            "totalReturn": f"{metrics.total_return.value:.2f}%",
-            "annualizedReturn": f"{metrics.annualized_return.value:.2f}%",
-            "volatility": f"{metrics.volatility.value:.2f}%",
-            "sharpeRatio": f"{metrics.sharpe_ratio:.3f}",
-            "maxDrawdown": f"{metrics.max_drawdown.value:.2f}%",
-            "sortinoRatio": f"{metrics.sortino_ratio:.3f}",
-            "calmarRatio": f"{metrics.calmar_ratio:.3f}",
-            "var95": f"{metrics.var_95.value:.2f}%",
-            "beta": f"{metrics.beta:.3f}",
-            "startValue": f"${metrics.start_value.amount:,.2f}",
-            "endValue": f"${metrics.end_value.amount:,.2f}",
-            "endValueAnalysis": f"${metrics.end_value_analysis.amount:,.2f}",
-            "endValueMissing": f"${metrics.end_value_missing.amount:,.2f}",
-            "dividendAmount": f"${metrics.dividend_amount.amount:,.2f}",
-            "annualizedDividendYield": f"{metrics.annualized_dividend_yield.value:.2f}%",
-            "totalDividendYield": f"{metrics.total_dividend_yield.value:.2f}%"
-        }
+        portfolio_data = _convert_metrics_to_api_response(response.metrics)
         
         return {
             "success": True,
@@ -485,7 +395,6 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
         }
         
     except HTTPException:
-        # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
@@ -493,51 +402,22 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
 @app.get("/portfolio/tickers/analysis")
 async def analyze_tickers(start_date: str = None, end_date: str = None):
     """Analyze individual tickers in portfolio with smart batch processing."""
-    
-    portfolio_uuid = get_current_portfolio_session()
-    portfolio_session_manager = get_portfolio_session_manager()
-    
     portfolio = get_current_portfolio()
     
     if not portfolio:
         raise HTTPException(status_code=404, detail="No portfolio loaded")
     
     # Set default date range if not provided
-    if not start_date:
-        start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
-    if not end_date:
-        end_date = datetime.now().strftime('%Y-%m-%d')
-    
-    # Get portfolio info for processing
-    ticker_count = len(portfolio.get_tickers())
-    print(f"Ticker analysis: {ticker_count} tickers, {start_date} to {end_date}")
+    start_date, end_date = _get_default_date_range(start_date, end_date)
     
     # Validate date range
-    try:
-        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-        
-        if start_dt > end_dt:
-            raise HTTPException(status_code=400, detail="Start date cannot be after end date")
-        
-        if is_date_after_previous_working_day(end_date):
-            previous_working_day = get_previous_working_day_string()
-            raise HTTPException(
-                status_code=400, 
-                detail=f"End date cannot be after the previous working day ({previous_working_day}). Please use a date on or before {previous_working_day}."
-            )
-            
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    _validate_date_range(start_date, end_date)
     
     try:
-        # Create date range
+        # Create date range and run analysis
         date_range = DateRange(start_date, end_date)
-        
-        # Get controller
         controller = get_controller()
         
-        # Use smart batch processing - same use case, different method
         request = AnalyzeTickersRequest(
             tickers=portfolio.get_tickers(),
             date_range=date_range,
@@ -617,7 +497,6 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
 @app.post("/portfolio/tickers/compare")
 async def compare_tickers(request_data: dict):
     """Compare tickers in portfolio."""
-    
     portfolio = get_current_portfolio()
     
     if not portfolio:
@@ -631,38 +510,14 @@ async def compare_tickers(request_data: dict):
         raise HTTPException(status_code=400, detail="start_date and end_date are required")
     
     # Set default date range if not provided
-    if not start_date:
-        start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
-    if not end_date:
-        end_date = datetime.now().strftime('%Y-%m-%d')
-    
-    # Get portfolio info for processing
-    ticker_count = len(portfolio.get_tickers())
-    print(f"Ticker comparison: {ticker_count} tickers, {start_date} to {end_date}")
+    start_date, end_date = _get_default_date_range(start_date, end_date)
     
     # Validate date range
-    try:
-        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-        
-        if start_dt > end_dt:
-            raise HTTPException(status_code=400, detail="Start date cannot be after end date")
-        
-        if is_date_after_previous_working_day(end_date):
-            previous_working_day = get_previous_working_day_string()
-            raise HTTPException(
-                status_code=400, 
-                detail=f"End date cannot be after the previous working day ({previous_working_day}). Please use a date on or before {previous_working_day}."
-            )
-            
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    _validate_date_range(start_date, end_date)
     
     try:
-        # Create date range
+        # Create date range and run comparison
         date_range = DateRange(start_date, end_date)
-        
-        # Get controller
         controller = get_controller()
         
         # Use compare tickers use case
@@ -718,34 +573,11 @@ async def compare_tickers(request_data: dict):
             }
             metrics_data.append(ticker_data)
         
-        # Convert metrics to API format
-        def convert_metrics_to_api(metrics):
-            return {
-                "ticker": metrics.ticker.symbol,
-                "annualizedReturn": f"{metrics.annualized_return.value:.2f}%",
-                "sharpeRatio": f"{metrics.sharpe_ratio:.2f}",
-                "volatility": f"{metrics.volatility.value:.2f}%",
-                "maxDrawdown": f"{metrics.max_drawdown.value:.2f}%"
-            }
-        
-        # Sort metrics by different criteria to get top 5
-        def get_top_performers(metrics_list, sort_key, reverse=True, limit=5):
-            def get_sort_value(metric):
-                value = getattr(metric, sort_key)
-                if hasattr(value, 'value'):
-                    return value.value
-                return value
-            
-            sorted_metrics = sorted(metrics_list, 
-                                  key=get_sort_value, 
-                                  reverse=reverse)
-            return [convert_metrics_to_api(metric) for metric in sorted_metrics[:limit]]
-        
         # Get top 5 performers in each category
-        best_performers = get_top_performers(comparison_data.metrics, 'annualized_return', True, 5)
-        worst_performers = get_top_performers(comparison_data.metrics, 'annualized_return', False, 5)
-        best_sharpe = get_top_performers(comparison_data.metrics, 'sharpe_ratio', True, 5)
-        lowest_risk = get_top_performers(comparison_data.metrics, 'volatility', False, 5)
+        best_performers = _get_top_performers(comparison_data.metrics, 'annualized_return', True, 5)
+        worst_performers = _get_top_performers(comparison_data.metrics, 'annualized_return', False, 5)
+        best_sharpe = _get_top_performers(comparison_data.metrics, 'sharpe_ratio', True, 5)
+        lowest_risk = _get_top_performers(comparison_data.metrics, 'volatility', False, 5)
         
         # Build response data
         response_data = {

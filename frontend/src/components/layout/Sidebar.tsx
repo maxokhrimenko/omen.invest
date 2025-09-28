@@ -96,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ portfolio }) => {
             <p className="text-sm text-gray-500 mt-1">Charts rise,<br />charts may fall</p>
             <div className="mt-2">
               <span className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 whitespace-nowrap">
-                alpha 4.5.0
+                alpha 4.5.1
               </span>
             </div>
           </div>

@@ -18,8 +18,6 @@ export interface LogEntry {
   level: string;
   message: string;
   context?: Record<string, any>;
-  sessionId?: string;
-  correlationId?: string;
   userId?: string;
   operation?: string;
   duration?: number;
@@ -32,28 +30,18 @@ export interface LogEntry {
 }
 
 class Logger {
-  private sessionId: string;
   private correlationId: string;
   private logLevel: LogLevelType;
   private enableConsole: boolean;
   private enableRemote: boolean;
 
   constructor() {
-    this.sessionId = this.generateSessionId();
     this.correlationId = this.generateCorrelationId();
     this.logLevel = this.getLogLevel();
     this.enableConsole = import.meta.env.DEV;
     this.enableRemote = true;
   }
 
-  private generateSessionId(): string {
-    let sessionId = sessionStorage.getItem('log_session_id');
-    if (!sessionId) {
-      sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      sessionStorage.setItem('log_session_id', sessionId);
-    }
-    return sessionId;
-  }
 
   private generateCorrelationId(): string {
     return `corr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -83,8 +71,6 @@ class Logger {
       timestamp: new Date().toISOString(),
       level,
       message,
-      sessionId: this.sessionId,
-      correlationId: this.correlationId,
       logId,
       context
     };
@@ -200,10 +186,9 @@ class Logger {
     });
   }
 
-  // Get current session info
-  getSessionInfo(): { sessionId: string; correlationId: string } {
+  // Get current correlation info
+  getCorrelationInfo(): { correlationId: string } {
     return {
-      sessionId: this.sessionId,
       correlationId: this.correlationId
     };
   }

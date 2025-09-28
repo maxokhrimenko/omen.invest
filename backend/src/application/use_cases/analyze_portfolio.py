@@ -53,23 +53,18 @@ class AnalyzePortfolioUseCase:
         self._market_data_repo = market_data_repo
     
     def execute(self, request: AnalyzePortfolioRequest) -> AnalyzePortfolioResponse:
-        ticker_symbols = [t.symbol for t in request.portfolio.get_tickers()]
-        
+        """Execute portfolio analysis with comprehensive error handling."""
         try:
+            # Fetch market data
             price_history = self._market_data_repo.get_price_history(
                 request.portfolio.get_tickers(),
                 request.date_range
             )
             
-            dividend_history = {}
-            for ticker in request.portfolio.get_tickers():
-                try:
-                    dividend_data = self._market_data_repo.get_dividend_history(ticker, request.date_range)
-                    dividend_history[ticker] = dividend_data
-                except Exception as e:
-                    dividend_history[ticker] = pd.Series(dtype='float64')
+            # Fetch dividend data
+            dividend_history = self._fetch_dividend_history(request.portfolio.get_tickers(), request.date_range)
             
-            # Identify missing tickers and tickers without start data
+            # Identify data issues
             missing_tickers, tickers_without_start_data, first_available_dates = self._identify_data_issues(
                 request.portfolio.get_tickers(), 
                 price_history, 
@@ -77,112 +72,63 @@ class AnalyzePortfolioUseCase:
                 request.date_range.end
             )
             
+            # Validate data availability
             if not price_history:
-                return AnalyzePortfolioResponse(
-                    metrics=None,
-                    success=False,
-                    message="No price data available for portfolio analysis",
-                    missing_tickers=missing_tickers,
-                    tickers_without_start_data=tickers_without_start_data,
-                    first_available_dates=first_available_dates,
-                    portfolio_values_over_time={},
-                    sp500_values_over_time={},
-                    nasdaq_values_over_time={}
+                return self._create_error_response(
+                    "No price data available for portfolio analysis",
+                    missing_tickers, tickers_without_start_data, first_available_dates
                 )
             
+            # Calculate portfolio values
             portfolio_values, portfolio_values_analysis, portfolio_values_missing = self._calculate_portfolio_values(
                 request.portfolio, price_history, tickers_without_start_data
             )
             
             if portfolio_values.empty:
-                return AnalyzePortfolioResponse(
-                    metrics=None,
-                    success=False,
-                    message="Unable to calculate portfolio values",
-                    missing_tickers=[],
-                    tickers_without_start_data=[],
-                    first_available_dates={},
-                    portfolio_values_over_time={},
-                    sp500_values_over_time={},
-                    nasdaq_values_over_time={}
+                return self._create_error_response(
+                    "Unable to calculate portfolio values",
+                    [], [], {}
                 )
             
-            # Check if we have valid data for analysis
+            # Validate analysis data
             if portfolio_values_analysis.empty and portfolio_values.empty:
-                return AnalyzePortfolioResponse(
-                    metrics=None,
-                    success=False,
-                    message="No valid portfolio data available for analysis",
-                    missing_tickers=missing_tickers,
-                    tickers_without_start_data=tickers_without_start_data,
-                    first_available_dates=first_available_dates,
-                    portfolio_values_over_time={},
-                    sp500_values_over_time={},
-                    nasdaq_values_over_time={}
+                return self._create_error_response(
+                    "No valid portfolio data available for analysis",
+                    missing_tickers, tickers_without_start_data, first_available_dates
                 )
             
-            # If we have data but no complete data for analysis, use total data but warn user
+            # Use total data if analysis data is empty
             if (portfolio_values_analysis.empty or portfolio_values_analysis.sum() == 0) and not portfolio_values.empty:
                 portfolio_values_analysis = portfolio_values
-                # Also update the missing data to be empty since we're using all data
                 portfolio_values_missing = pd.Series(dtype=float)
             
-            benchmark_data = self._market_data_repo.get_benchmark_data(
-                "^GSPC",  # S&P 500 symbol
-                request.date_range
-            )
+            # Fetch benchmark data
+            benchmark_data = self._market_data_repo.get_benchmark_data("^GSPC", request.date_range)
+            nasdaq_data = self._market_data_repo.get_benchmark_data("^IXIC", request.date_range)
             
-            nasdaq_data = self._market_data_repo.get_benchmark_data(
-                "^IXIC",  # NASDAQ Composite symbol
-                request.date_range
-            )
-            
+            # Calculate metrics
             try:
                 metrics = self._calculate_metrics(
-                    portfolio_values_analysis,  # Use only complete data for metrics
-                    portfolio_values,           # Total portfolio values for display
-                    portfolio_values_missing,   # Missing data values for display
+                    portfolio_values_analysis,
+                    portfolio_values,
+                    portfolio_values_missing,
                     request.risk_free_rate,
-                    request.portfolio,          # Portfolio for Beta calculation
-                    price_history,             # Price history for Beta calculation
-                    benchmark_data,            # Benchmark data for Beta calculation
-                    request.date_range,        # Date range for Beta calculation
-                    dividend_history           # Dividend history for dividend metrics
+                    request.portfolio,
+                    price_history,
+                    benchmark_data,
+                    request.date_range,
+                    dividend_history
                 )
             except ValueError as e:
-                return AnalyzePortfolioResponse(
-                    metrics=None,
-                    success=False,
-                    message=f"Portfolio metrics calculation failed: {str(e)}",
-                    missing_tickers=missing_tickers,
-                    tickers_without_start_data=tickers_without_start_data,
-                    portfolio_values_over_time={},
-                    sp500_values_over_time={},
-                    nasdaq_values_over_time={}
+                return self._create_error_response(
+                    f"Portfolio metrics calculation failed: {str(e)}",
+                    missing_tickers, tickers_without_start_data, first_available_dates
                 )
             
-            # Convert time series data to dictionaries for API response
-            portfolio_values_dict = {}
-            sp500_values_dict = {}
-            nasdaq_values_dict = {}
-            
-            if not portfolio_values_analysis.empty:
-                portfolio_values_dict = {
-                    date.strftime('%Y-%m-%d'): float(value) 
-                    for date, value in portfolio_values_analysis.items()
-                }
-            
-            if not benchmark_data.empty:
-                sp500_values_dict = {
-                    date.strftime('%Y-%m-%d'): float(value) 
-                    for date, value in benchmark_data.items()
-                }
-            
-            if not nasdaq_data.empty:
-                nasdaq_values_dict = {
-                    date.strftime('%Y-%m-%d'): float(value) 
-                    for date, value in nasdaq_data.items()
-                }
+            # Convert time series data to dictionaries
+            time_series_data = self._convert_time_series_to_dicts(
+                portfolio_values_analysis, benchmark_data, nasdaq_data
+            )
             
             return AnalyzePortfolioResponse(
                 metrics=metrics,
@@ -191,23 +137,75 @@ class AnalyzePortfolioUseCase:
                 missing_tickers=missing_tickers,
                 tickers_without_start_data=tickers_without_start_data,
                 first_available_dates=first_available_dates,
-                portfolio_values_over_time=portfolio_values_dict,
-                sp500_values_over_time=sp500_values_dict,
-                nasdaq_values_over_time=nasdaq_values_dict
+                portfolio_values_over_time=time_series_data['portfolio'],
+                sp500_values_over_time=time_series_data['sp500'],
+                nasdaq_values_over_time=time_series_data['nasdaq']
             )
             
         except Exception as e:
-            return AnalyzePortfolioResponse(
-                metrics=None,
-                success=False,
-                message=f"Portfolio analysis failed: {str(e)}",
-                missing_tickers=[],
-                tickers_without_start_data=[],
-                first_available_dates={},
-                portfolio_values_over_time={},
-                sp500_values_over_time={},
-                nasdaq_values_over_time={}
+            return self._create_error_response(
+                f"Portfolio analysis failed: {str(e)}",
+                [], [], {}
             )
+    
+    def _fetch_dividend_history(self, tickers: List[Ticker], date_range: DateRange) -> Dict[Ticker, pd.Series]:
+        """Fetch dividend history for all tickers."""
+        dividend_history = {}
+        for ticker in tickers:
+            try:
+                dividend_data = self._market_data_repo.get_dividend_history(ticker, date_range)
+                dividend_history[ticker] = dividend_data
+            except Exception:
+                dividend_history[ticker] = pd.Series(dtype='float64')
+        return dividend_history
+    
+    def _create_error_response(self, message: str, missing_tickers: List[str], 
+                              tickers_without_start_data: List[str], 
+                              first_available_dates: Dict[str, str]) -> AnalyzePortfolioResponse:
+        """Create a standardized error response."""
+        return AnalyzePortfolioResponse(
+            metrics=None,
+            success=False,
+            message=message,
+            missing_tickers=missing_tickers,
+            tickers_without_start_data=tickers_without_start_data,
+            first_available_dates=first_available_dates,
+            portfolio_values_over_time={},
+            sp500_values_over_time={},
+            nasdaq_values_over_time={}
+        )
+    
+    def _convert_time_series_to_dicts(self, portfolio_values: pd.Series, 
+                                    benchmark_data: pd.Series, 
+                                    nasdaq_data: pd.Series) -> Dict[str, Dict[str, float]]:
+        """Convert time series data to dictionaries for API response."""
+        portfolio_dict = {}
+        sp500_dict = {}
+        nasdaq_dict = {}
+        
+        if not portfolio_values.empty:
+            portfolio_dict = {
+                date.strftime('%Y-%m-%d'): float(value) 
+                for date, value in portfolio_values.items()
+            }
+        
+        if not benchmark_data.empty:
+            sp500_dict = {
+                date.strftime('%Y-%m-%d'): float(value) 
+                for date, value in benchmark_data.items()
+            }
+        
+        if not nasdaq_data.empty:
+            nasdaq_dict = {
+                date.strftime('%Y-%m-%d'): float(value) 
+                for date, value in nasdaq_data.items()
+            }
+        
+        return {
+            'portfolio': portfolio_dict,
+            'sp500': sp500_dict,
+            'nasdaq': nasdaq_dict
+        }
     
     def _calculate_portfolio_values(self, 
                                    portfolio: Portfolio, 

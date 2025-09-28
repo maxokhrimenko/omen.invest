@@ -12,8 +12,6 @@ class Portfolio:
         if not self._positions:
             raise ValueError("Portfolio cannot be empty")
     
-    def add_position(self, position: Position) -> None:
-        self._positions[position.ticker] = position
     
     def get_position(self, ticker: Ticker) -> Optional[Position]:
         return self._positions.get(ticker)

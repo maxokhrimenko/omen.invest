@@ -7,7 +7,6 @@ from ...domain.entities.portfolio import Portfolio
 from ...domain.entities.ticker import Ticker
 from ...domain.value_objects.date_range import DateRange
 from ...infrastructure.color_metrics_service import ColorMetricsService
-from ...infrastructure.repositories.warehouse_market_repository import WarehouseMarketRepository
 
 
 class MainController:
@@ -92,10 +91,3 @@ class MainController:
         
         return self._compare_tickers_use_case.execute(request)
     
-    def display_warehouse_metrics(self, market_repo: WarehouseMarketRepository) -> dict:
-        """Get warehouse observability metrics."""
-        if not isinstance(market_repo, WarehouseMarketRepository):
-            return {"error": "Warehouse metrics not available (not using warehouse repository)"}
-        
-        metrics = market_repo.get_observability_metrics()
-        return metrics

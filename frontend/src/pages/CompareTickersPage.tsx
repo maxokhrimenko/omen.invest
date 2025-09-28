@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GitCompare, BarChart3, AlertTriangle, RefreshCw } from 'lucide-react';
+import { GitCompare, BarChart3, AlertTriangle } from 'lucide-react';
 import { useCompareTickers } from '../hooks/useCompareTickers';
 import RunAnalysisSection from '../components/portfolio/RunAnalysisSection';
 import DataWarnings from '../components/portfolio/DataWarnings';
@@ -45,10 +45,6 @@ const CompareTickersPage: React.FC<CompareTickersPageProps> = ({ portfolio }) =>
     );
   };
 
-  const handleClearAnalysis = () => {
-    clearAnalysis();
-    setShowDataWarnings(false);
-  };
 
 
   if (!hasPortfolio) {
@@ -89,15 +85,7 @@ const CompareTickersPage: React.FC<CompareTickersPageProps> = ({ portfolio }) =>
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              {analysisResults && (
-                <button
-                  onClick={handleClearAnalysis}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Clear Results
-                </button>
-              )}
+              {/* Clear Results button is handled by the reusable RunAnalysisSection component */}
             </div>
           </div>
         </div>
@@ -107,7 +95,10 @@ const CompareTickersPage: React.FC<CompareTickersPageProps> = ({ portfolio }) =>
           selectedDateRange={selectedDateRange}
           onRangeChange={setSelectedDateRange}
           onAnalyze={handleRunAnalysis}
-          onClearResults={handleClearAnalysis}
+          onClearResults={() => {
+            clearAnalysis();
+            setShowDataWarnings(false);
+          }}
           isLoading={isLoading}
           error={error}
           hasResults={!!analysisResults}

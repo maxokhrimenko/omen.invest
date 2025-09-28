@@ -118,58 +118,9 @@ class ColorMetricsService(MetricsColorService):
     def colorize_percentage(self, percentage: float, metric_name: str, context: str = "portfolio") -> str:
         """Colorize a percentage value based on metric thresholds."""
         color = self.get_color_for_metric(metric_name, percentage, context)
-        formatted_value = f"{percentage:.1f}%"
-        return self.colorize_text(formatted_value, color)
+        return self.colorize_text(f"{percentage:.2f}%", color)
     
     def colorize_ratio(self, ratio: float, metric_name: str, context: str = "portfolio") -> str:
         """Colorize a ratio value based on metric thresholds."""
         color = self.get_color_for_metric(metric_name, ratio, context)
-        formatted_value = f"{ratio:.2f}"
-        return self.colorize_text(formatted_value, color)
-    
-    def colorize_money(self, amount: float, metric_name: str = "money", context: str = "portfolio") -> str:
-        """Colorize a money value (typically no color coding for money amounts)."""
-        return f"${amount:.2f}"
-    
-    def colorize_ticker_symbol(self, symbol: str) -> str:
-        """Colorize ticker symbol (typically blue for visibility)."""
-        return self.colorize_text(symbol, ColorCode.BLUE)
-    
-    def get_metric_summary_color(self, metrics: Dict[str, float], context: str = "portfolio") -> ColorCode:
-        """
-        Get overall color for a set of metrics based on weighted performance.
-        This can be used for overall portfolio or ticker assessment.
-        """
-        if not metrics:
-            return ColorCode.WHITE
-        
-        # Weight different metrics based on importance
-        weights = {
-            "annualized_return": 0.3,
-            "sharpe_ratio": 0.25,
-            "max_drawdown": 0.2,
-            "volatility": 0.15,
-            "sortino_ratio": 0.1
-        }
-        
-        weighted_score = 0
-        total_weight = 0
-        
-        for metric_name, weight in weights.items():
-            if metric_name in metrics:
-                level = self.get_level_for_metric(metric_name, metrics[metric_name], context)
-                score = 1 if level == MetricLevel.EXCELLENT else 0.5 if level == MetricLevel.NORMAL else 0
-                weighted_score += score * weight
-                total_weight += weight
-        
-        if total_weight == 0:
-            return ColorCode.WHITE
-        
-        average_score = weighted_score / total_weight
-        
-        if average_score >= 0.8:
-            return ColorCode.GREEN
-        elif average_score >= 0.5:
-            return ColorCode.YELLOW
-        else:
-            return ColorCode.RED
+        return self.colorize_text(f"{ratio:.3f}", color)

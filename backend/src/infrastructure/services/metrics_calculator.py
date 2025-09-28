@@ -80,20 +80,13 @@ class MetricsCalculator:
         
         # Validate VaR result - it should be negative (representing a loss)
         if var_95_raw > 0:
-            # Check if we have any negative returns at all
             negative_returns = returns[returns < 0]
-            if not negative_returns.empty:
-                # Use the worst negative return as VaR
-                var_95_raw = negative_returns.min() * 100
-            else:
-                # No negative returns - this is very unusual for financial data
-                var_95_raw = 0
+            var_95_raw = negative_returns.min() * 100 if not negative_returns.empty else 0
         
-        # Additional validation: VaR should not be more extreme than the worst return
+        # Ensure VaR is not more extreme than the worst return
         if var_95_raw < 0:
             worst_return = returns.min() * 100
-            if var_95_raw < worst_return:
-                var_95_raw = worst_return
+            var_95_raw = max(var_95_raw, worst_return)
         
         return Percentage(var_95_raw)
     
@@ -119,13 +112,8 @@ class MetricsCalculator:
         covariance = np.cov(aligned_returns, aligned_benchmark)[0, 1]
         benchmark_variance = np.var(aligned_benchmark)
         
-        if benchmark_variance == 0:
+        if benchmark_variance == 0 or np.isnan(covariance) or np.isnan(benchmark_variance):
             return 1.0
         
         beta = covariance / benchmark_variance
-        
-        # Validate Beta result
-        if np.isnan(beta) or np.isinf(beta):
-            return 1.0
-        
-        return beta
+        return 1.0 if np.isnan(beta) or np.isinf(beta) else beta
