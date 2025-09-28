@@ -1,7 +1,78 @@
-import React from 'react';
-import { GitCompare, Clock, BarChart3 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { GitCompare, BarChart3, AlertTriangle, RefreshCw } from 'lucide-react';
+import { useCompareTickers } from '../hooks/useCompareTickers';
+import RunAnalysisSection from '../components/portfolio/RunAnalysisSection';
+import DataWarnings from '../components/portfolio/DataWarnings';
+import ComparisonSummary from '../components/portfolio/ComparisonSummary';
 
-const CompareTickersPage: React.FC = () => {
+interface CompareTickersPageProps {
+  portfolio: any;
+}
+
+const CompareTickersPage: React.FC<CompareTickersPageProps> = ({ portfolio }) => {
+  const {
+    analysisResults,
+    isLoading,
+    error,
+    selectedDateRange,
+    setSelectedDateRange,
+    runAnalysis,
+    clearAnalysis
+  } = useCompareTickers();
+  const [showDataWarnings, setShowDataWarnings] = useState(false);
+
+  // Check if portfolio is loaded
+  const hasPortfolio = portfolio && portfolio.positions.length > 0;
+  const tickerCount = portfolio?.tickers.length || 0;
+
+  // Show data warnings if there are any
+  useEffect(() => {
+    if (analysisResults?.dataWarnings) {
+      const hasWarnings = 
+        analysisResults.dataWarnings.missingTickers.length > 0 ||
+        analysisResults.dataWarnings.tickersWithoutStartData.length > 0;
+      setShowDataWarnings(hasWarnings);
+    }
+  }, [analysisResults]);
+
+  const handleRunAnalysis = async () => {
+    if (!selectedDateRange) return;
+    
+    await runAnalysis(
+      selectedDateRange.startDate,
+      selectedDateRange.endDate,
+      tickerCount
+    );
+  };
+
+  const handleClearAnalysis = () => {
+    clearAnalysis();
+    setShowDataWarnings(false);
+  };
+
+
+  if (!hasPortfolio) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <GitCompare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">No Portfolio Loaded</h1>
+            <p className="text-gray-600 mb-6">
+              Please load a portfolio first to compare tickers
+            </p>
+            <button
+              onClick={() => window.location.href = '/portfolio-analysis'}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              Go to Portfolio Analysis
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -14,75 +85,106 @@ const CompareTickersPage: React.FC = () => {
                 Compare Tickers
               </h1>
               <p className="text-gray-600 mt-2">
-                Compare multiple tickers side by side with comprehensive metrics
+                Compare {tickerCount} tickers side by side with comprehensive metrics
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                <Clock className="w-4 h-4 mr-1" />
-                Coming Soon
-              </span>
+              {analysisResults && (
+                <button
+                  onClick={handleClearAnalysis}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Clear Results
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Coming Soon Content */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <GitCompare className="w-10 h-10 text-blue-600" />
-            </div>
-            
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Compare Tickers
-            </h2>
-            
-            <p className="text-gray-600 mb-8 leading-relaxed">
-              This feature will allow you to compare multiple tickers side by side, 
-              analyze their performance metrics, and identify patterns across your portfolio.
-            </p>
+        {/* Analysis Controls */}
+        <RunAnalysisSection
+          selectedDateRange={selectedDateRange}
+          onRangeChange={setSelectedDateRange}
+          onAnalyze={handleRunAnalysis}
+          onClearResults={handleClearAnalysis}
+          isLoading={isLoading}
+          error={error}
+          hasResults={!!analysisResults}
+          tickerCount={tickerCount}
+        />
 
-            {/* Feature Preview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <BarChart3 className="w-8 h-8 text-blue-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Side-by-Side Comparison</h3>
-                <p className="text-sm text-gray-600">
-                  Compare key metrics across multiple tickers in a unified view
-                </p>
+        {/* Data Warnings */}
+        {showDataWarnings && analysisResults && (
+          <div className="mb-6">
+            <DataWarnings
+              warnings={analysisResults.dataWarnings}
+            />
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <AlertTriangle className="w-5 h-5 text-red-600 mr-2" />
+              <span className="text-red-800 font-medium">Analysis Failed</span>
+            </div>
+            <p className="text-red-700 text-sm mt-1">{error}</p>
+          </div>
+        )}
+
+        {/* Results */}
+        {analysisResults && (
+          <div className="space-y-6">
+            
+            {/* Summary Cards */}
+            <ComparisonSummary
+              bestPerformers={analysisResults.bestPerformers || []}
+              worstPerformers={analysisResults.worstPerformers || []}
+              bestSharpe={analysisResults.bestSharpe || []}
+              lowestRisk={analysisResults.lowestRisk || []}
+            />
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!analysisResults && !isLoading && (
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
+            <div className="max-w-md mx-auto">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <GitCompare className="w-10 h-10 text-blue-600" />
               </div>
               
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <GitCompare className="w-8 h-8 text-green-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Performance Analysis</h3>
-                <p className="text-sm text-gray-600">
-                  Analyze relative performance and identify top performers
-                </p>
-              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Compare Your Tickers
+              </h2>
               
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <Clock className="w-8 h-8 text-purple-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Time Range Comparison</h3>
-                <p className="text-sm text-gray-600">
-                  Compare tickers across different time periods and date ranges
-                </p>
-              </div>
-            </div>
-
-            {/* Status Message */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center justify-center">
-                <Clock className="w-5 h-5 text-blue-600 mr-2" />
-                <span className="text-blue-800 font-medium">
-                  This feature is currently in development
-                </span>
-              </div>
-              <p className="text-blue-700 text-sm mt-1">
-                We're working hard to bring you this powerful comparison tool
+              <p className="text-gray-600 mb-8 leading-relaxed">
+                Select a date range and run comparison to analyze {tickerCount} tickers 
+                side by side with comprehensive performance metrics.
               </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <BarChart3 className="w-8 h-8 text-blue-600 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Performance Comparison</h3>
+                  <p className="text-sm text-gray-600">
+                    Compare annual returns, Sharpe ratios, and risk metrics
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <GitCompare className="w-8 h-8 text-green-600 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Best & Worst</h3>
+                  <p className="text-sm text-gray-600">
+                    Identify top performers and underperformers
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

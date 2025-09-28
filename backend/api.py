@@ -21,7 +21,7 @@ import uvicorn
 # Add src to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from src.presentation.controllers.portfolio_controller import PortfolioController
+from src.presentation.controllers.portfolio_controller import MainController
 from src.infrastructure.repositories.csv_portfolio_repository import CsvPortfolioRepository
 from src.infrastructure.repositories.warehouse_market_repository import WarehouseMarketRepository
 from src.infrastructure.config.warehouse_config import WarehouseConfig
@@ -39,7 +39,7 @@ import json
 from src.domain.entities.position import Position
 from src.domain.entities.ticker import Ticker
 from src.domain.value_objects.date_range import DateRange
-from src.infrastructure.utils.date_utils import is_date_after_previous_working_day
+from src.infrastructure.utils.date_utils import is_date_after_previous_working_day, get_previous_working_day_string
 
 # Pydantic models for API responses
 class PositionResponse(BaseModel):
@@ -55,6 +55,21 @@ class ApiResponse(BaseModel):
     success: bool
     message: str
     data: Optional[dict] = None
+
+# Compare Tickers API Response Models
+class TickerComparisonData(BaseModel):
+    metrics: List[dict]  # TickerAnalysis data
+    bestPerformer: dict  # TickerAnalysis data
+    worstPerformer: dict  # TickerAnalysis data
+    bestSharpe: dict  # TickerAnalysis data
+    lowestRisk: dict  # TickerAnalysis data
+
+class CompareTickersResponse(BaseModel):
+    success: bool
+    message: str
+    data: TickerComparisonData
+    warnings: dict
+    failedTickers: Optional[List[dict]] = None
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -75,7 +90,7 @@ app.add_middleware(
 
 
 # Global variables for dependency injection
-_controller: Optional[PortfolioController] = None
+_controller: Optional[MainController] = None
 _current_portfolio: Optional[Portfolio] = None
 _current_portfolio_session: Optional[str] = None
 _portfolio_session_manager = None
@@ -143,7 +158,7 @@ def get_portfolio_session_manager():
         _portfolio_session_manager = DummyPortfolioSessionManager()
     return _portfolio_session_manager
 
-def get_controller() -> PortfolioController:
+def get_controller() -> MainController:
     """Get or create portfolio controller instance."""
     global _controller
     if _controller is None:
@@ -163,7 +178,7 @@ def get_controller() -> PortfolioController:
         analyze_ticker_use_case = AnalyzeTickerUseCase(market_repo)
         compare_tickers_use_case = CompareTickersUseCase(analyze_ticker_use_case)
         
-        _controller = PortfolioController(
+        _controller = MainController(
             load_portfolio_use_case,
             analyze_portfolio_use_case,
             analyze_ticker_use_case,
@@ -398,7 +413,11 @@ async def analyze_portfolio(start_date: str = None, end_date: str = None):
             raise HTTPException(status_code=400, detail="Start date cannot be after end date")
         
         if is_date_after_previous_working_day(end_date):
-            raise HTTPException(status_code=400, detail="End date cannot be after the previous working day")
+            previous_working_day = get_previous_working_day_string()
+            raise HTTPException(
+                status_code=400, 
+                detail=f"End date cannot be after the previous working day ({previous_working_day}). Please use a date on or before {previous_working_day}."
+            )
             
     except ValueError as e:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
@@ -502,7 +521,11 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
             raise HTTPException(status_code=400, detail="Start date cannot be after end date")
         
         if is_date_after_previous_working_day(end_date):
-            raise HTTPException(status_code=400, detail="End date cannot be after the previous working day")
+            previous_working_day = get_previous_working_day_string()
+            raise HTTPException(
+                status_code=400, 
+                detail=f"End date cannot be after the previous working day ({previous_working_day}). Please use a date on or before {previous_working_day}."
+            )
             
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
@@ -530,6 +553,17 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
         # Convert metrics to API response format
         ticker_results = []
         for metrics in response.ticker_metrics:
+            # Find position quantity for this ticker
+            position_quantity = 0
+            for pos in portfolio.get_positions():
+                if pos.ticker.symbol == metrics.ticker.symbol:
+                    position_quantity = float(pos.quantity)
+                    break
+            
+            # Calculate market value (position * end price)
+            end_price_value = float(metrics.end_price.amount)
+            market_value = position_quantity * end_price_value
+            
             ticker_data = {
                 "ticker": metrics.ticker.symbol,
                 "totalReturn": f"{metrics.total_return.value:.2f}%",
@@ -548,7 +582,9 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
                 "startPrice": f"${metrics.start_price.amount:.2f}",
                 "endPrice": f"${metrics.end_price.amount:.2f}",
                 "hasDataAtStart": True,  # All successful tickers have data at start
-                "firstAvailableDate": None  # Not available in batch response
+                "firstAvailableDate": None,  # Not available in batch response
+                "position": position_quantity,
+                "marketValue": f"${market_value:,.2f}"
             }
             ticker_results.append(ticker_data)
         
@@ -577,6 +613,162 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ticker analysis failed: {str(e)}")
+
+@app.post("/portfolio/tickers/compare")
+async def compare_tickers(request_data: dict):
+    """Compare tickers in portfolio."""
+    
+    portfolio = get_current_portfolio()
+    
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="No portfolio loaded")
+    
+    # Extract date range from request
+    start_date = request_data.get('start_date')
+    end_date = request_data.get('end_date')
+    
+    if not start_date or not end_date:
+        raise HTTPException(status_code=400, detail="start_date and end_date are required")
+    
+    # Set default date range if not provided
+    if not start_date:
+        start_date = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+    if not end_date:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+    
+    # Get portfolio info for processing
+    ticker_count = len(portfolio.get_tickers())
+    print(f"Ticker comparison: {ticker_count} tickers, {start_date} to {end_date}")
+    
+    # Validate date range
+    try:
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+        
+        if start_dt > end_dt:
+            raise HTTPException(status_code=400, detail="Start date cannot be after end date")
+        
+        if is_date_after_previous_working_day(end_date):
+            previous_working_day = get_previous_working_day_string()
+            raise HTTPException(
+                status_code=400, 
+                detail=f"End date cannot be after the previous working day ({previous_working_day}). Please use a date on or before {previous_working_day}."
+            )
+            
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    
+    try:
+        # Create date range
+        date_range = DateRange(start_date, end_date)
+        
+        # Get controller
+        controller = get_controller()
+        
+        # Use compare tickers use case
+        from src.application.use_cases.compare_tickers import CompareTickersRequest
+        request = CompareTickersRequest(
+            tickers=portfolio.get_tickers(),
+            date_range=date_range,
+            risk_free_rate=0.03
+        )
+        
+        response = controller._compare_tickers_use_case.execute(request)
+        
+        if not response.success:
+            raise HTTPException(status_code=400, detail=response.message)
+        
+        # Convert comparison data to API response format
+        comparison_data = response.comparison
+        
+        # Convert metrics to API format
+        metrics_data = []
+        for metrics in comparison_data.metrics:
+            # Find position quantity for this ticker
+            position_quantity = 0
+            for pos in portfolio.get_positions():
+                if pos.ticker.symbol == metrics.ticker.symbol:
+                    position_quantity = float(pos.quantity)
+                    break
+            
+            # Calculate market value (position * end price)
+            end_price_value = float(metrics.end_price.amount)
+            market_value = position_quantity * end_price_value
+            
+            ticker_data = {
+                "ticker": metrics.ticker.symbol,
+                "totalReturn": f"{metrics.total_return.value:.2f}%",
+                "annualizedReturn": f"{metrics.annualized_return.value:.2f}%",
+                "volatility": f"{metrics.volatility.value:.2f}%",
+                "sharpeRatio": f"{metrics.sharpe_ratio:.2f}",
+                "maxDrawdown": f"{metrics.max_drawdown.value:.2f}%",
+                "sortinoRatio": f"{metrics.sortino_ratio:.2f}",
+                "beta": f"{metrics.beta:.2f}",
+                "var95": f"{metrics.var_95.value:.2f}%",
+                "momentum12to1": f"{metrics.momentum_12_1.value:.2f}%",
+                "dividendYield": f"{metrics.dividend_yield.value:.2f}%",
+                "dividendAmount": f"${metrics.dividend_amount.amount:.2f}",
+                "dividendFrequency": metrics.dividend_frequency,
+                "annualizedDividend": f"${metrics.annualized_dividend.amount:.2f}",
+                "startPrice": f"${metrics.start_price.amount:.2f}",
+                "endPrice": f"${metrics.end_price.amount:.2f}",
+                "hasDataAtStart": True,
+                "position": position_quantity,
+                "marketValue": f"${market_value:.2f}"
+            }
+            metrics_data.append(ticker_data)
+        
+        # Convert metrics to API format
+        def convert_metrics_to_api(metrics):
+            return {
+                "ticker": metrics.ticker.symbol,
+                "annualizedReturn": f"{metrics.annualized_return.value:.2f}%",
+                "sharpeRatio": f"{metrics.sharpe_ratio:.2f}",
+                "volatility": f"{metrics.volatility.value:.2f}%",
+                "maxDrawdown": f"{metrics.max_drawdown.value:.2f}%"
+            }
+        
+        # Sort metrics by different criteria to get top 5
+        def get_top_performers(metrics_list, sort_key, reverse=True, limit=5):
+            def get_sort_value(metric):
+                value = getattr(metric, sort_key)
+                if hasattr(value, 'value'):
+                    return value.value
+                return value
+            
+            sorted_metrics = sorted(metrics_list, 
+                                  key=get_sort_value, 
+                                  reverse=reverse)
+            return [convert_metrics_to_api(metric) for metric in sorted_metrics[:limit]]
+        
+        # Get top 5 performers in each category
+        best_performers = get_top_performers(comparison_data.metrics, 'annualized_return', True, 5)
+        worst_performers = get_top_performers(comparison_data.metrics, 'annualized_return', False, 5)
+        best_sharpe = get_top_performers(comparison_data.metrics, 'sharpe_ratio', True, 5)
+        lowest_risk = get_top_performers(comparison_data.metrics, 'volatility', False, 5)
+        
+        # Build response data
+        response_data = {
+            "success": response.success,
+            "message": response.message,
+            "data": {
+                "metrics": metrics_data,
+                "bestPerformers": best_performers,
+                "worstPerformers": worst_performers,
+                "bestSharpe": best_sharpe,
+                "lowestRisk": lowest_risk
+            },
+            "warnings": {
+                "missingTickers": [],
+                "tickersWithoutStartData": [],
+                "firstAvailableDates": {}
+            }
+        }
+        
+        return response_data
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ticker comparison failed: {str(e)}")
 
 # Admin API Endpoints
 

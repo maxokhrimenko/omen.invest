@@ -79,10 +79,12 @@ class TestDateRange:
         assert date_range.end == date(2024, 12, 31)
     
     def test_creation_without_end_date(self):
+        from src.infrastructure.utils.date_utils import get_previous_working_day
+        
         date_range = DateRange("2024-01-01")
         
         assert date_range.start == date(2024, 1, 1)
-        assert date_range.end == date.today()
+        assert date_range.end == get_previous_working_day()
     
     def test_invalid_date_range_raises_error(self):
         with pytest.raises(ValueError, match="Start date cannot be after end date"):

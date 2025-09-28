@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Portfolio Analysis Tool has been refactored to follow **Clean Architecture** principles, ensuring separation of concerns, testability, and maintainability. The application features a full-stack implementation with a FastAPI backend and React frontend, providing both CLI and web interfaces for portfolio analysis. This document provides an overview of the application's architecture, design patterns, and data flow.
+The Portfolio Analysis Tool has been refactored to follow **Clean Architecture** principles, ensuring separation of concerns, testability, and maintainability. The application features a full-stack implementation with a FastAPI backend and React frontend, providing a modern web interface for portfolio analysis. This document provides an overview of the application's architecture, design patterns, and data flow.
 
 ## 🎯 Architectural Principles
 
@@ -33,6 +33,29 @@ The data validation system has been improved with validation logic:
 4. **Period-Aware Validation**: Coverage thresholds adapt to analysis period for accuracy
 5. **Tolerance System**: 5-day business day tolerance for start date validation
 
+### Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)
+The system has been enhanced with comprehensive ticker comparison functionality and significant frontend architecture improvements:
+
+#### Ticker Comparison System
+1. **Compare Tickers Functionality**: New comprehensive ticker comparison feature allowing side-by-side analysis of multiple tickers
+2. **CompareTickersPage**: Dedicated frontend page for ticker comparison with intuitive interface
+3. **Ticker Comparison API**: New backend API endpoints for comparing multiple tickers simultaneously
+4. **Comparison Data Models**: Enhanced data structures for ticker comparison results and responses
+5. **Position & Market Value Display**: Added position quantity and market value information to ticker analysis
+
+#### Frontend Architecture Enhancements
+1. **Sidebar Component**: New dedicated sidebar component replacing inline navigation
+2. **Column Visibility Control**: Advanced table column visibility management for ticker analysis
+3. **RunAnalysisSection Component**: Unified analysis section component for consistent user experience
+4. **Enhanced Date Range Selector**: Improved date selection with previous working day logic
+5. **Responsive Table Design**: Better table layout with configurable column visibility
+
+#### Backend API Improvements
+1. **Compare Tickers Endpoint**: New `/api/portfolio/tickers/compare` endpoint for ticker comparison
+2. **Enhanced Ticker Analysis**: Updated ticker analysis with position and market value data
+3. **Improved Error Handling**: Better error handling and response formatting
+4. **API Response Models**: New response models for ticker comparison functionality
+
 ### Code Quality & Performance Optimization (v4.4.5)
 The system has been enhanced with code quality improvements and performance optimizations:
 
@@ -59,12 +82,12 @@ The system has been enhanced with code quality improvements and performance opti
    - Annualized Dividend Yield: Portfolio-level annualized dividend yield
    - Total Dividend Yield: Total dividend yield for the analysis period
    - Position-Level Calculations: Individual position dividend calculations with quantity weighting
-2. **CLI-Frontend Alignment (v4.4.6)**: Complete alignment between CLI and frontend
-   - Portfolio Analysis Unification: Frontend portfolio analysis now matches CLI exactly
-   - Individual Ticker Analysis Removal: Removed from portfolio analysis page to match CLI behavior
-   - API Call Simplification: Frontend now only calls `/portfolio/analysis` endpoint
-   - Message Updates: Loading and success messages updated to reflect portfolio-only analysis
-   - Behavior Consistency: Frontend behavior now matches CLI "Analyze Portfolio" option exactly
+2. **Frontend Enhancement (v4.4.6)**: Complete frontend functionality
+   - Portfolio Analysis: Comprehensive portfolio analysis with all metrics
+   - Individual Ticker Analysis: Dedicated page for individual ticker analysis
+   - API Call Optimization: Frontend efficiently calls `/portfolio/analysis` endpoint
+   - Message Updates: Loading and success messages updated for better UX
+   - Behavior Consistency: Frontend provides complete analysis capabilities
 
 #### Enhanced Ticker Analysis System (v4.4.8)
 1. **Individual Ticker Analysis Page**: New dedicated frontend page for ticker analysis
@@ -102,7 +125,7 @@ The portfolio dividend metrics system provides comprehensive dividend analysis a
 #### Technical Implementation
 - **PortfolioMetrics Enhancement**: Added `dividend_amount`, `annualized_dividend_yield`, and `total_dividend_yield` fields
 - **API Response Enhancement**: Enhanced portfolio analysis endpoint with dividend metrics
-- **CLI Display Enhancement**: Added dividend metrics to portfolio analysis output
+- **Display Enhancement**: Added dividend metrics to portfolio analysis output
 - **Frontend Integration**: Portfolio chart with custom legend and enhanced metrics display
 
 ### Enhanced Ticker Analysis System (v4.4.8)
@@ -201,14 +224,10 @@ portfolio-analysis-tool/
 │   │   │   └── config/            # Configuration management
 │   │   │       └── __init__.py
 │   │   └── presentation/          # 🎨 Presentation Layer
-│   │       ├── cli/               # Command-line interface
-│   │       │   ├── __init__.py
-│   │       │   └── menu.py        # Interactive menu system
-│   │       └── controllers/       # Application controllers
+│   │       └── controllers/       # API controllers
 │   │           ├── __init__.py
 │   │           └── portfolio_controller.py # Portfolio operations controller
-│   ├── api.py                     # FastAPI application
-│   ├── main.py                    # Application entry point
+│   ├── api.py                     # FastAPI application entry point
 │   └── tests/                     # Test suite
 │       ├── unit/                  # Unit tests
 │       ├── integration/           # Integration tests
@@ -835,19 +854,19 @@ class ConnectionPool:
 
 ## 🎨 Presentation Layer
 
-The presentation layer handles user interaction and coordinates with the application layer. The application now supports multiple presentation interfaces: CLI (command-line) and Web (React frontend).
+The presentation layer handles user interaction and coordinates with the application layer. The application provides a modern web interface built with React and TypeScript.
 
-### CLI Interface (Legacy)
-
-#### MainMenu
-- **Purpose**: Interactive command-line interface
-- **Features**:
-  - User-friendly menu system
-  - Error handling and user feedback
-  - Graceful interruption handling
-  - Clear visual formatting
+### Web Interface (React Frontend)
 
 #### PortfolioController
+- **Purpose**: API controller for portfolio operations
+- **Features**:
+  - RESTful API endpoints
+  - Error handling and validation
+  - Clean architecture compliance
+  - Dependency injection
+
+#### MainController
 - **Purpose**: Orchestrates user interactions with use cases
 - **Responsibilities**:
   - Coordinate between UI and use cases
@@ -1054,7 +1073,7 @@ Response ← Display ← Response ← Data ← API Response
 ### Portfolio Loading Flow (CLI Interface)
 ```
 1. User selects "Load Portfolio" from menu
-2. PortfolioController.load_portfolio() [LOGGED: User action]
+2. MainController.load_portfolio() [LOGGED: User action]
 3. LoadPortfolioUseCase.execute(LoadPortfolioRequest) [LOGGED: Business operation]
 4. CsvPortfolioRepository.load(file_path) [LOGGED: File operation]
 5. Parse CSV → Create Ticker/Position objects → Create Portfolio [LOGGED: Domain operations]
@@ -1075,7 +1094,7 @@ Response ← Display ← Response ← Data ← API Response
 ### Portfolio Analysis Flow (CLI Interface)
 ```
 1. User selects "Analyze Portfolio" [LOGGED: User action]
-2. PortfolioController.analyze_portfolio() [LOGGED: User action]
+2. MainController.analyze_portfolio() [LOGGED: User action]
 3. Get date range from user input [LOGGED: User input]
 4. AnalyzePortfolioUseCase.execute(AnalyzePortfolioRequest) [LOGGED: Business operation]
 5. YFinanceMarketRepository.get_price_history() [LOGGED: API call with timing]
@@ -1233,7 +1252,7 @@ The application includes a comprehensive color-coding system that provides insta
 
 ### Integration Points
 
-#### PortfolioController Integration
+#### MainController Integration
 - **Dependency Injection**: Color service injected into controller
 - **Display Methods**: All display methods use color service
 - **Format Selection**: Users can choose between cards and table formats
@@ -1301,7 +1320,7 @@ def setup_dependencies():
     analyze_use_case = AnalyzePortfolioUseCase(market_repo)
     
     # Presentation
-    controller = PortfolioController(load_use_case, analyze_use_case)
+    controller = MainController(load_use_case, analyze_use_case)
     
     return controller
 ```

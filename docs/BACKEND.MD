@@ -13,9 +13,10 @@
 - [10. Logging & Monitoring](#10-logging--monitoring)
 - [11. Configuration](#11-configuration)
 - [12. Testing](#12-testing)
-- [13. Portfolio Dividend Metrics System (v4.4.7)](#13-portfolio-dividend-metrics-system-v447)
-- [14. Enhanced Ticker Analysis System (v4.4.8)](#14-enhanced-ticker-analysis-system-v448)
-- [15. Code Quality & Performance Optimization (v4.4.5)](#15-code-quality--performance-optimization-v445)
+- [13. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)](#13-enhanced-ticker-comparison--frontend-architecture-improvements-v450)
+- [14. Portfolio Dividend Metrics System (v4.4.7)](#14-portfolio-dividend-metrics-system-v447)
+- [15. Enhanced Ticker Analysis System (v4.4.8)](#15-enhanced-ticker-analysis-system-v448)
+- [16. Code Quality & Performance Optimization (v4.4.5)](#16-code-quality--performance-optimization-v445)
 - [16. Performance Optimizations](#16-performance-optimizations)
 - [17. Error Handling](#17-error-handling)
 - [18. Development Guidelines](#18-development-guidelines)
@@ -88,13 +89,13 @@ Infrastructure ← Interfaces
 
 | Package | Version | Purpose | Usage |
 |---------|---------|---------|-------|
-| `pandas` | >=1.3.0 | Data manipulation | CSV processing, data analysis |
-| `numpy` | >=1.20.0 | Numerical computing | Financial calculations |
-| `yfinance` | >=0.1.70 | Market data | Yahoo Finance API integration |
+| `pandas` | >=2.3.2 | Data manipulation | CSV processing, data analysis |
+| `numpy` | >=2.2.6 | Numerical computing | Financial calculations |
+| `yfinance` | >=0.2.66 | Market data | Yahoo Finance API integration |
 | `scipy` | >=1.7.0 | Scientific computing | Statistical calculations |
-| `pytest` | >=6.0.0 | Testing framework | Unit and integration tests |
+| `pytest` | >=8.4.2 | Testing framework | Unit and integration tests |
 | `pyyaml` | >=5.4.0 | Configuration | YAML file parsing |
-| `pytz` | >=2023.3 | Timezone handling | Date/time operations |
+| `pytz` | >=2025.2 | Timezone handling | Date/time operations |
 
 ### FastAPI Dependencies
 
@@ -169,7 +170,7 @@ backend/
 │       ├── cli/                     # Command-line interface
 │       │   └── menu.py              # Interactive menu system
 │       └── controllers/             # Application controllers
-│           └── portfolio_controller.py # Portfolio operations controller
+│           └── main_controller.py # Portfolio operations controller
 ├── tests/                           # Test suite
 │   ├── unit/                        # Unit tests
 │   ├── integration/                 # Integration tests
@@ -186,7 +187,7 @@ backend/
 
 ```mermaid
 graph TD
-    A[main.py] --> B[PortfolioController]
+    A[main.py] --> B[MainController]
     A --> C[MainMenu]
     B --> D[LoadPortfolioUseCase]
     B --> E[AnalyzePortfolioUseCase]
@@ -216,7 +217,7 @@ graph TD
 
 ```mermaid
 graph TD
-    A[PortfolioController] --> B[ColorMetricsService]
+    A[MainController] --> B[ColorMetricsService]
     A --> C[TableFormatter]
     A --> D[LoggerService]
     
@@ -371,7 +372,7 @@ graph TD
 
 #### Controllers
 
-**PortfolioController** (`src/presentation/controllers/portfolio_controller.py`)
+**MainController** (`src/presentation/controllers/main_controller.py`)
 - **Purpose**: Orchestrates user interactions with use cases
 - **Key Methods**:
   - `load_portfolio()`: Load portfolio from file
@@ -387,7 +388,7 @@ graph TD
 - **Key Methods**:
   - `show()`: Display main menu
   - `handle_selection()`: Handle user input
-- **Dependencies**: PortfolioController
+- **Dependencies**: MainController
 
 ---
 
@@ -744,7 +745,83 @@ pytest tests/performance/
 
 ---
 
-## 13. Portfolio Dividend Metrics System (v4.4.7)
+## 13. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)
+
+### Overview
+This release introduces comprehensive ticker comparison functionality with significant frontend architecture improvements, enhanced user experience, and better data visualization capabilities.
+
+### Ticker Comparison System
+
+#### New API Endpoints
+- **Compare Tickers Endpoint**: `POST /api/portfolio/tickers/compare`
+  - Compares multiple tickers simultaneously
+  - Returns comprehensive comparison data with position and market value information
+  - Enhanced error handling and response formatting
+
+#### Enhanced Data Models
+- **TickerAnalysis Interface**: Added `position` and `marketValue` fields
+- **New Comparison Interfaces**: 
+  - `TickerComparisonData`: Individual ticker comparison data
+  - `CompareTickersResults`: Comparison results with warnings and errors
+  - `CompareTickersResponse`: API response structure
+
+#### Backend Improvements
+- **MainController**: Renamed from PortfolioController for better clarity
+- **API Structure**: Enhanced with new comparison endpoints and improved response models
+- **Dependency Updates**: Updated requirements.txt with newer versions of core dependencies
+- **Error Handling**: Improved error handling across all API endpoints
+
+### Frontend Architecture Enhancements
+
+#### New Components
+- **Sidebar Component**: Dedicated sidebar component replacing inline navigation
+- **Column Visibility Control**: Advanced table column visibility management for ticker analysis
+- **RunAnalysisSection Component**: Unified analysis section component for consistent user experience
+- **Enhanced Date Range Selector**: Improved date selection with previous working day logic
+
+#### Component Updates
+- **TickerMetricsTable**: Added `visibleColumns` prop and column visibility control
+- **TickerMetricsCards**: Removed viewport height calculation, added position and market value display
+- **DateRangeSelector**: Updated to use `getPreviousWorkingDay` function for better date handling
+- **PortfolioAnalysisPage**: Integrated RunAnalysisSection component for consistency
+
+### Technical Implementation
+
+#### Ticker Comparison Architecture
+```python
+# New comparison endpoint implementation
+@app.post("/api/portfolio/tickers/compare")
+async def compare_tickers(request: CompareTickersRequest) -> CompareTickersResponse:
+    # Compare multiple tickers functionality
+    # Enhanced error handling and response formatting
+```
+
+#### Enhanced Type Definitions
+```typescript
+// New ticker comparison interfaces
+interface TickerComparisonData {
+  ticker: string;
+  analysis: TickerAnalysis;
+  position?: number;
+  marketValue?: number;
+}
+
+interface CompareTickersResults {
+  comparisons: TickerComparisonData[];
+  warnings: string[];
+  errors: string[];
+}
+```
+
+### Benefits
+- **Enhanced Functionality**: More comprehensive analysis capabilities with ticker comparison
+- **Better User Experience**: Improved navigation and data visualization
+- **API Consistency**: More consistent API responses and behavior
+- **Data Integrity**: Better data validation and processing
+
+---
+
+## 14. Portfolio Dividend Metrics System (v4.4.7)
 
 **Purpose:**  
 Enhanced portfolio analysis with comprehensive dividend metrics at the portfolio level, providing complete dividend analysis alongside existing individual ticker dividend calculations.
@@ -802,7 +879,7 @@ print(f"📊 Total Div Yield:   {total_dividend_yield_colored}")
 **Evidence:** 
 - `backend/src/application/use_cases/analyze_portfolio.py` - Portfolio dividend metrics calculation
 - `backend/api.py` - Enhanced API response with dividend metrics
-- `backend/src/presentation/controllers/portfolio_controller.py` - CLI display enhancement
+- `backend/src/presentation/controllers/main_controller.py` - CLI display enhancement
 
 ## 14. Enhanced Ticker Analysis System (v4.4.8)
 
@@ -1094,10 +1171,10 @@ External Error → Repository → Use Case → Controller → User Message
 - Interface segregation
 
 **Naming Conventions**:
-- Classes: PascalCase (e.g., `PortfolioController`)
+- Classes: PascalCase (e.g., `MainController`)
 - Functions/Methods: snake_case (e.g., `load_portfolio`)
 - Variables: snake_case (e.g., `portfolio_data`)
-- Files: snake_case (e.g., `portfolio_controller.py`)
+- Files: snake_case (e.g., `main_controller.py`)
 
 ### Adding New Features
 

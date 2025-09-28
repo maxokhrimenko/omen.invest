@@ -30,8 +30,8 @@ VERSION_FILES = {
         "replacement": '"version": "{}"',
         "description": "Frontend package version"
     },
-    "frontend/src/App.tsx": {
-        "pattern": r'v\d+\.\d+\.\d+',
+    "frontend/src/components/layout/Sidebar.tsx": {
+        "pattern": r'alpha \d+\.\d+\.\d+',
         "replacement": 'alpha {}',
         "description": "Frontend sidebar version display"
     },
@@ -193,7 +193,7 @@ def main():
         print("\nTo update version, run:")
         print(f"python scripts/update_version.py <new_version>")
         print("\nExample:")
-        print(f"python scripts/update_version.py 4.4.3")
+        print(f"python scripts/update_version.py 4.5.0")
 
 if __name__ == "__main__":
     main()

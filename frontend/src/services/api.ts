@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import type { ApiError, ApiConfig } from '../types/api';
-import type { Portfolio, PortfolioUploadResponse, PortfolioAnalysis, TickerAnalysis } from '../types/portfolio';
+import type { Portfolio, PortfolioUploadResponse, PortfolioAnalysis, TickerAnalysis, CompareTickersResponse } from '../types/portfolio';
 import { calculateAnalysisTimeout, formatTimeout } from '../utils/timeoutCalculator';
 import { logger } from '../utils/logger';
 
@@ -145,6 +145,33 @@ class ApiService {
       failedTickers: response.data.failedTickers,
       warnings: response.data.warnings
     };
+  }
+
+  async compareTickers(startDate: string, endDate: string, tickerCount?: number): Promise<CompareTickersResponse> {
+    console.log('Calling compareTickers API...', { startDate, endDate });
+    
+    // Calculate dynamic timeout if ticker count is provided
+    let timeout = 300000; // Default 5 minutes
+    if (tickerCount) {
+      timeout = calculateAnalysisTimeout(tickerCount, startDate, endDate) * 1000; // Convert to milliseconds
+      console.log(`Using dynamic timeout: ${formatTimeout(timeout / 1000)} for ${tickerCount} tickers`);
+    }
+    
+    const response = await this.api.post<CompareTickersResponse>('/portfolio/tickers/compare', {
+      start_date: startDate,
+      end_date: endDate
+    }, {
+      timeout
+    });
+    
+    console.log('compareTickers response:', { 
+      success: response.data.success, 
+      tickerCount: response.data.data.metrics.length,
+      bestPerformers: response.data.data.bestPerformers.length,
+      worstPerformers: response.data.data.worstPerformers.length
+    });
+    
+    return response.data;
   }
 
   // Health check

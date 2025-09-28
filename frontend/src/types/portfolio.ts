@@ -71,6 +71,8 @@ export interface TickerAnalysis {
   endPrice: string;
   hasDataAtStart: boolean;
   firstAvailableDate?: string;
+  position?: number;
+  marketValue?: string;
 }
 
 export interface ApiResponse<T> {
@@ -83,4 +85,36 @@ export interface ApiError {
   message: string;
   status?: number;
   details?: any;
+}
+
+// Compare Tickers Types
+export interface TickerComparisonData {
+  ticker: string;
+  annualizedReturn: string;
+  sharpeRatio: string;
+  volatility: string;
+  maxDrawdown: string;
+}
+
+export interface CompareTickersResults {
+  metrics: TickerAnalysis[];
+  bestPerformers: TickerComparisonData[];
+  worstPerformers: TickerComparisonData[];
+  bestSharpe: TickerComparisonData[];
+  lowestRisk: TickerComparisonData[];
+}
+
+export interface CompareTickersResponse {
+  success: boolean;
+  message: string;
+  data: CompareTickersResults;
+  warnings: {
+    missingTickers: string[];
+    tickersWithoutStartData: string[];
+    firstAvailableDates: { [ticker: string]: string };
+  };
+  failedTickers?: Array<{
+    ticker: string;
+    firstAvailableDate?: string;
+  }>;
 }

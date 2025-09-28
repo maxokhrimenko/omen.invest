@@ -36,41 +36,33 @@ class YFinanceMarketRepository(MarketDataRepository):
             
             result = {}
             
-            # Handle single ticker case
-            if len(ticker_symbols) == 1:
-                ticker = tickers[0]
-                
-                if 'Close' in data.columns:
-                    prices = data['Close'].dropna()
-                    if not prices.empty:
-                        result[ticker] = prices
-                else:
-                    # Multi-level columns even for single ticker
-                    symbol = ticker_symbols[0]
-                    if (symbol, 'Close') in data.columns:
-                        prices = data[symbol]['Close'].dropna()
-                        if not prices.empty:
-                            result[ticker] = prices
-            else:
-                # Multiple tickers
-                for ticker in tickers:
-                    symbol = ticker.symbol
-                    try:
-                        if hasattr(data.columns, 'levels'):
-                            # Multi-level columns
-                            if symbol in data.columns.levels[0]:
-                                prices = data[symbol]['Close'].dropna()
-                                if not prices.empty:
-                                    result[ticker] = prices
-                        else:
-                            # Single level columns (fallback)
-                            if f"{symbol}_Close" in data.columns:
-                                prices = data[f"{symbol}_Close"].dropna()
-                                if not prices.empty:
-                                    result[ticker] = prices
-                    except (KeyError, AttributeError) as e:
-                        # Skip tickers with no data
-                        continue
+            # Handle both single and multiple ticker cases
+            for ticker in tickers:
+                symbol = ticker.symbol
+                try:
+                    # Check for multi-level columns (most common case)
+                    if hasattr(data.columns, 'levels') and len(data.columns.levels) > 1:
+                        # Multi-level columns: (symbol, 'Close')
+                        if symbol in data.columns.levels[0] and 'Close' in data.columns.levels[1]:
+                            prices = data[symbol]['Close'].dropna()
+                            if not prices.empty:
+                                result[ticker] = prices
+                    else:
+                        # Single level columns
+                        if 'Close' in data.columns:
+                            # Single ticker case
+                            prices = data['Close'].dropna()
+                            if not prices.empty:
+                                result[ticker] = prices
+                        elif f"{symbol}_Close" in data.columns:
+                            # Multiple tickers with underscore format
+                            prices = data[f"{symbol}_Close"].dropna()
+                            if not prices.empty:
+                                result[ticker] = prices
+                except (KeyError, AttributeError, IndexError) as e:
+                    # Skip tickers with no data
+                    print(f"Warning: No data found for {symbol}: {e}")
+                    continue
             
             return result
             

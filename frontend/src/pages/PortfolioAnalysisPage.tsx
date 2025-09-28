@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3, Calendar, X, Loader2 } from 'lucide-react';
-import DateRangeSelector from '../components/portfolio/DateRangeSelector';
-import AnalysisButton from '../components/portfolio/AnalysisButton';
+import RunAnalysisSection from '../components/portfolio/RunAnalysisSection';
 import PortfolioMetricsDisplay from '../components/portfolio/PortfolioMetricsDisplay';
 // TickerAnalysisDisplay removed - ticker analysis will be separate feature
 import DataWarnings from '../components/portfolio/DataWarnings';
@@ -131,35 +130,16 @@ const PortfolioAnalysisPage: React.FC = () => {
 
 
         {/* Run New Analysis Section - Always on top */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">Run Analysis</h2>
-                </div>
-          
-          {/* Three Horizontal Blocks */}
-          <div className="flex items-start space-x-6">
-            {/* Block 1: Predefined Periods */}
-            <div className="flex-1">
-              <DateRangeSelector
-                selectedRange={selectedDateRange}
-                onRangeChange={setSelectedDateRange}
-              />
-            </div>
-            
-            {/* Block 2: Analysis Button */}
-            <div className="w-48">
-              <AnalysisButton
-                onAnalyze={handleAnalysis}
-                onClearResults={handleClearAnalysis}
-                isLoading={isLoading}
-                selectedDateRange={selectedDateRange}
-                error={error}
-                hasResults={!!analysisResults}
-                tickerCount={portfolio?.tickers.length}
-              />
-            </div>
-          </div>
-        </div>
+        <RunAnalysisSection
+          selectedDateRange={selectedDateRange}
+          onRangeChange={setSelectedDateRange}
+          onAnalyze={handleAnalysis}
+          onClearResults={handleClearAnalysis}
+          isLoading={isLoading}
+          error={error}
+          hasResults={!!analysisResults}
+          tickerCount={portfolio?.tickers.length}
+        />
 
         {/* Analysis Results */}
         {analysisResults && (

@@ -16,7 +16,10 @@ function getNYDate(): Date {
   
   const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
   const nyTime = new Date(utc + (nyOffset * 3600000));
-  return nyTime;
+  
+  // Return only the date part (no time) to match backend behavior
+  const dateOnly = new Date(nyTime.getFullYear(), nyTime.getMonth(), nyTime.getDate());
+  return dateOnly;
 }
 
 /**

@@ -25,7 +25,6 @@ const DataWarningTooltip: React.FC<{
     const triggerRect = triggerRef.current.getBoundingClientRect();
     const tooltipRect = tooltipRef.current.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
 
     // Calculate ideal position (above the trigger, centered)
     let top = triggerRect.top - tooltipRect.height - 8;
@@ -184,6 +183,10 @@ const TickerMetricsCards: React.FC<TickerMetricsCardsProps> = ({
                   </div>
                   <div className="text-sm text-gray-500">
                     {ticker.startPrice} → {ticker.endPrice}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Position: {ticker.position !== undefined ? ticker.position.toLocaleString() : 'N/A'} | 
+                    Market Value: {ticker.marketValue || 'N/A'}
                   </div>
                 </div>
               </div>

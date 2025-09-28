@@ -68,7 +68,7 @@ graph TB
     
     subgraph "Backend (Python)"
         L --> M[FastAPI Router]
-        M --> N[PortfolioController]
+        M --> N[MainController]
         M --> O[AdminController]
         
         N --> P[LoadPortfolioUseCase]

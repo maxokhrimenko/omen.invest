@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is the backend component of the Portfolio Analysis Tool, providing financial analysis capabilities through clean architecture implementation.
+This is the backend component of the Portfolio Analysis Tool, providing financial analysis capabilities through a REST API built with FastAPI and clean architecture implementation.
 
 ## Architecture
 
@@ -11,7 +11,7 @@ The backend follows Clean Architecture principles with clear separation of conce
 - **Domain Layer**: Core business logic and entities
 - **Application Layer**: Use cases and business workflows  
 - **Infrastructure Layer**: External systems and data access
-- **Presentation Layer**: CLI interface and controllers
+- **Presentation Layer**: REST API controllers
 
 ## Quick Start
 
@@ -40,7 +40,13 @@ pip install -r requirements.txt
 
 ```bash
 # From the backend directory
-python main.py
+python -m uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Or use the provided run script from the project root:
+```bash
+# From the project root
+./local/run.sh backend
 ```
 
 ### Running Tests
@@ -73,13 +79,12 @@ backend/
 │   │   ├── warehouse/            # Caching system
 │   │   └── config/               # Configuration
 │   └── presentation/             # Presentation layer
-│       ├── cli/                  # CLI interface
-│       └── controllers/          # Controllers
+│       └── controllers/          # API Controllers
 ├── tests/                        # Test suite
 ├── admin/                        # Administrative tools
 ├── logs/                         # Application logs
 ├── input/                        # Input data files (moved to root)
-├── main.py                       # Application entry point
+├── api.py                        # FastAPI application entry point
 └── requirements.txt              # Dependencies
 ```
 
@@ -128,14 +133,21 @@ Logs are stored in the `logs/` directory:
 - [AI Documentation](../docs/AI.MD)
 - [Metrics Memorandum](../docs/METRICS_MEMORANDUM.md)
 
-## API Integration
+## API Endpoints
 
-The backend is designed to support future API integration:
+The backend provides a comprehensive REST API:
 
-- RESTful endpoints (planned)
-- WebSocket support (planned)
-- Authentication (planned)
-- Rate limiting (planned)
+- **Portfolio Management**: Upload, retrieve, and clear portfolios
+- **Analysis**: Portfolio analysis and individual ticker analysis
+- **Comparison**: Ticker comparison functionality
+- **Administration**: Warehouse management and statistics
+- **Health Check**: Service health monitoring
+
+### API Documentation
+
+When running the application, visit:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
 ## Troubleshooting
 

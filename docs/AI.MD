@@ -5,13 +5,14 @@
 - [2. Tech Stack & Tooling](#2-tech-stack--tooling)
 - [3. Repository Map](#3-repository-map)
 - [4. Architecture Overview](#4-architecture-overview)
-- [5. Annualized Dividend Calculation System (v4.1.1)](#5-annualized-dividend-calculation-system-v411)
-- [6. Parallel Processing & Warehouse Optimization System (v4.4.3)](#6-parallel-processing--warehouse-optimization-system-v443)
-- [7. Enhanced Data Validation & Analysis Accuracy (v4.4.1)](#7-enhanced-data-validation--analysis-accuracy-v441)
-- [8. Advanced Portfolio Analysis & Visualization (v4.4.0)](#8-advanced-portfolio-analysis--visualization-v440)
-- [9. Portfolio Dividend Metrics & CLI-Frontend Alignment (v4.4.7)](#9-portfolio-dividend-metrics--cli-frontend-alignment-v447)
-- [10. Enhanced Ticker Analysis System (v4.4.8)](#10-enhanced-ticker-analysis-system-v448)
-- [11. Portfolio Analysis & Visualization (v4.4.0)](#11-portfolio-analysis--visualization-v440)
+- [5. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)](#5-enhanced-ticker-comparison--frontend-architecture-improvements-v450)
+- [6. Annualized Dividend Calculation System (v4.1.1)](#6-annualized-dividend-calculation-system-v411)
+- [7. Parallel Processing & Warehouse Optimization System (v4.4.3)](#7-parallel-processing--warehouse-optimization-system-v443)
+- [8. Enhanced Data Validation & Analysis Accuracy (v4.4.1)](#8-enhanced-data-validation--analysis-accuracy-v441)
+- [9. Advanced Portfolio Analysis & Visualization (v4.4.0)](#9-advanced-portfolio-analysis--visualization-v440)
+- [10. Portfolio Dividend Metrics & CLI-Frontend Alignment (v4.4.7)](#10-portfolio-dividend-metrics--cli-frontend-alignment-v447)
+- [11. Enhanced Ticker Analysis System (v4.4.8)](#11-enhanced-ticker-analysis-system-v448)
+- [12. Portfolio Analysis & Visualization (v4.4.0)](#12-portfolio-analysis--visualization-v440)
 - [12. Services & Modules](#12-services--modules)
 - [13. Data Storage & Schema](#13-data-storage--schema)
 - [14. APIs & Contracts](#14-apis--contracts)
@@ -166,7 +167,89 @@ The system follows Clean Architecture with clear separation of concerns. The pre
 - No authentication or authorization required
 Evidence: yfinance_market_repository.py:L1-L135
 
-## 5. Annualized Dividend Calculation System (v4.1.1)
+## 5. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)
+
+**Purpose:**  
+Comprehensive ticker comparison functionality with significant frontend architecture improvements, enhanced user experience, and better data visualization capabilities.
+
+**Key Features:**
+
+#### Ticker Comparison System
+- **Compare Tickers Functionality**: New comprehensive ticker comparison feature allowing side-by-side analysis of multiple tickers
+- **CompareTickersPage**: Dedicated frontend page for ticker comparison with intuitive interface
+- **Ticker Comparison API**: New backend API endpoints for comparing multiple tickers simultaneously
+- **Comparison Data Models**: Enhanced data structures for ticker comparison results and responses
+- **Position & Market Value Display**: Added position quantity and market value information to ticker analysis
+
+#### Frontend Architecture Enhancements
+- **Sidebar Component**: New dedicated sidebar component replacing inline navigation
+- **Column Visibility Control**: Advanced table column visibility management for ticker analysis
+- **RunAnalysisSection Component**: Unified analysis section component for consistent user experience
+- **Enhanced Date Range Selector**: Improved date selection with previous working day logic
+- **Responsive Table Design**: Better table layout with configurable column visibility
+
+#### Backend API Improvements
+- **Compare Tickers Endpoint**: New `/api/portfolio/tickers/compare` endpoint for ticker comparison
+- **Enhanced Ticker Analysis**: Updated ticker analysis with position and market value data
+- **Improved Error Handling**: Better error handling and response formatting
+- **API Response Models**: New response models for ticker comparison functionality
+
+**Technical Implementation:**
+
+#### Ticker Comparison Architecture
+```typescript
+// New ticker comparison interfaces
+interface TickerComparisonData {
+  ticker: string;
+  analysis: TickerAnalysis;
+  position?: number;
+  marketValue?: number;
+}
+
+interface CompareTickersResults {
+  comparisons: TickerComparisonData[];
+  warnings: string[];
+  errors: string[];
+}
+```
+
+#### Frontend Component Enhancements
+```typescript
+// Enhanced TickerMetricsTable with column visibility
+interface TickerMetricsTableProps {
+  visibleColumns: string[];
+  onColumnVisibilityChange: (columns: string[]) => void;
+  // ... other props
+}
+```
+
+#### Backend API Endpoints
+```python
+# New comparison endpoint
+@app.post("/api/portfolio/tickers/compare")
+async def compare_tickers(request: CompareTickersRequest) -> CompareTickersResponse:
+    # Compare multiple tickers functionality
+```
+
+**Data Model Changes:**
+- **TickerAnalysis Interface**: Added position and marketValue fields
+- **New Comparison Interfaces**: TickerComparisonData, CompareTickersResults, CompareTickersResponse
+- **Enhanced Type Safety**: Improved TypeScript interfaces for better type safety
+
+**Benefits:**
+- **Enhanced Functionality**: More comprehensive analysis capabilities with ticker comparison
+- **Better User Experience**: Improved navigation and data visualization
+- **API Consistency**: More consistent API responses and behavior
+- **Data Integrity**: Better data validation and processing
+
+**Evidence:** 
+- `frontend/src/pages/CompareTickersPage.tsx` - New ticker comparison page
+- `frontend/src/components/layout/Sidebar.tsx` - New sidebar component
+- `frontend/src/types/portfolio.ts` - Enhanced type definitions
+- `backend/api.py` - New comparison API endpoints
+- `frontend/src/components/portfolio/TickerMetricsTable.tsx` - Enhanced table component
+
+## 6. Annualized Dividend Calculation System (v4.1.1)
 
 **Purpose:**  
 Dividend analysis system that provides annualized dividend metrics by detecting payment frequencies and calculating annualized dividends for comparison across all stocks.
@@ -200,7 +283,7 @@ Dividend analysis system that provides annualized dividend metrics by detecting 
 | JEPI | Monthly | $7.13 | $4.50 | 8.37% |
 | GLPI | Quarterly | $5.36 | $3.06 | 6.77% |
 
-**Evidence:** analyze_ticker.py:L172-L198, portfolio_controller.py:L316-L331
+**Evidence:** analyze_ticker.py:L172-L198, main_controller.py:L316-L331
 
 ## 6. Parallel Processing & Warehouse Optimization System (v4.4.3)
 
@@ -535,7 +618,7 @@ print(f"📊 Total Div Yield:   {total_dividend_yield_colored}")
 **Evidence:** 
 - `backend/src/application/use_cases/analyze_portfolio.py` - Portfolio dividend metrics calculation
 - `backend/api.py` - Enhanced API response with dividend metrics
-- `backend/src/presentation/controllers/portfolio_controller.py` - CLI display enhancement
+- `backend/src/presentation/controllers/main_controller.py` - CLI display enhancement
 - `frontend/src/components/portfolio/PortfolioChart.tsx` - Custom legend implementation
 
 ## 10. Enhanced Ticker Analysis System (v4.4.8)
@@ -785,7 +868,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 ## 12. Services & Modules
 | Name | Type (svc/lib) | Responsibilities | Key Public APIs | Depends On | Evidence |
 |------|-----------------|------------------|-----------------|------------|----------|
-| PortfolioController | Controller | Orchestrate user interactions, format results | load_portfolio(), analyze_portfolio(), analyze_tickers(), compare_tickers() | All use cases | portfolio_controller.py:L11-L20 |
+| MainController | Controller | Orchestrate user interactions, format results | load_portfolio(), analyze_portfolio(), analyze_tickers(), compare_tickers() | All use cases | main_controller.py:L11-L20 |
 | AdministrationAPI | API Endpoints | Administrative operations and system management | clear_all_logs(), clear_all_warehouse(), get_warehouse_stats(), get_warehouse_tickers(), clear_warehouse_ticker() | Subprocess, Admin Scripts | api.py:L801-L1045 |
 | LoadPortfolioUseCase | Use Case | Load portfolio from CSV files | execute(LoadPortfolioRequest) | PortfolioRepository | load_portfolio.py:L16-L33 |
 | AnalyzePortfolioUseCase | Use Case | Calculate portfolio-level metrics with data validation | execute(AnalyzePortfolioRequest) | MarketDataRepository | analyze_portfolio.py:L38-L86 |
@@ -840,13 +923,13 @@ For each operation, list:
 
 | Endpoint/Operation | Method/Protocol | Request | Response | Auth | Evidence |
 |---|---|---|---|---|---|
-| Load Portfolio | CLI Menu Option 1 | File path (optional, defaults to input/input.csv) | Success/error message, portfolio summary | None | portfolio_controller.py:L25-L42 |
-| Analyze Portfolio | CLI Menu Option 2 | Date range (start/end dates) | Portfolio metrics table | None | portfolio_controller.py:L44-L67 |
-| Analyze Tickers | CLI Menu Option 3 | All tickers or specific ticker selection | Individual ticker metrics | None | portfolio_controller.py:L69-L95 |
-| Compare Tickers | CLI Menu Option 4 | Date range | Ticker comparison results | None | portfolio_controller.py:L97-L125 |
-| Generate Report | CLI Menu Option 5 | None | Combined portfolio and ticker analysis | None | portfolio_controller.py:L127-L143 |
-| Settings | CLI Menu Option 6 | New start date or risk-free rate | Confirmation message | None | portfolio_controller.py:L145-L180 |
-| Warehouse Metrics | CLI Menu Option 7 | None | Warehouse performance metrics and statistics | None | portfolio_controller.py:L182-L200 |
+| Load Portfolio | CLI Menu Option 1 | File path (optional, defaults to input/input.csv) | Success/error message, portfolio summary | None | main_controller.py:L25-L42 |
+| Analyze Portfolio | CLI Menu Option 2 | Date range (start/end dates) | Portfolio metrics table | None | main_controller.py:L44-L67 |
+| Analyze Tickers | CLI Menu Option 3 | All tickers or specific ticker selection | Individual ticker metrics | None | main_controller.py:L69-L95 |
+| Compare Tickers | CLI Menu Option 4 | Date range | Ticker comparison results | None | main_controller.py:L97-L125 |
+| Generate Report | CLI Menu Option 5 | None | Combined portfolio and ticker analysis | None | main_controller.py:L127-L143 |
+| Settings | CLI Menu Option 6 | New start date or risk-free rate | Confirmation message | None | main_controller.py:L145-L180 |
+| Warehouse Metrics | CLI Menu Option 7 | None | Warehouse performance metrics and statistics | None | main_controller.py:L182-L200 |
 
 **Administration API Endpoints (REST API)**  
 For administrative operations and system management:
@@ -867,10 +950,10 @@ For administrative operations and system management:
 ## 16. Configuration & Secrets
 | Variable/Config | Purpose | Default/Example | Source (.env, config.yml) | Required? | Evidence |
 |-----------------|---------|-----------------|----------------------------|-----------|----------|
-| Default start date | Analysis period start | "2024-03-01" | Hardcoded in controller | No | portfolio_controller.py:L22 |
-| Risk-free rate | Sharpe ratio calculation | 0.03 (3%) | Hardcoded in controller | No | portfolio_controller.py:L23 |
-| Portfolio file path | CSV input file | "input/input.csv" | User input with default | No | portfolio_controller.py:L30-L32 |
-| Date range | Analysis period | User input | User input | Yes | portfolio_controller.py:L182-L192 |
+| Default start date | Analysis period start | "2024-03-01" | Hardcoded in controller | No | main_controller.py:L22 |
+| Risk-free rate | Sharpe ratio calculation | 0.03 (3%) | Hardcoded in controller | No | main_controller.py:L23 |
+| Portfolio file path | CSV input file | "input/input.csv" | User input with default | No | main_controller.py:L30-L32 |
+| Date range | Analysis period | User input | User input | Yes | main_controller.py:L182-L192 |
 
 **Secret handling & rotation notes:**  
 No secrets or sensitive data - all data is public market information  
@@ -970,7 +1053,7 @@ Evidence: warehouse_market_repository.py:L14-L218, warehouse_service.py:L9-L317
 - No significant security threats (public data only)
 - Input validation for CSV format and user inputs
 - Error handling for external API failures
-Evidence: csv_portfolio_repository.py:L35-L56, portfolio_controller.py:L160-L180
+Evidence: csv_portfolio_repository.py:L35-L56, main_controller.py:L160-L180
 
 ## 22. Core Flows (Sequence Diagrams)
 For each major flow, provide a Mermaid sequence diagram + brief notes.
@@ -1022,7 +1105,7 @@ sequenceDiagram
     C-->>U: Display metrics table
 ```
 
-Evidence: portfolio_controller.py:L25-L67, analyze_portfolio.py:L42-L86
+Evidence: main_controller.py:L25-L67, analyze_portfolio.py:L42-L86
 
 ## 23. LLM/AI Integration (if any)
 | Area | Model(s) & Version(s) | Prompt Template Location | Vector DB/Index | Tokenization Settings | Guardrails | Evidence |
@@ -1087,7 +1170,7 @@ Data validation system that identifies and reports tickers with missing or incom
 ============================================================
 ```
 
-**Evidence:** analyze_portfolio.py:L172-L206, analyze_ticker.py:L70-L85, portfolio_controller.py:L316-L331
+**Evidence:** analyze_portfolio.py:L172-L206, analyze_ticker.py:L70-L85, main_controller.py:L316-L331
 
 ## 26. Known Issues & TODOs
 - No known issues documented in code
@@ -1150,8 +1233,8 @@ Evidence: No TODO comments or issue tracking found
 | src/infrastructure/warehouse/trading_day_service.py | TradingDayService | get_trading_days_in_range() | datetime | DateRange | trading_day_service.py:L8-L50 |
 | src/infrastructure/logging/logger_service.py | LoggerService | get_logger(), log_performance(), log_user_action(), log_api_call() | logging | All layers | logger_service.py:L21-L235 |
 | admin/logs_clear.py | LogsClearManager | clear_sessions(), clear_total(), show_statistics() | os, shutil | LoggerService | logs_clear.py:L30-L255 |
-| src/presentation/controllers/portfolio_controller.py | PortfolioController | All controller methods | All use cases | None | portfolio_controller.py:L11-L20 |
-| src/presentation/cli/menu.py | MainMenu | show() | PortfolioController | None | menu.py:L4-L80 |
+| src/presentation/controllers/main_controller.py | MainController | All controller methods | All use cases | None | main_controller.py:L11-L20 |
+| src/presentation/cli/menu.py | MainMenu | show() | MainController | None | menu.py:L4-L80 |
 
 ## Appendix B. Evidence Index
 A flat list of all evidence lines used above for quick lookup.
@@ -1173,15 +1256,15 @@ A flat list of all evidence lines used above for quick lookup.
 - `CHANGELOG.md:L56-L59` — Testing information
 - `METRICS_MEMORANDUM.md:L1` — Financial metrics definitions
 - `input/test.csv:L1-L16` — Sample portfolio data
-- `portfolio_controller.py:L11-L20` — Controller dependencies
-- `portfolio_controller.py:L22-L23` — Default configuration
-- `portfolio_controller.py:L25-L42` — Load portfolio operation
-- `portfolio_controller.py:L44-L67` — Analyze portfolio operation
-- `portfolio_controller.py:L69-L95` — Analyze tickers operation
-- `portfolio_controller.py:L97-L125` — Compare tickers operation
-- `portfolio_controller.py:L127-L143` — Generate report operation
-- `portfolio_controller.py:L145-L180` — Settings operation
-- `portfolio_controller.py:L182-L192` — Date range input
+- `main_controller.py:L11-L20` — Controller dependencies
+- `main_controller.py:L22-L23` — Default configuration
+- `main_controller.py:L25-L42` — Load portfolio operation
+- `main_controller.py:L44-L67` — Analyze portfolio operation
+- `main_controller.py:L69-L95` — Analyze tickers operation
+- `main_controller.py:L97-L125` — Compare tickers operation
+- `main_controller.py:L127-L143` — Generate report operation
+- `main_controller.py:L145-L180` — Settings operation
+- `main_controller.py:L182-L192` — Date range input
 - `load_portfolio.py:L16-L33` — Load portfolio use case
 - `analyze_portfolio.py:L38-L86` — Analyze portfolio use case
 - `analyze_portfolio.py:L133-L136` — Sharpe ratio calculation

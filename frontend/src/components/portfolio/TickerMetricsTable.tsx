@@ -8,6 +8,7 @@ interface TickerMetricsTableProps {
   tickerMetrics: TickerAnalysis[];
   problematicTickers?: string[];
   firstAvailableDates?: { [ticker: string]: string };
+  visibleColumns?: string[];
 }
 
 // Proper tooltip component with viewport-aware positioning
@@ -26,7 +27,6 @@ const DataWarningTooltip: React.FC<{
     const triggerRect = triggerRef.current.getBoundingClientRect();
     const tooltipRect = tooltipRef.current.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
 
     // Calculate ideal position (above the trigger, centered)
     let top = triggerRect.top - tooltipRect.height - 8;
@@ -169,10 +169,29 @@ const MetricTooltip: React.FC<{ metricName: string; children: React.ReactNode; p
 };
 
 
+// Column definitions
+const COLUMN_DEFINITIONS = {
+  ticker: { label: 'Ticker', category: 'basic' as const, required: true },
+  position: { label: 'Position', category: 'basic' as const, required: false },
+  marketValue: { label: 'Market Value', category: 'basic' as const, required: false },
+  startPrice: { label: 'Start', category: 'basic' as const, required: false },
+  endPrice: { label: 'End', category: 'basic' as const, required: false },
+  totalReturn: { label: 'TotRet', category: 'returns' as const, required: false },
+  annualizedReturn: { label: 'AnnRet', category: 'returns' as const, required: false },
+  volatility: { label: 'Volatility', category: 'risk' as const, required: false },
+  sharpeRatio: { label: 'Sharpe', category: 'risk' as const, required: false },
+  maxDrawdown: { label: 'MaxDD', category: 'risk' as const, required: false },
+  annualizedDividend: { label: 'AnnDiv', category: 'dividends' as const, required: false },
+  dividendYield: { label: 'DivYield', category: 'dividends' as const, required: false },
+  dividendFrequency: { label: 'Freq', category: 'dividends' as const, required: false },
+  momentum12to1: { label: 'Momentum', category: 'other' as const, required: false }
+};
+
 const TickerMetricsTable: React.FC<TickerMetricsTableProps> = ({ 
   tickerMetrics, 
   problematicTickers = [], 
-  firstAvailableDates = {} 
+  firstAvailableDates = {},
+  visibleColumns = Object.keys(COLUMN_DEFINITIONS)
 }) => {
   const [sortField, setSortField] = useState<keyof TickerAnalysis>('annualizedReturn');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -252,8 +271,9 @@ const TickerMetricsTable: React.FC<TickerMetricsTableProps> = ({
       }
       
       // For numeric fields, parse and compare numerically
-      const aValue = parseFloat(String(aField).replace(/[%,$]/g, ''));
-      const bValue = parseFloat(String(bField).replace(/[%,$]/g, ''));
+      // Strip currency symbols, commas, and percentage signs
+      const aValue = parseFloat(String(aField).replace(/[%,$]/g, '').replace(/,/g, ''));
+      const bValue = parseFloat(String(bField).replace(/[%,$]/g, '').replace(/,/g, ''));
       
       if (isNaN(aValue) || isNaN(bValue)) {
         // Fallback to string comparison if parsing fails
@@ -283,329 +303,105 @@ const TickerMetricsTable: React.FC<TickerMetricsTableProps> = ({
               <thead className="bg-gray-50">
                 {/* First row - Metric Legends */}
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                    {/* Ticker column - no legend */}
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                    {/* Start $ column - no legend */}
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                    {/* End $ column - no legend */}
-                  </th>
-                  
-                  {/* TotRet */}
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                  {visibleColumns.map((columnId) => {
+                    const column = COLUMN_DEFINITIONS[columnId as keyof typeof COLUMN_DEFINITIONS];
+                    if (!column) return null;
+                    
+                    // Only show legends for certain columns
+                    const showLegend = ['totalReturn', 'annualizedReturn', 'volatility', 'sharpeRatio', 'maxDrawdown', 'annualizedDividend', 'dividendYield', 'momentum12to1'].includes(columnId);
+                    
+                    return (
+                      <th key={columnId} className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                        {showLegend ? (
                     <div className="space-y-0.5">
                       <div className="flex items-center">
                         <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&gt;20%</span>
+                              <span className="text-gray-700 font-medium">
+                                {columnId === 'totalReturn' || columnId === 'annualizedReturn' ? '>20%' :
+                                 columnId === 'volatility' ? '<30%' :
+                                 columnId === 'sharpeRatio' ? '>1.5' :
+                                 columnId === 'maxDrawdown' ? '>-30%' :
+                                 columnId === 'annualizedDividend' ? '>$4' :
+                                 columnId === 'dividendYield' ? '>4%' :
+                                 columnId === 'momentum12to1' ? '>20%' : ''}
+                              </span>
                       </div>
                       <div className="flex items-center">
                         <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">5-20%</span>
+                              <span className="text-gray-700 font-medium">
+                                {columnId === 'totalReturn' || columnId === 'annualizedReturn' ? '5-20%' :
+                                 columnId === 'volatility' ? '30-50%' :
+                                 columnId === 'sharpeRatio' ? '0.5-1.5' :
+                                 columnId === 'maxDrawdown' ? '-50% to -30%' :
+                                 columnId === 'annualizedDividend' ? '$1-$4' :
+                                 columnId === 'dividendYield' ? '1-4%' :
+                                 columnId === 'momentum12to1' ? '0-20%' : ''}
+                              </span>
                       </div>
                       <div className="flex items-center">
                         <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&lt;5%</span>
+                              <span className="text-gray-700 font-medium">
+                                {columnId === 'totalReturn' || columnId === 'annualizedReturn' ? '<5%' :
+                                 columnId === 'volatility' ? '>50%' :
+                                 columnId === 'sharpeRatio' ? '<0.5' :
+                                 columnId === 'maxDrawdown' ? '>-50%' :
+                                 columnId === 'annualizedDividend' ? '<$1' :
+                                 columnId === 'dividendYield' ? '<1%' :
+                                 columnId === 'momentum12to1' ? '<0%' : ''}
+                              </span>
                       </div>
                     </div>
+                        ) : (
+                          <div></div>
+                        )}
                   </th>
-                  
-                  {/* AnnRet */}
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&gt;20%</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">5-20%</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&lt;5%</span>
-                      </div>
-                    </div>
-                  </th>
-                  
-                  {/* Volatility */}
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&lt;30%</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">30-50%</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&gt;50%</span>
-                      </div>
-                    </div>
-                  </th>
-                  
-                  {/* Sharpe */}
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&gt;1.5</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">0.5-1.5</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&lt;0.5</span>
-                      </div>
-                    </div>
-                  </th>
-                  
-                  {/* MaxDD */}
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&gt;-30%</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">-50% to -30%</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&gt;-50%</span>
-                      </div>
-                    </div>
-                  </th>
-                  
-                  {/* AnnDiv */}
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&gt;$4</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">$1-$4</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&lt;$1</span>
-                      </div>
-                    </div>
-                  </th>
-                  
-                  {/* DivYield */}
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&gt;4%</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">1-4%</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&lt;1%</span>
-                      </div>
-                    </div>
-                  </th>
-                  
-                  {/* Freq column - no legend */}
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                  </th>
-                  
-                  {/* Momentum */}
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&gt;20%</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">0-20%</span>
-                      </div>
-                      <div className="flex items-center justify-start">
-                        <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-                        <span className="text-gray-700 font-medium">&lt;0%</span>
-                      </div>
-                    </div>
-                  </th>
+                    );
+                  })}
                 </tr>
                 
                 {/* Second row - Column Headers */}
                 <tr>
-              <th 
+                  {visibleColumns.map((columnId) => {
+                    const column = COLUMN_DEFINITIONS[columnId as keyof typeof COLUMN_DEFINITIONS];
+                    if (!column) return null;
+                    
+                    const hasTooltip = ['totalReturn', 'annualizedReturn', 'volatility', 'sharpeRatio', 'maxDrawdown', 'annualizedDividend', 'dividendYield', 'momentum12to1'].includes(columnId);
+                    
+                    return (
+                      <th 
+                        key={columnId}
                 className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('ticker')}
+                        onClick={() => handleSort(columnId as keyof TickerAnalysis)}
               >
                 <div className="flex items-center">
-                  Ticker
-                  {sortField === 'ticker' && (
-                    <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('startPrice')}
-              >
-                <div className="flex items-center">
-                  Start
-                  {sortField === 'startPrice' && (
-                    <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('endPrice')}
-              >
-                <div className="flex items-center">
-                  End
-                  {sortField === 'endPrice' && (
-                    <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('totalReturn')}
-              >
-                <div className="flex items-center">
-                  TotRet
-                  <MetricTooltip metricName="totalReturn">
+                          {column.label}
+                          {hasTooltip && (
+                            <MetricTooltip metricName={columnId} position={['dividendYield', 'momentum12to1'].includes(columnId) ? 'right' : 'center'}>
                     <Info className="w-3 h-3 ml-1" />
                   </MetricTooltip>
-                  {sortField === 'totalReturn' && (
+                          )}
+                          {sortField === columnId && (
                     <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                   )}
                 </div>
               </th>
-              <th 
-                className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('annualizedReturn')}
-              >
-                <div className="flex items-center">
-                  AnnRet
-                  <MetricTooltip metricName="annualizedReturn">
-                    <Info className="w-3 h-3 ml-1" />
-                  </MetricTooltip>
-                  {sortField === 'annualizedReturn' && (
-                    <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('volatility')}
-              >
-                <div className="flex items-center">
-                  Volatility
-                  <MetricTooltip metricName="volatility">
-                    <Info className="w-3 h-3 ml-1" />
-                  </MetricTooltip>
-                  {sortField === 'volatility' && (
-                    <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('sharpeRatio')}
-              >
-                <div className="flex items-center">
-                  Sharpe
-                  <MetricTooltip metricName="sharpeRatio">
-                    <Info className="w-3 h-3 ml-1" />
-                  </MetricTooltip>
-                  {sortField === 'sharpeRatio' && (
-                    <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('maxDrawdown')}
-              >
-                <div className="flex items-center">
-                  MaxDD
-                  <MetricTooltip metricName="maxDrawdown">
-                    <Info className="w-3 h-3 ml-1" />
-                  </MetricTooltip>
-                  {sortField === 'maxDrawdown' && (
-                    <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('annualizedDividend')}
-              >
-                <div className="flex items-center">
-                  AnnDiv
-                  <MetricTooltip metricName="annualizedDividend">
-                    <Info className="w-3 h-3 ml-1" />
-                  </MetricTooltip>
-                  {sortField === 'annualizedDividend' && (
-                    <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('dividendYield')}
-              >
-                <div className="flex items-center">
-                  DivYield
-                  <MetricTooltip metricName="dividendYield" position="right">
-                    <Info className="w-3 h-3 ml-1" />
-                  </MetricTooltip>
-                  {sortField === 'dividendYield' && (
-                    <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('dividendFrequency')}
-              >
-                <div className="flex items-center">
-                  Freq
-                  {sortField === 'dividendFrequency' && (
-                    <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('momentum12to1')}
-              >
-                <div className="flex items-center">
-                  Momentum
-                  <MetricTooltip metricName="momentum12to1" position="right">
-                    <Info className="w-3 h-3 ml-1" />
-                  </MetricTooltip>
-                  {sortField === 'momentum12to1' && (
-                    <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                  )}
-                </div>
-              </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
             {sortedMetrics.map((ticker) => (
               <tr key={ticker.ticker} className="hover:bg-gray-50">
-                <td className="px-3 py-3 whitespace-nowrap">
+                {visibleColumns.map((columnId) => {
+                  const column = COLUMN_DEFINITIONS[columnId as keyof typeof COLUMN_DEFINITIONS];
+                  if (!column) return null;
+                  
+                  const value = ticker[columnId as keyof TickerAnalysis];
+                  const isMetricColumn = ['totalReturn', 'annualizedReturn', 'volatility', 'sharpeRatio', 'maxDrawdown', 'annualizedDividend', 'dividendYield', 'momentum12to1'].includes(columnId);
+                  
+                  if (columnId === 'ticker') {
+                    return (
+                      <td key={columnId} className="px-3 py-3 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${
                       isProblematicTicker(ticker.ticker) 
@@ -632,42 +428,37 @@ const TickerMetricsTable: React.FC<TickerMetricsTableProps> = ({
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
-                  {ticker.startPrice || 'N/A'}
-                </td>
-                <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
-                  {ticker.endPrice || 'N/A'}
-                </td>
-                <td className={`px-3 py-3 whitespace-nowrap text-sm font-medium ${getMetricColor(ticker.totalReturn, 'totalReturn')} ${getMetricBackgroundColor(ticker.totalReturn, 'totalReturn')} rounded`}>
-                  {ticker.totalReturn || 'N/A'}
-                </td>
-                <td className={`px-3 py-3 whitespace-nowrap text-sm font-medium ${getMetricColor(ticker.annualizedReturn, 'annualizedReturn')} ${getMetricBackgroundColor(ticker.annualizedReturn, 'annualizedReturn')} rounded`}>
-                  {ticker.annualizedReturn || 'N/A'}
-                </td>
-                <td className={`px-3 py-3 whitespace-nowrap text-sm font-medium ${getMetricColor(ticker.volatility, 'volatility')} ${getMetricBackgroundColor(ticker.volatility, 'volatility')} rounded`}>
-                  {ticker.volatility || 'N/A'}
-                </td>
-                <td className={`px-3 py-3 whitespace-nowrap text-sm font-medium ${getMetricColor(ticker.sharpeRatio, 'sharpeRatio')} ${getMetricBackgroundColor(ticker.sharpeRatio, 'sharpeRatio')} rounded`}>
-                  {ticker.sharpeRatio || 'N/A'}
-                </td>
-                <td className={`px-3 py-3 whitespace-nowrap text-sm font-medium ${getMetricColor(ticker.maxDrawdown, 'maxDrawdown')} ${getMetricBackgroundColor(ticker.maxDrawdown, 'maxDrawdown')} rounded`}>
-                  {ticker.maxDrawdown || 'N/A'}
-                </td>
-                <td className={`px-3 py-3 whitespace-nowrap text-sm font-medium ${getMetricColor(ticker.annualizedDividend, 'annualizedDividend')} ${getMetricBackgroundColor(ticker.annualizedDividend, 'annualizedDividend')} rounded`}>
-                  {ticker.annualizedDividend || 'N/A'}
-                </td>
-                <td className={`px-3 py-3 whitespace-nowrap text-sm font-medium ${getMetricColor(ticker.dividendYield, 'dividendYield')} ${getMetricBackgroundColor(ticker.dividendYield, 'dividendYield')} rounded`}>
-                  {ticker.dividendYield || 'N/A'}
-                </td>
-                <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
+                    );
+                  }
+                  
+                  if (columnId === 'dividendFrequency') {
+                    return (
+                      <td key={columnId} className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
                   <div className="flex items-center">
                     <span className="mr-1">{getFrequencyIcon(ticker.dividendFrequency || '')}</span>
                     <span className="text-xs">{ticker.dividendFrequency || 'N/A'}</span>
                   </div>
                 </td>
-                <td className={`px-3 py-3 whitespace-nowrap text-sm font-medium ${getMetricColor(ticker.momentum12to1, 'momentum12to1')} ${getMetricBackgroundColor(ticker.momentum12to1, 'momentum12to1')} rounded`}>
-                  {ticker.momentum12to1 || 'N/A'}
+                    );
+                  }
+                  
+                  if (isMetricColumn) {
+                    return (
+                      <td key={columnId} className={`px-3 py-3 whitespace-nowrap text-sm font-medium ${getMetricColor(value as string, columnId)} ${getMetricBackgroundColor(value as string, columnId)} rounded`}>
+                        {value || 'N/A'}
+                      </td>
+                    );
+                  }
+                  
+                  return (
+                    <td key={columnId} className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {columnId === 'position' && value !== undefined ? 
+                        (value as number).toLocaleString() : 
+                        value || 'N/A'
+                      }
                 </td>
+                  );
+                })}
               </tr>
             ))}
               </tbody>

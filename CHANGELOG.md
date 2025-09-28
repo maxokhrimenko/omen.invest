@@ -1,5 +1,162 @@
 # Changelog
 
+## [4.5.1] - 2025-09-28
+
+### ✨ Added
+- [Add new features here]
+
+### 🔄 Changed
+- [Add changes here]
+
+### 🐛 Fixed
+- [Add bug fixes here]
+
+
+## [4.5.0] - 2025-01-27
+
+### 🎯 Enhanced Ticker Comparison & Frontend Architecture Improvements
+
+This release introduces comprehensive ticker comparison functionality, significant frontend architecture improvements, and enhanced user experience with better data visualization and analysis capabilities.
+
+### ✨ Added
+
+#### 🔍 Ticker Comparison System
+- **Compare Tickers Functionality**: New comprehensive ticker comparison feature allowing side-by-side analysis of multiple tickers
+- **CompareTickersPage**: Dedicated frontend page for ticker comparison with intuitive interface
+- **Ticker Comparison API**: New backend API endpoints for comparing multiple tickers simultaneously
+- **Comparison Data Models**: Enhanced data structures for ticker comparison results and responses
+- **Position & Market Value Display**: Added position quantity and market value information to ticker analysis
+
+#### 🎨 Frontend Architecture Enhancements
+- **Sidebar Component**: New dedicated sidebar component replacing inline navigation
+- **Column Visibility Control**: Advanced table column visibility management for ticker analysis
+- **RunAnalysisSection Component**: Unified analysis section component for consistent user experience
+- **Enhanced Date Range Selector**: Improved date selection with previous working day logic
+- **Responsive Table Design**: Better table layout with configurable column visibility
+
+#### 🔧 Backend API Improvements
+- **Compare Tickers Endpoint**: New `/api/portfolio/tickers/compare` endpoint for ticker comparison
+- **Enhanced Ticker Analysis**: Updated ticker analysis with position and market value data
+- **Improved Error Handling**: Better error handling and response formatting
+- **API Response Models**: New response models for ticker comparison functionality
+
+### 🔄 Changed
+
+#### 🎯 Frontend Component Updates
+- **App.tsx**: Removed Lucide icons, added dedicated Sidebar component
+- **TickerMetricsTable**: Added visibleColumns prop and column visibility control
+- **TickerMetricsCards**: Removed viewport height calculation, added position and market value display
+- **DateRangeSelector**: Updated to use getPreviousWorkingDay function for better date handling
+- **PortfolioAnalysisPage**: Integrated RunAnalysisSection component for consistency
+
+#### 🔧 Backend Architecture
+- **MainController**: Renamed from PortfolioController to MainController for better clarity
+- **API Structure**: Enhanced API with new comparison endpoints and improved response models
+- **Dependency Updates**: Updated requirements.txt with newer versions of core dependencies
+- **Error Handling**: Improved error handling across all API endpoints
+
+#### 📊 Data Models Enhancement
+- **TickerAnalysis Interface**: Added position and marketValue fields
+- **New Comparison Interfaces**: TickerComparisonData, CompareTickersResults, CompareTickersResponse
+- **Enhanced Type Safety**: Improved TypeScript interfaces for better type safety
+
+### 🐛 Fixed
+
+#### 🎯 Frontend Issues
+- **Date Handling**: Fixed date range selection to prevent future date selection
+- **Table Layout**: Improved table column visibility and responsive design
+- **Component Consistency**: Unified analysis section across different pages
+- **Navigation**: Better sidebar navigation with improved user experience
+
+#### 🔧 Backend Issues
+- **API Consistency**: Improved API response consistency across all endpoints
+- **Error Messages**: Better error handling and user-friendly error messages
+- **Data Processing**: Enhanced data processing for ticker comparison functionality
+
+### 🏗️ Technical Implementation Details
+
+#### 🔍 Ticker Comparison Architecture
+```typescript
+// New ticker comparison interfaces
+interface TickerComparisonData {
+  ticker: string;
+  analysis: TickerAnalysis;
+  position?: number;
+  marketValue?: number;
+}
+
+interface CompareTickersResults {
+  comparisons: TickerComparisonData[];
+  warnings: string[];
+  errors: string[];
+}
+```
+
+#### 🎨 Frontend Component Enhancements
+```typescript
+// Enhanced TickerMetricsTable with column visibility
+interface TickerMetricsTableProps {
+  visibleColumns: string[];
+  onColumnVisibilityChange: (columns: string[]) => void;
+  // ... other props
+}
+```
+
+#### 🔧 Backend API Endpoints
+```python
+# New comparison endpoint
+@app.post("/api/portfolio/tickers/compare")
+async def compare_tickers(request: CompareTickersRequest) -> CompareTickersResponse:
+    # Compare multiple tickers functionality
+```
+
+### 📊 Performance Improvements
+
+#### 🎯 Frontend Performance
+- **Component Optimization**: Better component structure and performance
+- **Table Rendering**: Improved table rendering with column visibility control
+- **Date Processing**: Optimized date range selection and processing
+- **User Experience**: Enhanced user interface responsiveness
+
+#### 🔧 Backend Performance
+- **API Efficiency**: Improved API response times for comparison operations
+- **Data Processing**: Optimized data processing for multiple ticker analysis
+- **Error Handling**: Faster error detection and response
+
+### 🎯 Benefits
+
+#### 👨‍💻 Developer Experience
+- **Enhanced API**: More comprehensive API with comparison functionality
+- **Better Architecture**: Cleaner component structure and separation of concerns
+- **Type Safety**: Improved TypeScript integration and type safety
+- **Code Organization**: Better code organization and maintainability
+
+#### 👤 User Experience
+- **Ticker Comparison**: Easy side-by-side comparison of multiple tickers
+- **Better Navigation**: Improved sidebar navigation and user interface
+- **Data Visibility**: Enhanced data display with position and market value information
+- **Responsive Design**: Better mobile and desktop experience
+
+#### 🏢 System Reliability
+- **Enhanced Functionality**: More comprehensive analysis capabilities
+- **Better Error Handling**: Improved error handling and user feedback
+- **API Consistency**: More consistent API responses and behavior
+- **Data Integrity**: Better data validation and processing
+
+### 🔮 Future Enhancements
+
+#### 🚀 Planned Features
+- **Advanced Comparison Metrics**: More sophisticated comparison algorithms
+- **Export Functionality**: Export comparison results to various formats
+- **Real-time Updates**: Live data updates for comparison results
+- **Advanced Filtering**: More advanced filtering and sorting options
+
+#### 🛠️ Technical Roadmap
+- **Performance Optimization**: Further optimization of comparison operations
+- **Advanced Analytics**: Machine learning-based comparison insights
+- **Enhanced UI**: More advanced user interface components
+- **Testing Enhancement**: Comprehensive testing for comparison functionality
+
 ## [4.4.10] - 2025-09-25
 
 ### 🧹 Code Simplification & Logging System Removal

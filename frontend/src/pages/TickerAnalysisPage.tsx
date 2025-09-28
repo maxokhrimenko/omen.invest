@@ -2,19 +2,38 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useTickerAnalysis } from '../hooks/useTickerAnalysis';
 import { apiService } from '../services/api';
-import DateRangeSelector from '../components/portfolio/DateRangeSelector';
+import RunAnalysisSection from '../components/portfolio/RunAnalysisSection';
 import ViewToggle from '../components/portfolio/ViewToggle';
 import TickerMetricsCards from '../components/portfolio/TickerMetricsCards';
 import TickerMetricsTable from '../components/portfolio/TickerMetricsTable';
 import DataWarnings from '../components/portfolio/DataWarnings';
 import TickerFilterToggle from '../components/portfolio/TickerFilterToggle';
-import AnalysisButton from '../components/portfolio/AnalysisButton';
+import ColumnVisibilityControl, { type ColumnConfig } from '../components/portfolio/ColumnVisibilityControl';
 import { logger } from '../utils/logger';
+
+// Default column configuration
+const DEFAULT_COLUMNS: ColumnConfig[] = [
+  { id: 'ticker', label: 'Ticker', visible: true, category: 'basic' },
+  { id: 'position', label: 'Position', visible: true, category: 'basic' },
+  { id: 'marketValue', label: 'Market Value', visible: true, category: 'basic' },
+  { id: 'startPrice', label: 'Start', visible: false, category: 'basic' },
+  { id: 'endPrice', label: 'End', visible: true, category: 'basic' },
+  { id: 'totalReturn', label: 'TotRet', visible: true, category: 'returns' },
+  { id: 'annualizedReturn', label: 'AnnRet', visible: true, category: 'returns' },
+  { id: 'volatility', label: 'Volatility', visible: true, category: 'risk' },
+  { id: 'sharpeRatio', label: 'Sharpe', visible: true, category: 'risk' },
+  { id: 'maxDrawdown', label: 'MaxDD', visible: false, category: 'risk' },
+  { id: 'annualizedDividend', label: 'AnnDiv', visible: true, category: 'dividends' },
+  { id: 'dividendYield', label: 'DivYield', visible: true, category: 'dividends' },
+  { id: 'dividendFrequency', label: 'Freq', visible: false, category: 'dividends' },
+  { id: 'momentum12to1', label: 'Momentum', visible: false, category: 'other' }
+];
 
 const TickerAnalysisPage: React.FC = () => {
   const [portfolio, setPortfolio] = useState<any>(null);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
   const [showProblematicTickers, setShowProblematicTickers] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
   
   const {
     analysisResults,
@@ -27,6 +46,39 @@ const TickerAnalysisPage: React.FC = () => {
     runAnalysis,
     clearAnalysis
   } = useTickerAnalysis();
+
+  // Column visibility handlers
+  const handleColumnToggle = (columnId: string) => {
+    setColumnConfig(prev => 
+      prev.map(col => 
+        col.id === columnId ? { ...col, visible: !col.visible } : col
+      )
+    );
+  };
+
+  const handleResetColumns = () => {
+    setColumnConfig(DEFAULT_COLUMNS);
+  };
+
+  const handleSelectAllColumns = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: true }))
+    );
+  };
+
+  const handleClearAllColumns = () => {
+    setColumnConfig(prev => 
+      prev.map(col => ({ ...col, visible: false }))
+    );
+  };
+
+  // Get visible column IDs
+  const visibleColumns = columnConfig
+    .filter(col => col.visible)
+    .map(col => col.id);
+
+  const visibleCount = columnConfig.filter(col => col.visible).length;
+  const totalCount = columnConfig.length;
 
   // Load portfolio on mount
   useEffect(() => {
@@ -150,35 +202,16 @@ const TickerAnalysisPage: React.FC = () => {
 
 
         {/* Run New Analysis Section - Always on top */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Run Analysis</h2>
-          </div>
-          
-          {/* Three Horizontal Blocks */}
-          <div className="flex items-start space-x-6">
-            {/* Block 1: Predefined Periods */}
-            <div className="flex-1">
-              <DateRangeSelector
-                selectedRange={selectedDateRange}
-                onRangeChange={setSelectedDateRange}
-              />
-            </div>
-            
-            {/* Block 2: Analysis Button */}
-            <div className="w-48">
-              <AnalysisButton
-                onAnalyze={handleAnalysis}
-                onClearResults={handleClearAnalysis}
-                isLoading={isLoading}
-                selectedDateRange={selectedDateRange}
-                error={error}
-                hasResults={!!analysisResults}
-                tickerCount={portfolio?.tickers.length}
-              />
-            </div>
-          </div>
-        </div>
+        <RunAnalysisSection
+          selectedDateRange={selectedDateRange}
+          onRangeChange={setSelectedDateRange}
+          onAnalyze={handleAnalysis}
+          onClearResults={handleClearAnalysis}
+          isLoading={isLoading}
+          error={error}
+          hasResults={!!analysisResults}
+          tickerCount={portfolio?.tickers.length}
+        />
 
         {/* Data Availability Warnings */}
         {analysisResults?.dataWarnings && (
@@ -229,6 +262,19 @@ const TickerAnalysisPage: React.FC = () => {
               setViewMode={setViewMode}
               disabled={isLoading}
             />
+            
+            {/* Column Visibility Control - only show in table view */}
+            {viewMode === 'table' && (
+              <ColumnVisibilityControl
+                columns={columnConfig}
+                onColumnToggle={handleColumnToggle}
+                onReset={handleResetColumns}
+                onSelectAll={handleSelectAllColumns}
+                onClearAll={handleClearAllColumns}
+                visibleCount={visibleCount}
+                totalCount={totalCount}
+              />
+            )}
           </div>
         </div>
             
@@ -249,6 +295,7 @@ const TickerAnalysisPage: React.FC = () => {
                   ...(analysisResults.dataWarnings.tickersWithoutStartData || [])
                 ]}
                 firstAvailableDates={analysisResults.dataWarnings.firstAvailableDates || {}}
+                visibleColumns={visibleColumns}
               />
             )}
           </div>

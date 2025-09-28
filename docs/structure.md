@@ -15,6 +15,30 @@ This document outlines the implemented full-stack repository structure with back
 - **Error Resilience**: Error handling with React error boundaries
 - **Performance Optimization**: Memoization and data processing
 
+## 🎯 Key Features (v4.5.0)
+
+### Enhanced Ticker Comparison & Frontend Architecture Improvements
+
+#### Ticker Comparison System
+- **Compare Tickers Functionality**: New comprehensive ticker comparison feature allowing side-by-side analysis of multiple tickers
+- **CompareTickersPage**: Dedicated frontend page for ticker comparison with intuitive interface
+- **Ticker Comparison API**: New backend API endpoints for comparing multiple tickers simultaneously
+- **Comparison Data Models**: Enhanced data structures for ticker comparison results and responses
+- **Position & Market Value Display**: Added position quantity and market value information to ticker analysis
+
+#### Frontend Architecture Enhancements
+- **Sidebar Component**: New dedicated sidebar component replacing inline navigation
+- **Column Visibility Control**: Advanced table column visibility management for ticker analysis
+- **RunAnalysisSection Component**: Unified analysis section component for consistent user experience
+- **Enhanced Date Range Selector**: Improved date selection with previous working day logic
+- **Responsive Table Design**: Better table layout with configurable column visibility
+
+#### Backend API Improvements
+- **Compare Tickers Endpoint**: New `/api/portfolio/tickers/compare` endpoint for ticker comparison
+- **Enhanced Ticker Analysis**: Updated ticker analysis with position and market value data
+- **Improved Error Handling**: Better error handling and response formatting
+- **API Response Models**: New response models for ticker comparison functionality
+
 ## 🎯 Key Features (v4.4.5)
 
 ### Code Quality & Performance Optimization
@@ -204,7 +228,7 @@ omen.invest/
 │   │   │   │   └── menu.py
 │   │   │   ├── 📁 controllers/          # Application controllers
 │   │   │   │   ├── __init__.py
-│   │   │   │   └── portfolio_controller.py
+│   │   │   │   └── main_controller.py
 │   │   │   └── __init__.py
 │   │   └── __init__.py
 │   ├── 📁 tests/                        # Backend tests

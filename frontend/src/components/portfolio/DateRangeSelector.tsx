@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CalendarSelector from './CalendarSelector';
-import { getPreviousWorkingDayString } from '../../utils/dateUtils';
+import { getPreviousWorkingDayString, getPreviousWorkingDay } from '../../utils/dateUtils';
 
 export interface DateRange {
   startDate: string;
@@ -137,17 +137,18 @@ function getDateString(amount: number, unit: 'days' | 'months' | 'years', offset
     return getPreviousWorkingDayString();
   }
   
-  const date = new Date();
+  // Use previous working day as base to avoid future dates
+  const baseDate = getPreviousWorkingDay();
   
   if (unit === 'days') {
-    date.setDate(date.getDate() - amount + offset);
+    baseDate.setDate(baseDate.getDate() - amount + offset);
   } else if (unit === 'months') {
-    date.setMonth(date.getMonth() - amount + offset);
+    baseDate.setMonth(baseDate.getMonth() - amount + offset);
   } else if (unit === 'years') {
-    date.setFullYear(date.getFullYear() - amount + offset);
+    baseDate.setFullYear(baseDate.getFullYear() - amount + offset);
   }
   
-  return date.toISOString().split('T')[0];
+  return baseDate.toISOString().split('T')[0];
 }
 
 // Helper function to get start of current year (January 1st)
