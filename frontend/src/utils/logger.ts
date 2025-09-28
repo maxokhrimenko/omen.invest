@@ -17,7 +17,7 @@ export interface LogEntry {
   timestamp: string;
   level: string;
   message: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   userId?: string;
   operation?: string;
   duration?: number;
@@ -63,7 +63,7 @@ class Logger {
   private createLogEntry(
     level: string,
     message: string,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
     error?: Error
   ): LogEntry {
     const logId = this.generateLogId();
@@ -108,7 +108,7 @@ class Logger {
     }
   }
 
-  private log(level: LogLevelType, levelName: string, message: string, context?: Record<string, any>, error?: Error): void {
+  private log(level: LogLevelType, levelName: string, message: string, context?: Record<string, unknown>, error?: Error): void {
     if (!this.shouldLog(level)) return;
 
     const entry = this.createLogEntry(levelName, message, context, error);
@@ -124,23 +124,23 @@ class Logger {
     this.sendToBackend(entry);
   }
 
-  debug(message: string, context?: Record<string, any>): void {
+  debug(message: string, context?: Record<string, unknown>): void {
     this.log(LogLevel.DEBUG, 'DEBUG', message, context);
   }
 
-  info(message: string, context?: Record<string, any>): void {
+  info(message: string, context?: Record<string, unknown>): void {
     this.log(LogLevel.INFO, 'INFO', message, context);
   }
 
-  warn(message: string, context?: Record<string, any>): void {
+  warn(message: string, context?: Record<string, unknown>): void {
     this.log(LogLevel.WARN, 'WARN', message, context);
   }
 
-  error(message: string, error?: Error, context?: Record<string, any>): void {
+  error(message: string, error?: Error, context?: Record<string, unknown>): void {
     this.log(LogLevel.ERROR, 'ERROR', message, context, error);
   }
 
-  critical(message: string, error?: Error, context?: Record<string, any>): void {
+  critical(message: string, error?: Error, context?: Record<string, unknown>): void {
     this.log(LogLevel.CRITICAL, 'CRITICAL', message, context, error);
   }
 
@@ -148,7 +148,7 @@ class Logger {
   async logOperation<T>(
     operation: string,
     fn: () => Promise<T>,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): Promise<T> {
     const startTime = performance.now();
     this.info(`Starting operation: ${operation}`, context);
@@ -166,7 +166,7 @@ class Logger {
   }
 
   // API call logging
-  logApiCall(method: string, url: string, status?: number, duration?: number, context?: Record<string, any>): void {
+  logApiCall(method: string, url: string, status?: number, duration?: number, context?: Record<string, unknown>): void {
     this.info('API call', {
       operation: 'api_call',
       method,
@@ -178,7 +178,7 @@ class Logger {
   }
 
   // User action logging
-  logUserAction(action: string, context?: Record<string, any>): void {
+  logUserAction(action: string, context?: Record<string, unknown>): void {
     this.info('User action', {
       operation: 'user_action',
       action,

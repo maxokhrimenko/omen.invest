@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import { apiService } from '../services/api';
 import { logger } from '../utils/logger';
+import type { Portfolio, Position } from '../types/portfolio';
 
 interface DashboardPageProps {
-  portfolio: any;
-  setPortfolio: (portfolio: any) => void;
+  portfolio: Portfolio | null;
+  setPortfolio: (portfolio: Portfolio | null) => void;
 }
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ portfolio, setPortfolio }) => {
@@ -33,15 +34,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ portfolio, setPortfolio }
   const portfolioStats = useMemo(() => {
     if (!portfolio) return null;
     
-    const totalPositions = portfolio.positions.reduce((sum: number, pos: any) => sum + pos.position, 0);
+    const totalPositions = portfolio.positions.reduce((sum: number, pos: Position) => sum + pos.position, 0);
     const averagePosition = portfolio.positions.length > 0 
       ? totalPositions / portfolio.positions.length 
       : 0;
     const minPosition = portfolio.positions.length > 0 
-      ? Math.min(...portfolio.positions.map((p: any) => p.position))
+      ? Math.min(...portfolio.positions.map((p: Position) => p.position))
       : 0;
     const maxPosition = portfolio.positions.length > 0 
-      ? Math.max(...portfolio.positions.map((p: any) => p.position))
+      ? Math.max(...portfolio.positions.map((p: Position) => p.position))
       : 0;
     
     return {
@@ -69,11 +70,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ portfolio, setPortfolio }
       } else {
         setParseError(response.message || 'Upload failed');
       }
-    } catch (error) {
-      console.error('Portfolio upload error:', error);
-      setParseError(error instanceof Error ? error.message : 'Failed to upload portfolio');
+    } catch {
+      // Error is handled by the error state
+      setParseError('Failed to upload portfolio');
     }
-  }, []);
+  }, [setPortfolio]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -122,8 +123,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ portfolio, setPortfolio }
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
-    } catch (error) {
-      console.error('Failed to clear portfolio:', error);
+    } catch {
+      // Error is handled by the error state
       setParseError('Failed to clear portfolio');
     }
   }, [setPortfolio]);
@@ -292,7 +293,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ portfolio, setPortfolio }
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {portfolio.positions.map((position: any, index: number) => {
+                    {portfolio.positions.map((position: Position, index: number) => {
                       const weight = portfolioStats?.totalPositions ? (position.position / portfolioStats.totalPositions) * 100 : 0;
                       
                       return (

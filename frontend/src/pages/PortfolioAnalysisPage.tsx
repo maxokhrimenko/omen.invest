@@ -48,8 +48,8 @@ const PortfolioAnalysisPage: React.FC = () => {
           // No portfolio loaded, redirect to upload page
           navigate('/');
         }
-      } catch (error) {
-        console.error('Failed to load portfolio from backend:', error);
+      } catch {
+        // Portfolio loading error is handled by the error state
         navigate('/');
       }
     };
@@ -70,7 +70,7 @@ const PortfolioAnalysisPage: React.FC = () => {
             // No portfolio loaded, redirect to upload page
             navigate('/');
           }
-        } catch (error) {
+        } catch {
           // If portfolio doesn't exist, redirect to upload page
           navigate('/');
         }

@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import type { ApiError, ApiConfig } from '../types/api';
 import type { Portfolio, PortfolioUploadResponse, PortfolioAnalysis, TickerAnalysis, CompareTickersResponse } from '../types/portfolio';
-import { calculateAnalysisTimeout, formatTimeout } from '../utils/timeoutCalculator';
+import { calculateAnalysisTimeout } from '../utils/timeoutCalculator';
 import { logger } from '../utils/logger';
 
 class ApiService {
@@ -87,9 +87,9 @@ class ApiService {
     try {
       const response = await this.api.get<Portfolio>('/portfolio');
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If it's a 404 error, that means no portfolio is loaded, which is a valid state
-      if (error.status === 404) {
+      if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
         return null;
       }
       // For other errors, re-throw them
@@ -103,42 +103,29 @@ class ApiService {
   }
 
   async analyzePortfolio(startDate: string, endDate: string, tickerCount?: number): Promise<PortfolioAnalysis> {
-    console.log('Calling analyzePortfolio API...', { startDate, endDate });
-    
     // Calculate dynamic timeout if ticker count is provided
     let timeout = 300000; // Default 5 minutes
     if (tickerCount) {
       timeout = calculateAnalysisTimeout(tickerCount, startDate, endDate) * 1000; // Convert to milliseconds
-      console.log(`Using dynamic timeout: ${formatTimeout(timeout / 1000)} for ${tickerCount} tickers`);
     }
     
     const response = await this.api.get<PortfolioAnalysis>('/portfolio/analysis', {
       params: { start_date: startDate, end_date: endDate },
       timeout
     });
-    console.log('analyzePortfolio response:', response.data);
     return response.data;
   }
 
   async analyzeTickers(startDate: string, endDate: string, tickerCount?: number): Promise<{ data: TickerAnalysis[]; failedTickers?: Array<{ ticker: string; firstAvailableDate?: string }>; warnings?: { missingTickers: string[]; tickersWithoutStartData: string[]; firstAvailableDates: { [ticker: string]: string } } }> {
-    console.log('Calling analyzeTickers API...', { startDate, endDate });
-    
     // Calculate dynamic timeout if ticker count is provided
     let timeout = 300000; // Default 5 minutes
     if (tickerCount) {
       timeout = calculateAnalysisTimeout(tickerCount, startDate, endDate) * 1000; // Convert to milliseconds
-      console.log(`Using dynamic timeout: ${formatTimeout(timeout / 1000)} for ${tickerCount} tickers`);
     }
     
     const response = await this.api.get<{ success: boolean; message: string; data: TickerAnalysis[]; failedTickers?: Array<{ ticker: string; firstAvailableDate?: string }>; warnings?: { missingTickers: string[]; tickersWithoutStartData: string[]; firstAvailableDates: { [ticker: string]: string } } }>('/portfolio/tickers/analysis', {
       params: { start_date: startDate, end_date: endDate },
       timeout
-    });
-    console.log('analyzeTickers response:', { 
-      success: response.data.success, 
-      tickerCount: response.data.data.length,
-      failedTickers: response.data.failedTickers?.length || 0,
-      warnings: response.data.warnings
     });
     return {
       data: response.data.data,
@@ -148,13 +135,10 @@ class ApiService {
   }
 
   async compareTickers(startDate: string, endDate: string, tickerCount?: number): Promise<CompareTickersResponse> {
-    console.log('Calling compareTickers API...', { startDate, endDate });
-    
     // Calculate dynamic timeout if ticker count is provided
     let timeout = 300000; // Default 5 minutes
     if (tickerCount) {
       timeout = calculateAnalysisTimeout(tickerCount, startDate, endDate) * 1000; // Convert to milliseconds
-      console.log(`Using dynamic timeout: ${formatTimeout(timeout / 1000)} for ${tickerCount} tickers`);
     }
     
     const response = await this.api.post<CompareTickersResponse>('/portfolio/tickers/compare', {
@@ -162,13 +146,6 @@ class ApiService {
       end_date: endDate
     }, {
       timeout
-    });
-    
-    console.log('compareTickers response:', { 
-      success: response.data.success, 
-      tickerCount: response.data.data.metrics.length,
-      bestPerformers: response.data.data.bestPerformers.length,
-      worstPerformers: response.data.data.worstPerformers.length
     });
     
     return response.data;

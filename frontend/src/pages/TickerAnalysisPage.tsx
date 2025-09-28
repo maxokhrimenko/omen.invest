@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useTickerAnalysis } from '../hooks/useTickerAnalysis';
 import { apiService } from '../services/api';
+import type { Portfolio } from '../types/portfolio';
 import RunAnalysisSection from '../components/portfolio/RunAnalysisSection';
 import ViewToggle from '../components/portfolio/ViewToggle';
 import TickerMetricsCards from '../components/portfolio/TickerMetricsCards';
@@ -30,7 +31,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
 ];
 
 const TickerAnalysisPage: React.FC = () => {
-  const [portfolio, setPortfolio] = useState<any>(null);
+  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
   const [showProblematicTickers, setShowProblematicTickers] = useState(false);
   const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);

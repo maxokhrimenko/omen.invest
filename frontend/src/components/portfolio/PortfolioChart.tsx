@@ -106,12 +106,12 @@ const PortfolioChart: React.FC<PortfolioChartProps> = ({
   }, [portfolioValues, sp500Values, nasdaqValues, startValue]);
 
   // Custom tooltip component
-  const CustomTooltip = useCallback(({ active, payload, label }: any) => {
+  const CustomTooltip = useCallback(({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; dataKey: string; color: string }>; label?: string }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
           <p className="font-medium text-gray-900 mb-2">{label}</p>
-          {payload.map((entry: any, index: number) => {
+          {payload.map((entry: { value: number; dataKey: string; color: string }, index: number) => {
             if (entry.value === null) return null;
             
             const percentageChange = ((entry.value - startValue) / startValue) * 100;

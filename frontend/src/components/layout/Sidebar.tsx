@@ -2,9 +2,10 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Upload, BarChart3, TrendingUp, Settings, GitCompare } from 'lucide-react';
 import Logo from '../Logo';
+import type { Portfolio } from '../../types/portfolio';
 
 interface SidebarProps {
-  portfolio: any;
+  portfolio: Portfolio | null;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ portfolio }) => {
@@ -96,7 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({ portfolio }) => {
             <p className="text-sm text-gray-500 mt-1">Charts rise,<br />charts may fall</p>
             <div className="mt-2">
               <span className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 whitespace-nowrap">
-                alpha 4.5.1
+                alpha 4.5.2
               </span>
             </div>
           </div>

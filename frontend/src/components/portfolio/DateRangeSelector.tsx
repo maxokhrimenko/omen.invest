@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import CalendarSelector from './CalendarSelector';
 import { getPreviousWorkingDayString, getPreviousWorkingDay } from '../../utils/dateUtils';
 
@@ -22,7 +22,7 @@ const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
   const [customEndDate] = useState(getDateString(0, 'days'));
 
   // Predefined date ranges
-  const predefinedRanges: DateRange[] = [
+  const predefinedRanges: DateRange[] = useMemo(() => [
     {
       startDate: getDateString(12, 'months'),
       endDate: getDateString(0, 'days'),
@@ -65,14 +65,14 @@ const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
       label: 'Previous year',
       type: 'preset'
     }
-  ];
+  ], []);
 
   // Set default selection (12 Months)
   useEffect(() => {
     if (!selectedRange) {
       onRangeChange(predefinedRanges[0]); // 12 Months
     }
-  }, [selectedRange, onRangeChange]);
+  }, [selectedRange, onRangeChange, predefinedRanges]);
 
   const handlePresetRange = (range: DateRange) => {
     onRangeChange(range);

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import type { DateRange } from '../components/portfolio/DateRangeSelector';
 import { apiService } from '../services/api';
 import { logger } from '../utils/logger';
-import { useToast } from '../contexts/ToastContext';
+import { useToast } from './useToast';
 import { calculateAnalysisTimeout, formatTimeout } from '../utils/timeoutCalculator';
 
 export interface PortfolioMetrics {
@@ -59,8 +59,8 @@ export const usePortfolioAnalysis = () => {
     if (savedResults) {
       try {
         setAnalysisResults(JSON.parse(savedResults));
-      } catch (error) {
-        console.error('Failed to parse saved analysis results:', error);
+      } catch {
+        // Clear invalid saved data
         localStorage.removeItem('portfolioAnalysisResults');
       }
     }
@@ -68,8 +68,8 @@ export const usePortfolioAnalysis = () => {
     if (savedDateRange) {
       try {
         setSelectedDateRange(JSON.parse(savedDateRange));
-      } catch (error) {
-        console.error('Failed to parse saved date range:', error);
+      } catch {
+        // Clear invalid saved data
         localStorage.removeItem('portfolioAnalysisDateRange');
       }
     }
@@ -90,7 +90,6 @@ export const usePortfolioAnalysis = () => {
 
   // Clear cache and reload data (no-op since we don't use cache)
   const clearCacheAndReload = useCallback(() => {
-    console.log('Cache clearing not needed - using warehouse system for data persistence');
     setAnalysisResults(null);
     setError(null);
   }, []);

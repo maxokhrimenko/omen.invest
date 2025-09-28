@@ -4,9 +4,10 @@ import { useCompareTickers } from '../hooks/useCompareTickers';
 import RunAnalysisSection from '../components/portfolio/RunAnalysisSection';
 import DataWarnings from '../components/portfolio/DataWarnings';
 import ComparisonSummary from '../components/portfolio/ComparisonSummary';
+import type { Portfolio } from '../types/portfolio';
 
 interface CompareTickersPageProps {
-  portfolio: any;
+  portfolio: Portfolio | null;
 }
 
 const CompareTickersPage: React.FC<CompareTickersPageProps> = ({ portfolio }) => {
@@ -44,8 +45,6 @@ const CompareTickersPage: React.FC<CompareTickersPageProps> = ({ portfolio }) =>
       tickerCount
     );
   };
-
-
 
   if (!hasPortfolio) {
     return (

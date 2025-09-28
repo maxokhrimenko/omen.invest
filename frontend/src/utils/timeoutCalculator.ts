@@ -54,9 +54,9 @@ export function calculateAnalysisTimeout(
     
     return Math.floor(calculatedTimeout);
     
-  } catch (error) {
+  } catch {
     // If date parsing fails, return base timeout
-    console.warn('Failed to parse dates for timeout calculation:', error);
+    // Fallback to default timeout on date parsing error
     return baseTimeout;
   }
 }
@@ -98,7 +98,7 @@ export function getTimeoutBreakdown(
       calculatedTimeout: Math.floor(calculatedTimeout),
       finalTimeout
     };
-  } catch (error) {
+  } catch {
     return {
       error: 'Invalid date format',
       fallbackTimeout: 30
@@ -129,7 +129,7 @@ export function formatTimeout(timeoutSeconds: number): string {
 // Example usage and testing
 if (typeof window !== 'undefined') {
   // Browser environment - add to window for debugging
-  (window as any).timeoutCalculator = {
+  (window as unknown as { timeoutCalculator: unknown }).timeoutCalculator = {
     calculateAnalysisTimeout,
     getTimeoutBreakdown,
     formatTimeout

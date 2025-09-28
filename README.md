@@ -2,7 +2,7 @@
 
 A comprehensive full-stack application for analyzing investment portfolios, built with clean architecture principles. The system consists of a FastAPI backend with clean architecture, a React frontend interface, and a robust database layer.
 
-> **🚀 Version 4.5.1 - Portfolio Dividend Metrics & Frontend Chart Enhancement**: This release introduces comprehensive portfolio-level dividend metrics and completes the CLI-frontend alignment, ensuring consistent behavior across all interfaces with enhanced visual presentation and custom chart legends.
+> **🚀 Version 4.5.2 - Frontend TypeScript Improvements & Code Cleanup**: This release focuses on enhancing TypeScript type safety, improving code organization, and removing unused components for better maintainability and development experience.
 
 ## 🏗️ Architecture Overview
 

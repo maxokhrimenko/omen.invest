@@ -1,31 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import React, { useState, useCallback, type ReactNode } from 'react';
 import { X, CheckCircle, AlertCircle, Info, Loader2 } from 'lucide-react';
-
-export interface Toast {
-  id: string;
-  type: 'success' | 'error' | 'info' | 'loading';
-  title: string;
-  message?: string;
-  duration?: number;
-  persistent?: boolean;
-}
-
-interface ToastContextType {
-  toasts: Toast[];
-  showToast: (toast: Omit<Toast, 'id'>) => string;
-  hideToast: (id: string) => void;
-  clearAllToasts: () => void;
-}
-
-const ToastContext = createContext<ToastContextType | undefined>(undefined);
-
-export const useToast = () => {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
-  }
-  return context;
-};
+import { ToastContext, type Toast } from './ToastContext';
 
 interface ToastProviderProps {
   children: ReactNode;
@@ -33,6 +8,10 @@ interface ToastProviderProps {
 
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const hideToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  }, []);
 
   const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -53,11 +32,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     }
 
     return id;
-  }, []);
-
-  const hideToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
+  }, [hideToast]);
 
   const clearAllToasts = useCallback(() => {
     setToasts([]);

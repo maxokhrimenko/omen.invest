@@ -8,52 +8,30 @@ import AdministrationPage from './pages/AdministrationPage';
 import { apiService } from './services/api';
 import Sidebar from './components/layout/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
-import { ToastProvider } from './contexts/ToastContext';
-
-
-
-
+import { ToastProvider } from './contexts/ToastContext.tsx';
+import type { Portfolio } from './types/portfolio';
 
 const MainLayout = () => {
   const location = useLocation();
-  const [portfolio, setPortfolio] = useState<any>(null);
+  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+
+  const loadPortfolio = async () => {
+    try {
+      const portfolioData = await apiService.getPortfolio();
+      setPortfolio(portfolioData || null);
+      } catch {
+        setPortfolio(null);
+      }
+  };
 
   // Load portfolio from backend on component mount
   useEffect(() => {
-    const loadPortfolio = async () => {
-      try {
-        const portfolioData = await apiService.getPortfolio();
-        if (portfolioData) {
-          setPortfolio(portfolioData);
-        } else {
-          setPortfolio(null);
-        }
-      } catch (error) {
-        setPortfolio(null);
-      }
-    };
-    
     loadPortfolio();
   }, []);
 
   // Refresh portfolio when returning to this page (e.g., after clearing portfolio)
   useEffect(() => {
-    const handleFocus = () => {
-      const loadPortfolio = async () => {
-        try {
-          const portfolioData = await apiService.getPortfolio();
-          if (portfolioData) {
-            setPortfolio(portfolioData);
-          } else {
-            setPortfolio(null);
-          }
-        } catch (error) {
-          setPortfolio(null);
-        }
-      };
-      loadPortfolio();
-    };
-
+    const handleFocus = () => loadPortfolio();
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, []);

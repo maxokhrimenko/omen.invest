@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import type { DateRange } from '../components/portfolio/DateRangeSelector';
 import { apiService } from '../services/api';
 import { logger } from '../utils/logger';
-import { useToast } from '../contexts/ToastContext';
+import { useToast } from './useToast';
 import { calculateAnalysisTimeout, formatTimeout } from '../utils/timeoutCalculator';
 import type { TickerAnalysis } from '../types/portfolio';
 
@@ -37,8 +37,8 @@ export const useTickerAnalysis = () => {
     if (savedResults) {
       try {
         setAnalysisResults(JSON.parse(savedResults));
-      } catch (error) {
-        console.error('Failed to parse saved ticker analysis results:', error);
+      } catch {
+        // Clear invalid saved data
         localStorage.removeItem('tickerAnalysisResults');
       }
     }
@@ -46,8 +46,8 @@ export const useTickerAnalysis = () => {
     if (savedDateRange) {
       try {
         setSelectedDateRange(JSON.parse(savedDateRange));
-      } catch (error) {
-        console.error('Failed to parse saved date range:', error);
+      } catch {
+        // Clear invalid saved data
         localStorage.removeItem('tickerAnalysisDateRange');
       }
     }
@@ -55,8 +55,8 @@ export const useTickerAnalysis = () => {
     if (savedViewMode) {
       try {
         setViewMode(JSON.parse(savedViewMode) as 'table' | 'cards');
-      } catch (error) {
-        console.error('Failed to parse saved view mode:', error);
+      } catch {
+        // Clear invalid saved data
         localStorage.removeItem('tickerAnalysisViewMode');
       }
     }
@@ -163,28 +163,29 @@ export const useTickerAnalysis = () => {
         failedTickers: tickerResponse.failedTickers?.length || 0
       });
 
-    } catch (error: any) {
-      logger.error('Ticker analysis failed', error, {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Ticker analysis failed';
+      logger.error('Ticker analysis failed', error instanceof Error ? error : new Error(String(error)), {
         operation: 'ticker_analysis',
         startDate,
         endDate,
         tickerCount
       });
 
-      setError(error.message || 'Ticker analysis failed');
+      setError(errorMessage);
       
       // Hide loading toast and show error
       hideToast(loadingToastId);
       showToast({
         type: 'error',
         title: 'Analysis Failed',
-        message: error.message || 'Failed to analyze tickers',
+        message: errorMessage,
         duration: 5000
       });
     } finally {
       setIsLoading(false);
     }
-  }, [showToast, hideToast, saveAnalysisResults, logger]);
+  }, [showToast, hideToast, saveAnalysisResults]);
 
   return {
     analysisResults,

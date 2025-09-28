@@ -84,7 +84,7 @@ export interface ApiResponse<T> {
 export interface ApiError {
   message: string;
   status?: number;
-  details?: any;
+  details?: unknown;
 }
 
 // Compare Tickers Types

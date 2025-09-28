@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import type { DateRange } from '../components/portfolio/DateRangeSelector';
 import { apiService } from '../services/api';
 import { logger } from '../utils/logger';
-import { useToast } from '../contexts/ToastContext';
+import { useToast } from './useToast';
 import { calculateAnalysisTimeout, formatTimeout } from '../utils/timeoutCalculator';
 import type { TickerAnalysis, TickerComparisonData } from '../types/portfolio';
 
@@ -65,8 +65,8 @@ export const useCompareTickers = () => {
         };
         
         setAnalysisResults(migratedResults);
-      } catch (error) {
-        console.error('Failed to parse saved compare tickers results:', error);
+      } catch {
+        // Clear invalid saved data
         localStorage.removeItem('compareTickersResults');
       }
     }
@@ -74,8 +74,8 @@ export const useCompareTickers = () => {
     if (savedDateRange) {
       try {
         setSelectedDateRange(JSON.parse(savedDateRange));
-      } catch (error) {
-        console.error('Failed to parse saved date range:', error);
+      } catch {
+        // Clear invalid saved data
         localStorage.removeItem('compareTickersDateRange');
       }
     }
@@ -83,8 +83,8 @@ export const useCompareTickers = () => {
     if (savedViewMode) {
       try {
         setViewMode(JSON.parse(savedViewMode) as 'table' | 'cards');
-      } catch (error) {
-        console.error('Failed to parse saved view mode:', error);
+      } catch {
+        // Clear invalid saved data
         localStorage.removeItem('compareTickersViewMode');
       }
     }
@@ -117,11 +117,10 @@ export const useCompareTickers = () => {
         const parsed = JSON.parse(savedResults);
         // If old structure exists, clear it to force fresh API call
         if (parsed.bestPerformer && !parsed.bestPerformers) {
-          console.log('Clearing old data structure, forcing fresh API call');
           localStorage.removeItem('compareTickersResults');
           setAnalysisResults(null);
         }
-      } catch (error) {
+      } catch {
         // If parsing fails, clear the data
         localStorage.removeItem('compareTickersResults');
         setAnalysisResults(null);
@@ -218,28 +217,29 @@ export const useCompareTickers = () => {
         worstPerformers: response.data.worstPerformers.length
       });
 
-    } catch (error: any) {
-      logger.error('Ticker comparison failed', error, {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Ticker comparison failed';
+      logger.error('Ticker comparison failed', error instanceof Error ? error : new Error(String(error)), {
         operation: 'compare_tickers',
         startDate,
         endDate,
         tickerCount
       });
 
-      setError(error.message || 'Ticker comparison failed');
+      setError(errorMessage);
       
       // Hide loading toast and show error
       hideToast(loadingToastId);
       showToast({
         type: 'error',
         title: 'Comparison Failed',
-        message: error.message || 'Failed to compare tickers',
+        message: errorMessage,
         duration: 5000
       });
     } finally {
       setIsLoading(false);
     }
-  }, [showToast, hideToast, saveAnalysisResults, logger]);
+  }, [showToast, hideToast, saveAnalysisResults]);
 
   return {
     analysisResults,

@@ -51,7 +51,7 @@ const AdministrationPage: React.FC = () => {
       } else {
         showToast('Error clearing logs', 'error');
       }
-    } catch (error) {
+    } catch {
       showToast('Error clearing logs', 'error');
     } finally {
       setLoading('logs-clear', false);
@@ -69,7 +69,7 @@ const AdministrationPage: React.FC = () => {
       } else {
         showToast('Error clearing warehouse data', 'error');
       }
-    } catch (error) {
+    } catch {
       showToast('Error clearing warehouse data', 'error');
     } finally {
       setLoading('warehouse-clear', false);
@@ -88,7 +88,7 @@ const AdministrationPage: React.FC = () => {
       } else {
         showToast('Error fetching warehouse stats', 'error');
       }
-    } catch (error) {
+    } catch {
       showToast('Error fetching warehouse stats', 'error');
     } finally {
       setLoading('warehouse-stats', false);
@@ -107,7 +107,7 @@ const AdministrationPage: React.FC = () => {
         setTickerOptions(response.data.tickers || []);
         setShowTickerDropdown(true);
       }
-    } catch (error) {
+    } catch {
       // Silent fail for search
     }
   };
@@ -120,7 +120,7 @@ const AdministrationPage: React.FC = () => {
         if (response.data.success) {
           setTickerOptions(response.data.tickers || []);
         }
-      } catch (error) {
+      } catch {
         // Silent fail
       }
     }
@@ -155,7 +155,7 @@ const AdministrationPage: React.FC = () => {
         const allTickers = response.data.tickers.map((t: TickerOption) => t.value);
         setSelectedTickers(allTickers);
       }
-    } catch (error) {
+    } catch {
       // Silent fail
     }
   };
@@ -189,7 +189,7 @@ const AdministrationPage: React.FC = () => {
       } else {
         showToast(`Cleared data for ${successCount} of ${selectedTickers.length} tickers`, 'error');
       }
-    } catch (error) {
+    } catch {
       showToast('Error clearing ticker data', 'error');
     } finally {
       setLoading('warehouse-clear-ticker', false);
