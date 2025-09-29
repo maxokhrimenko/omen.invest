@@ -73,6 +73,14 @@ export interface TickerAnalysis {
   firstAvailableDate?: string;
   position?: number;
   marketValue?: string;
+  // Advanced metrics
+  calmarRatio: string;
+  ulcerIndex: string;
+  timeUnderWater: string;
+  cvar95: string;
+  correlationToPortfolio: string;
+  riskContributionAbsolute: string;
+  riskContributionPercent: string;
 }
 
 export interface ApiResponse<T> {
@@ -94,6 +102,13 @@ export interface TickerComparisonData {
   sharpeRatio: string;
   volatility: string;
   maxDrawdown: string;
+  sortinoRatio: string;
+  calmarRatio: string;
+  ulcerIndex: string;
+  timeUnderWater: string;
+  cvar95: string;
+  correlationToPortfolio: string;
+  riskContributionPercent: string;
 }
 
 export interface CompareTickersResults {
@@ -102,6 +117,23 @@ export interface CompareTickersResults {
   worstPerformers: TickerComparisonData[];
   bestSharpe: TickerComparisonData[];
   lowestRisk: TickerComparisonData[];
+  // Advanced metrics rankings
+  bestCalmar: TickerComparisonData[];
+  worstCalmar: TickerComparisonData[];
+  bestSortino: TickerComparisonData[];
+  worstSortino: TickerComparisonData[];
+  bestMaxDrawdown: TickerComparisonData[];
+  worstMaxDrawdown: TickerComparisonData[];
+  bestUlcer: TickerComparisonData[];
+  worstUlcer: TickerComparisonData[];
+  bestTimeUnderWater: TickerComparisonData[];
+  worstTimeUnderWater: TickerComparisonData[];
+  bestCvar: TickerComparisonData[];
+  worstCvar: TickerComparisonData[];
+  bestCorrelation: TickerComparisonData[];
+  worstCorrelation: TickerComparisonData[];
+  bestRiskContribution: TickerComparisonData[];
+  worstRiskContribution: TickerComparisonData[];
 }
 
 export interface CompareTickersResponse {

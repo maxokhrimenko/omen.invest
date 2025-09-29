@@ -1,8 +1,8 @@
-# 🏗️ Repository Structure - Documentation & Version Management Updates
+# 🏗️ Repository Structure - Advanced Risk Metrics & Enhanced Ticker Comparison
 
 ## Overview
 
-This document outlines the implemented full-stack repository structure with backend, frontend, and database components. The application features a FastAPI backend and React frontend implementation with parallel processing architecture, warehouse optimizations, comprehensive administration system, enhanced date validation, and performance improvements delivering 3-5x speedup across all operations.
+This document outlines the implemented full-stack repository structure with backend, frontend, and database components. The application features a FastAPI backend and React frontend implementation with parallel processing architecture, warehouse optimizations, comprehensive administration system, enhanced date validation, performance improvements delivering 3-5x speedup across all operations, and advanced risk metrics with enhanced ticker comparison capabilities.
 
 ## 🎯 Design Principles
 
@@ -14,6 +14,47 @@ This document outlines the implemented full-stack repository structure with back
 - **Logging**: Logging system with correlation IDs and session tracking
 - **Error Resilience**: Error handling with React error boundaries
 - **Performance Optimization**: Memoization and data processing
+
+## 🎯 Key Features (v4.5.3)
+
+### Advanced Risk Metrics & Enhanced Ticker Comparison
+
+#### Advanced Risk Metrics System
+- **Calmar Ratio**: Risk-adjusted return metric comparing annualized return to maximum drawdown
+- **Ulcer Index**: Downside risk measure focusing on depth and duration of drawdowns
+- **Time Under Water**: Percentage of time spent in drawdown periods
+- **CVaR (Conditional Value at Risk)**: Expected loss beyond VaR threshold at 95% confidence level
+- **Portfolio Correlation**: Correlation coefficient between individual ticker and portfolio returns
+- **Risk Contribution Analysis**: Absolute and percentage risk contribution of each ticker to portfolio risk
+
+#### Enhanced Ticker Comparison
+- **Portfolio-Level Analysis**: Ticker comparison now includes portfolio correlation and risk contribution metrics
+- **Advanced Rankings**: New ranking categories for all advanced risk metrics
+- **Equal-Weight Portfolio Calculation**: Automatic portfolio returns calculation for correlation analysis
+- **Comprehensive Metrics Display**: All advanced metrics included in API responses and comparison results
+
+#### Backend API Enhancements
+- **Extended API Responses**: All analysis endpoints now return advanced risk metrics
+- **Portfolio Correlation Calculation**: Real-time calculation of ticker-to-portfolio correlations
+- **Risk Contribution Analysis**: Dynamic risk contribution calculation for portfolio optimization
+- **Enhanced Comparison Rankings**: 16 new ranking categories for comprehensive ticker analysis
+
+#### Technical Implementation
+- **MetricsCalculator Service**: Centralized service for advanced risk metrics calculation
+- **Portfolio Correlation Analysis**: Real-time calculation of ticker-to-portfolio correlations
+- **Risk Contribution Calculation**: Dynamic risk contribution analysis for portfolio optimization
+- **Enhanced API Integration**: All analysis endpoints return comprehensive risk metrics
+
+#### Data Model Changes
+- **TickerAnalysis Interface**: Added advanced risk metrics fields (calmar_ratio, ulcer_index, time_under_water, cvar95, correlation_to_portfolio, risk_contribution_abs, risk_contribution_pct)
+- **TickerComparisonData Interface**: Added advanced metrics rankings for comprehensive comparison
+- **CompareTickersResults Interface**: Enhanced with advanced metrics rankings for portfolio-level analysis
+
+#### Benefits
+- **Comprehensive Risk Analysis**: Complete risk assessment toolkit for individual tickers and portfolio optimization
+- **Enhanced Decision Making**: Better investment decisions with advanced risk metrics and portfolio correlation analysis
+- **Portfolio Optimization**: Risk contribution analysis enables better portfolio construction and risk management
+- **Developer Experience**: Complete risk analysis toolkit with comprehensive metrics and rankings
 
 ## 🎯 Key Features (v4.5.2)
 
@@ -535,4 +576,4 @@ from backend.src.infrastructure.repositories.csv_portfolio_repository import Csv
 
 ---
 
-*This structure document reflects the implemented full-stack structure for version 4.5.1 of the Portfolio Analysis Tool, featuring comprehensive documentation updates, version management improvements, enhanced ticker comparison functionality, frontend architecture improvements, and improved user experience with better data visualization and analysis capabilities.*
+*This structure document reflects the implemented full-stack structure for version 4.5.3 of the Portfolio Analysis Tool, featuring advanced risk metrics and enhanced ticker comparison capabilities, comprehensive documentation updates, version management improvements, enhanced ticker comparison functionality, frontend architecture improvements, and improved user experience with better data visualization and analysis capabilities.*

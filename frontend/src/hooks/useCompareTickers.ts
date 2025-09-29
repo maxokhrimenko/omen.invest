@@ -18,6 +18,23 @@ export interface CompareTickersResults {
   worstPerformers: TickerComparisonData[];
   bestSharpe: TickerComparisonData[];
   lowestRisk: TickerComparisonData[];
+  // Advanced metrics rankings
+  bestCalmar: TickerComparisonData[];
+  worstCalmar: TickerComparisonData[];
+  bestSortino: TickerComparisonData[];
+  worstSortino: TickerComparisonData[];
+  bestMaxDrawdown: TickerComparisonData[];
+  worstMaxDrawdown: TickerComparisonData[];
+  bestUlcer: TickerComparisonData[];
+  worstUlcer: TickerComparisonData[];
+  bestTimeUnderWater: TickerComparisonData[];
+  worstTimeUnderWater: TickerComparisonData[];
+  bestCvar: TickerComparisonData[];
+  worstCvar: TickerComparisonData[];
+  bestCorrelation: TickerComparisonData[];
+  worstCorrelation: TickerComparisonData[];
+  bestRiskContribution: TickerComparisonData[];
+  worstRiskContribution: TickerComparisonData[];
   failedTickers: Array<{ ticker: string; firstAvailableDate?: string }>;
   dataWarnings: DataWarnings;
   analysisDate: string;
@@ -49,6 +66,23 @@ export const useCompareTickers = () => {
           worstPerformers: parsedResults.worstPerformers || (parsedResults.worstPerformer ? [parsedResults.worstPerformer] : []),
           bestSharpe: parsedResults.bestSharpe || (parsedResults.bestSharpe ? [parsedResults.bestSharpe] : []),
           lowestRisk: parsedResults.lowestRisk || (parsedResults.lowestRisk ? [parsedResults.lowestRisk] : []),
+          // Advanced metrics rankings
+          bestCalmar: parsedResults.bestCalmar || [],
+          worstCalmar: parsedResults.worstCalmar || [],
+          bestSortino: parsedResults.bestSortino || [],
+          worstSortino: parsedResults.worstSortino || [],
+          bestMaxDrawdown: parsedResults.bestMaxDrawdown || [],
+          worstMaxDrawdown: parsedResults.worstMaxDrawdown || [],
+          bestUlcer: parsedResults.bestUlcer || [],
+          worstUlcer: parsedResults.worstUlcer || [],
+          bestTimeUnderWater: parsedResults.bestTimeUnderWater || [],
+          worstTimeUnderWater: parsedResults.worstTimeUnderWater || [],
+          bestCvar: parsedResults.bestCvar || [],
+          worstCvar: parsedResults.worstCvar || [],
+          bestCorrelation: parsedResults.bestCorrelation || [],
+          worstCorrelation: parsedResults.worstCorrelation || [],
+          bestRiskContribution: parsedResults.bestRiskContribution || [],
+          worstRiskContribution: parsedResults.worstRiskContribution || [],
           failedTickers: parsedResults.failedTickers || [],
           dataWarnings: parsedResults.dataWarnings || {
             missingTickers: [],
@@ -182,6 +216,23 @@ export const useCompareTickers = () => {
         worstPerformers: response.data.worstPerformers || [],
         bestSharpe: response.data.bestSharpe || [],
         lowestRisk: response.data.lowestRisk || [],
+        // Advanced metrics rankings
+        bestCalmar: response.data.bestCalmar || [],
+        worstCalmar: response.data.worstCalmar || [],
+        bestSortino: response.data.bestSortino || [],
+        worstSortino: response.data.worstSortino || [],
+        bestMaxDrawdown: response.data.bestMaxDrawdown || [],
+        worstMaxDrawdown: response.data.worstMaxDrawdown || [],
+        bestUlcer: response.data.bestUlcer || [],
+        worstUlcer: response.data.worstUlcer || [],
+        bestTimeUnderWater: response.data.bestTimeUnderWater || [],
+        worstTimeUnderWater: response.data.worstTimeUnderWater || [],
+        bestCvar: response.data.bestCvar || [],
+        worstCvar: response.data.worstCvar || [],
+        bestCorrelation: response.data.bestCorrelation || [],
+        worstCorrelation: response.data.worstCorrelation || [],
+        bestRiskContribution: response.data.bestRiskContribution || [],
+        worstRiskContribution: response.data.worstRiskContribution || [],
         failedTickers: response.failedTickers || [],
         dataWarnings: {
           missingTickers: response.warnings.missingTickers || [],

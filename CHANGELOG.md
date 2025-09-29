@@ -1,5 +1,157 @@
 # Changelog
 
+## [4.5.3] - 2025-01-27
+
+### 🎯 Advanced Risk Metrics & Enhanced Ticker Comparison
+
+This release introduces comprehensive advanced risk metrics for individual ticker analysis and significantly enhances the ticker comparison functionality with portfolio-level correlation and risk contribution analysis.
+
+### ✨ Added
+
+#### 🔍 Advanced Risk Metrics System
+- **Calmar Ratio**: Risk-adjusted return metric comparing annualized return to maximum drawdown
+- **Ulcer Index**: Downside risk measure focusing on depth and duration of drawdowns
+- **Time Under Water**: Percentage of time spent in drawdown periods
+- **CVaR (Conditional Value at Risk)**: Expected loss beyond VaR threshold at 95% confidence level
+- **Portfolio Correlation**: Correlation coefficient between individual ticker and portfolio returns
+- **Risk Contribution Analysis**: Absolute and percentage risk contribution of each ticker to portfolio risk
+
+#### 🎯 Enhanced Ticker Comparison
+- **Portfolio-Level Analysis**: Ticker comparison now includes portfolio correlation and risk contribution metrics
+- **Advanced Rankings**: New ranking categories for all advanced risk metrics
+- **Equal-Weight Portfolio Calculation**: Automatic portfolio returns calculation for correlation analysis
+- **Comprehensive Metrics Display**: All advanced metrics included in API responses and comparison results
+
+#### 🔧 Backend API Enhancements
+- **Extended API Responses**: All analysis endpoints now return advanced risk metrics
+- **Portfolio Correlation Calculation**: Real-time calculation of ticker-to-portfolio correlations
+- **Risk Contribution Analysis**: Dynamic risk contribution calculation for portfolio optimization
+- **Enhanced Comparison Rankings**: 16 new ranking categories for comprehensive ticker analysis
+
+### 🔄 Changed
+
+#### 🎯 Ticker Analysis Enhancement
+- **TickerMetrics Class**: Extended with 7 new advanced risk metrics fields
+- **MetricsCalculator Integration**: Advanced metrics calculation using centralized calculator service
+- **API Response Format**: Enhanced response structure with all advanced metrics
+- **Risk Assessment**: More comprehensive risk evaluation for individual tickers
+
+#### 🔧 Comparison System Overhaul
+- **CompareTickersUseCase**: Complete refactor with portfolio-level analysis capabilities
+- **Portfolio Metrics Integration**: Real-time portfolio correlation and risk contribution calculation
+- **Advanced Rankings**: 16 new ranking categories for comprehensive performance analysis
+- **Market Data Integration**: Enhanced market data repository integration for portfolio calculations
+
+#### 📊 API Response Structure
+- **Individual Ticker Analysis**: Added advanced metrics to ticker analysis responses
+- **Portfolio Analysis**: Enhanced portfolio analysis with advanced risk metrics
+- **Ticker Comparison**: Comprehensive comparison results with all advanced metrics
+- **Ranking System**: Extended ranking system with advanced risk metric categories
+
+### 🐛 Fixed
+
+#### 🎯 Risk Analysis Accuracy
+- **Portfolio Correlation**: Fixed correlation calculation for proper diversification analysis
+- **Risk Contribution**: Corrected risk contribution calculation for accurate portfolio optimization
+- **Advanced Metrics**: Ensured all advanced metrics are properly calculated and displayed
+- **Data Consistency**: Improved data consistency across all analysis endpoints
+
+#### 🔧 API Integration
+- **Response Formatting**: Fixed API response formatting for all new advanced metrics
+- **Error Handling**: Enhanced error handling for portfolio-level calculations
+- **Data Validation**: Improved data validation for advanced metrics calculations
+- **Performance**: Optimized portfolio correlation calculations for better performance
+
+### 🏗️ Technical Implementation Details
+
+#### 🔍 Advanced Risk Metrics Calculation
+```python
+# Advanced metrics calculation in MetricsCalculator
+def calculate_advanced_metrics(returns, prices, risk_free_rate):
+    return {
+        'calmar_ratio': calmar_ratio,
+        'ulcer_index': ulcer_index,
+        'time_under_water': time_under_water,
+        'cvar_95': cvar_95,
+        'correlation_to_portfolio': correlation,
+        'risk_contribution_absolute': risk_abs,
+        'risk_contribution_percent': risk_pct
+    }
+```
+
+#### 🎯 Portfolio Correlation Analysis
+```python
+# Portfolio-level correlation and risk contribution
+def calculate_portfolio_correlation_and_risk_contribution(
+    ticker_returns, portfolio_returns, portfolio_weights, ticker_symbol
+):
+    # Calculate correlation coefficient
+    # Calculate risk contribution metrics
+    # Return correlation and risk metrics
+```
+
+#### 📊 Enhanced API Responses
+```json
+{
+  "calmarRatio": "1.25",
+  "ulcerIndex": "0.0234",
+  "timeUnderWater": "15.67",
+  "cvar95": "-2.34",
+  "correlationToPortfolio": "0.78",
+  "riskContributionAbsolute": "0.0045",
+  "riskContributionPercent": "12.34%"
+}
+```
+
+### 📊 Performance Improvements
+
+#### 🎯 Analysis Capabilities
+- **Advanced Risk Assessment**: Comprehensive risk evaluation with 7 new metrics
+- **Portfolio Optimization**: Real-time risk contribution analysis for portfolio optimization
+- **Diversification Analysis**: Correlation analysis for better diversification decisions
+- **Risk-Adjusted Returns**: Multiple risk-adjusted return metrics for comprehensive evaluation
+
+#### 🔧 System Performance
+- **Efficient Calculations**: Optimized advanced metrics calculations
+- **Portfolio Integration**: Seamless portfolio-level analysis integration
+- **API Response Times**: Maintained performance with enhanced response data
+- **Memory Usage**: Efficient memory usage for portfolio correlation calculations
+
+### 🎯 Benefits
+
+#### 👨‍💻 Developer Experience
+- **Comprehensive Metrics**: Complete risk analysis toolkit for financial applications
+- **Portfolio Integration**: Advanced portfolio-level analysis capabilities
+- **API Consistency**: Consistent API structure across all analysis endpoints
+- **Code Organization**: Well-structured advanced metrics calculation system
+
+#### 👤 User Experience
+- **Advanced Risk Analysis**: Comprehensive risk evaluation for informed investment decisions
+- **Portfolio Optimization**: Risk contribution analysis for better portfolio construction
+- **Diversification Insights**: Correlation analysis for improved diversification strategies
+- **Risk-Adjusted Returns**: Multiple perspectives on risk-adjusted performance
+
+#### 🏢 System Reliability
+- **Comprehensive Risk Assessment**: Complete risk evaluation framework
+- **Portfolio Integration**: Seamless integration of individual and portfolio analysis
+- **Data Accuracy**: Enhanced data accuracy with advanced metrics validation
+- **Performance**: Optimized performance for complex portfolio calculations
+
+### 🔮 Future Enhancements
+
+#### 🚀 Planned Features
+- **Machine Learning Risk Models**: Advanced ML-based risk prediction models
+- **Real-time Risk Monitoring**: Live risk monitoring and alerting system
+- **Advanced Portfolio Optimization**: Sophisticated portfolio optimization algorithms
+- **Risk Scenario Analysis**: Monte Carlo simulation and stress testing capabilities
+
+#### 🛠️ Technical Roadmap
+- **Advanced Analytics**: Integration with advanced analytics platforms
+- **Risk Management Tools**: Comprehensive risk management dashboard
+- **Performance Attribution**: Advanced performance attribution analysis
+- **Custom Risk Models**: User-configurable risk models and thresholds
+
+
 ## [4.5.2] - 2025-01-27
 
 ### 🎯 Frontend TypeScript Improvements & Code Cleanup

@@ -2,7 +2,7 @@
 
 This document explains all metrics used in the portfolio analysis tool, their calculations, and thresholds.
 
-*This metrics documentation reflects version 4.5.2 of the Portfolio Analysis Tool with frontend TypeScript improvements, code cleanup, enhanced type safety, and improved maintainability for better development experience.*
+*This metrics documentation reflects version 4.5.3 of the Portfolio Analysis Tool with advanced risk metrics, enhanced ticker comparison, and comprehensive portfolio analysis capabilities.*
 
 ## 1. CONSOLIDATED PORTFOLIO METRICS
 
@@ -37,30 +37,30 @@ These metrics are calculated for the entire portfolio as a whole. The thresholds
 - **Note**: 1 ≈ "acceptable", 2+ is hedge-fund territory
 
 #### Sortino Ratio
-- **Calculation**: √252 × (mean_daily_return - rf_daily) / std_downside_return
+- **Calculation**: (mean(r_t) × A - MAR_annual) / (sqrt(DownDev²) × sqrt(A))
 - **Thresholds**:
-  - Bad: < 1.0
-  - Normal: 1.0 - 2.0
-  - Excellent: > 2.0
-- **Note**: Same intuition as Sharpe but focuses on downside volatility
+  - Bad: < 1
+  - Normal: 1 - 2
+  - Excellent: > 2
+- **Note**: Uses downside deviation; MAR = 0 unless specified
 
 #### Calmar Ratio
-- **Calculation**: Annualised Return / |Max Drawdown|
+- **Calculation**: Calmar = CAGR / |MDD|, where CAGR = W_T^(A/N) - 1
 - **Thresholds**:
   - Bad: < 0.5
-  - Normal: 0.5 - 1.0
-  - Excellent: > 1.0
-- **Note**: >1 means the portfolio earns at least as fast as it falls
+  - Normal: 0.5 - 1.5
+  - Excellent: > 1.5
+- **Note**: Sensitive to the horizon length; often used for funds
 
 ### Risk Metrics
 
 #### Max Drawdown
-- **Calculation**: min((current_value - running_max) / running_max)
+- **Calculation**: DD_t = W_t / max_{s≤t} W_s - 1; MDD = min_t DD_t
 - **Thresholds**:
-  - Bad: > 30%
-  - Normal: 15% - 30%
-  - Excellent: < 15%
-- **Note**: Smaller (closer to 0%) is better
+  - Bad: < -50%
+  - Normal: -20% to -50%
+  - Excellent: > -20%
+- **Note**: Use portfolio-level W_{p,t} when assessing overall strategy risk
 
 #### Annualised Volatility
 - **Calculation**: std_daily_return × √252
@@ -85,6 +85,30 @@ These metrics are calculated for the entire portfolio as a whole. The thresholds
   - Normal: 0.7 - 1.3
   - Excellent: < 0.7
 - **Note**: < 0.7 implies defensive/diversifying stance
+
+#### Ulcer Index
+- **Calculation**: UI = sqrt((1/N) × Σ [max(0, 1 - W_t / max_{s≤t} W_s)]²)
+- **Thresholds**:
+  - Bad: > 15
+  - Normal: 5 - 15
+  - Excellent: < 5
+- **Note**: Measures depth and duration of drawdowns
+
+#### Time Under Water
+- **Calculation**: TUW = (1/N) × Σ 1{W_t < max_{s≤t} W_s}
+- **Thresholds**:
+  - Bad: > 50%
+  - Normal: 20% - 50%
+  - Excellent: < 20%
+- **Note**: Indicates persistence of losses relative to peaks
+
+#### Historical Expected Shortfall (CVaR_95)
+- **Calculation**: CVaR_95 = (1/k) × Σ_{j=1..k} r_{(j)}, with k = floor(0.05 × N)
+- **Thresholds**:
+  - Bad: < -5% daily
+  - Normal: -2% to -5% daily
+  - Excellent: > -2% daily
+- **Note**: Reports tail loss; for h-day scaling, CVaR_h ≈ sqrt(h) × CVaR_1
 
 ## 2. PER-TICKER METRICS
 
@@ -140,6 +164,24 @@ These metrics are calculated for individual securities. The cut-offs assume deve
   - Excellent: < 0.5
 - **Note**: Low-beta names improve diversification
 
+#### Correlation to Portfolio (Diversifier Score)
+- **Calculation**: ρ_{i,p} = cov(r_i, r_p) / (σ_i × σ_p)
+- **Thresholds**:
+  - Bad: > 0.75
+  - Normal: 0.25 - 0.75
+  - Excellent: < 0.25
+- **Note**: Lower correlation implies better diversification benefit
+
+#### Risk Contribution to Portfolio Variance
+- **Calculation**: 
+  - Absolute: AC_i = w_i × m_i, where m = Σ w
+  - Percent: PC_i = AC_i / σ_p²
+- **Thresholds**:
+  - Bad: Concentration > 40% in a single asset
+  - Normal: 10% - 40% per asset
+  - Excellent: < 10% per asset
+- **Note**: If using stdev, RC_i = (w_i × m_i) / σ_p with Σ RC_i = σ_p
+
 #### 1-day Historical VaR (95%)
 - **Calculation**: 5th percentile of daily returns × 100
 - **Thresholds**:
@@ -178,6 +220,64 @@ These metrics are calculated for individual securities. The cut-offs assume deve
   - Excellent: > 6%
 - **Note**: Helps flag "special" payouts
 
+### Advanced Risk Metrics (v4.5.3)
+
+#### Calmar Ratio
+- **Calculation**: Annualized Return / |Maximum Drawdown|
+- **Thresholds**:
+  - Bad: < 0.5
+  - Normal: 0.5 - 1.0
+  - Excellent: > 1.0
+- **Note**: Risk-adjusted return metric focusing on drawdown-adjusted performance
+
+#### Ulcer Index
+- **Calculation**: √(Σ(DD²) / N) where DD = (High - Close) / High
+- **Thresholds**:
+  - Bad: > 0.05
+  - Normal: 0.02 - 0.05
+  - Excellent: < 0.02
+- **Note**: Downside risk measure focusing on depth and duration of drawdowns
+
+#### Time Under Water
+- **Calculation**: (Days in Drawdown / Total Days) × 100
+- **Thresholds**:
+  - Bad: > 40%
+  - Normal: 20% - 40%
+  - Excellent: < 20%
+- **Note**: Percentage of time spent in drawdown periods
+
+#### CVaR (Conditional Value at Risk)
+- **Calculation**: Expected loss beyond VaR threshold at 95% confidence level
+- **Thresholds**:
+  - Bad: < -4%
+  - Normal: -4% to -2%
+  - Excellent: > -2%
+- **Note**: Expected loss beyond VaR threshold, more conservative than VaR
+
+#### Portfolio Correlation
+- **Calculation**: Correlation coefficient between individual ticker and portfolio returns
+- **Thresholds**:
+  - Bad: > 0.8
+  - Normal: 0.4 - 0.8
+  - Excellent: < 0.4
+- **Note**: Lower correlation indicates better diversification potential
+
+#### Risk Contribution (Absolute)
+- **Calculation**: Ticker's contribution to portfolio variance
+- **Thresholds**:
+  - Bad: > 0.01
+  - Normal: 0.005 - 0.01
+  - Excellent: < 0.005
+- **Note**: Absolute risk contribution to portfolio risk
+
+#### Risk Contribution (Percentage)
+- **Calculation**: (Ticker's Risk Contribution / Total Portfolio Risk) × 100
+- **Thresholds**:
+  - Bad: > 20%
+  - Normal: 10% - 20%
+  - Excellent: < 10%
+- **Note**: Percentage of portfolio risk contributed by this ticker
+
 ### Important Caveats
 
 1. **Dividend Yields**: High (> 8%) yields can signal distress. Consider adding a "Too High" red band above ~8%.
@@ -200,57 +300,56 @@ These metrics are calculated for individual securities. The cut-offs assume deve
 
 ---
 
-## 3. Documentation & Version Management Updates (v4.5.1)
+## 3. Documentation & Version Management Updates (v4.6.0)
 
 ### Overview
-This release focuses on comprehensive documentation updates, version management improvements, and system maintenance to ensure all documentation reflects the current state of the application.
+This release focuses on enhanced risk metrics, improved calculations, and comprehensive portfolio analysis capabilities with advanced risk measurement tools.
 
 ### Documentation System Enhancements
 
-#### Comprehensive Documentation Updates
-- **AI.MD Updates**: Updated technical overview to reflect v4.5.1 architecture and current system capabilities
-- **ARCHITECTURE.md Refinement**: Enhanced architecture documentation with current system features and design patterns
-- **BACKEND.MD Enhancement**: Updated backend documentation with current API endpoints and service architecture
-- **FRONTEND.MD Updates**: Enhanced frontend documentation with current component structure and features
-- **METRICS.MD Clarification**: Improved metric explanations and threshold descriptions for different investment mandates
-- **STYLE.MD Simplification**: Updated design system documentation with simplified language and improved clarity
-- **structure.md Enhancement**: Updated repository structure documentation with current features and capabilities
+#### Enhanced Risk Metrics Documentation
+- **Advanced Risk Metrics**: Added comprehensive documentation for Ulcer Index, Time Under Water, and Historical Expected Shortfall
+- **Improved Calculations**: Updated Max Drawdown, Calmar Ratio, and Sortino Ratio with more precise mathematical formulations
+- **Diversification Metrics**: Added Correlation to Portfolio and Risk Contribution to Portfolio Variance metrics
+- **Threshold Refinements**: Updated thresholds based on industry best practices and risk management standards
+- **Mathematical Precision**: Enhanced calculation formulas with proper mathematical notation and scaling factors
 
-#### Version Management Improvements
-- **Automated Version Updates**: Enhanced version update script with better file detection and error handling
-- **Cross-Platform Compatibility**: Improved version update script compatibility across different operating systems
-- **Version Synchronization**: Ensured all version references are consistent across frontend, backend, and documentation
-- **File Validation**: Enhanced file validation and error reporting in version management tools
+#### Risk Management Enhancements
+- **Advanced Risk Assessment**: Comprehensive suite of risk metrics for portfolio and individual asset analysis
+- **Mathematical Rigor**: Precise calculations with proper scaling and statistical foundations
+- **Industry Standards**: Thresholds aligned with institutional risk management practices
+- **Diversification Analysis**: Enhanced tools for assessing portfolio diversification and concentration risk
 
 ### Technical Implementation
 
-#### Documentation Architecture
-- **Centralized Version Management**: All documentation now references v4.5.1 consistently
-- **Modular Documentation**: Each documentation file focuses on specific aspects of the system
-- **Cross-Reference Updates**: All internal links and references updated to current structure
-- **Version History**: Maintained comprehensive changelog with detailed version information
+#### Risk Metrics Architecture
+- **Comprehensive Coverage**: Complete suite of risk metrics covering return, volatility, drawdown, and diversification
+- **Mathematical Foundation**: Rigorous mathematical formulations with proper statistical foundations
+- **Scalable Framework**: Metrics designed to work across different asset classes and time horizons
+- **Industry Alignment**: Thresholds and calculations aligned with institutional risk management standards
 
-#### Version Management System
-- **Automated Updates**: Enhanced version update script with better file detection
-- **Error Recovery**: Improved error handling and recovery mechanisms
-- **Platform Compatibility**: Better cross-platform support for version updates
-- **File Validation**: Enhanced file validation and error reporting
+#### Advanced Risk Calculations
+- **Drawdown Analysis**: Enhanced Max Drawdown with proper mathematical formulation and portfolio-level assessment
+- **Risk-Adjusted Returns**: Improved Sortino and Calmar ratios with precise calculations and scaling
+- **Tail Risk Metrics**: Historical Expected Shortfall for comprehensive tail risk assessment
+- **Diversification Tools**: Correlation and risk contribution metrics for portfolio optimization
 
-### Metrics System Benefits
+### Enhanced Risk Analysis Benefits
 
-#### Developer Experience
-- **Consistent Documentation**: All documentation now reflects current system state
-- **Better Maintenance**: Easier to maintain and update documentation
-- **Version Clarity**: Clear version management and update process
-- **Code Quality**: Improved code organization and maintainability
+#### Portfolio Management
+- **Comprehensive Risk Assessment**: Complete suite of risk metrics for thorough portfolio analysis
+- **Advanced Drawdown Analysis**: Enhanced understanding of portfolio drawdown patterns and recovery
+- **Diversification Optimization**: Tools for assessing and improving portfolio diversification
+- **Tail Risk Management**: Better understanding and management of extreme loss scenarios
 
-#### System Reliability
-- **Documentation Accuracy**: Ensures documentation matches actual system capabilities
-- **Version Consistency**: Prevents version-related confusion and errors
-- **Maintainability**: Easier to maintain and extend the system
-- **Quality Assurance**: Better documentation quality and consistency
+#### Risk Management
+- **Institutional Standards**: Metrics aligned with professional risk management practices
+- **Mathematical Rigor**: Precise calculations with proper statistical foundations
+- **Multi-Asset Support**: Metrics designed to work across different asset classes
+- **Scalable Framework**: Risk analysis that scales from individual assets to entire portfolios
 
 ### Evidence
-- `scripts/update_version.py` - Enhanced version update script
-- `CHANGELOG.md` - Comprehensive version history and changes
-- `docs/` - Updated documentation files across all components 
+- `docs/METRICS.md` - Enhanced risk metrics documentation with advanced calculations
+- `backend/src/infrastructure/services/metrics_calculator.py` - Implementation of advanced risk metrics
+- `frontend/src/components/portfolio/AdvancedMetricsCards.tsx` - UI components for new metrics
+- `CHANGELOG.md` - Comprehensive version history and risk metric enhancements 

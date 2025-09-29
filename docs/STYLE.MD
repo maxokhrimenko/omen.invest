@@ -124,49 +124,174 @@ info-700:   #1d4ed8
 
 ### Financial Metrics Color Coding
 
-Based on the METRICS_MEMORANDUM.md thresholds, financial metrics use a three-tier color system:
+Based on the METRICS_MEMORANDUM.md thresholds, financial metrics use a three-tier color system for intuitive performance assessment:
 
-#### Portfolio Metrics (Consolidated)
+#### Color System Philosophy
+
+**Three-Tier Performance Assessment:**
+- **🔴 Red (Poor)**: Performance below acceptable thresholds
+- **🟡 Yellow (Normal)**: Performance within acceptable ranges  
+- **🟢 Green (Excellent)**: Performance exceeding expectations
+
+#### Base Color Classes
+
 ```css
-/* Performance - Green */
+/* Excellent Performance - Green */
 .metric-excellent {
-  @apply text-success-600 bg-success-50 border-success-200;
+  @apply text-green-600 bg-green-50 border-green-200;
 }
 
 /* Normal Performance - Yellow/Amber */
 .metric-normal {
-  @apply text-warning-600 bg-warning-50 border-warning-200;
+  @apply text-yellow-600 bg-yellow-50 border-yellow-200;
 }
 
 /* Poor Performance - Red */
 .metric-poor {
-  @apply text-error-600 bg-error-50 border-error-200;
+  @apply text-red-600 bg-red-50 border-red-200;
+}
+
+/* Text-only color variants */
+.text-metric-excellent { @apply text-green-600; }
+.text-metric-normal { @apply text-yellow-600; }
+.text-metric-poor { @apply text-red-600; }
+```
+
+#### Portfolio-Level Metrics (Consolidated Analysis)
+
+**Return Metrics:**
+- **Total Return**: Red <10%, Yellow 10-30%, Green >30%
+- **Annualized Return**: Red <5%, Yellow 5-15%, Green >15%
+
+**Risk-Adjusted Return Metrics:**
+- **Sharpe Ratio**: Red <0.5, Yellow 0.5-1.5, Green >1.5
+- **Sortino Ratio**: Red <1.0, Yellow 1.0-2.0, Green >2.0
+- **Calmar Ratio**: Red <0.5, Yellow 0.5-1.5, Green >1.5
+
+**Risk Metrics:**
+- **Max Drawdown**: Red <-50%, Yellow -50% to -20%, Green >-20%
+- **Volatility**: Red >20%, Yellow 10-20%, Green <10%
+- **VaR (95%)**: Red <-5%, Yellow -5% to -2%, Green >-2%
+- **Beta vs SPY**: Red >1.3, Yellow 0.7-1.3, Green <0.7
+
+**Advanced Risk Metrics:**
+- **Ulcer Index**: Red >15, Yellow 5-15, Green <5
+- **Time Under Water**: Red >50%, Yellow 20-50%, Green <20%
+- **CVaR (95%)**: Red <-5%, Yellow -5% to -2%, Green >-2%
+
+#### Ticker-Level Metrics (Individual Securities)
+
+**Return Metrics:**
+- **Annualized Return**: Red <5%, Yellow 5-20%, Green >20%
+- **Total Return**: Red <5%, Yellow 5-20%, Green >20%
+
+**Risk-Adjusted Return Metrics:**
+- **Sharpe Ratio**: Red <0.5, Yellow 0.5-1.5, Green >1.5
+- **Sortino Ratio**: Red <0.8, Yellow 0.8-2.0, Green >2.0
+- **Calmar Ratio**: Red <0.5, Yellow 0.5-1.5, Green >1.5
+
+**Risk Metrics:**
+- **Max Drawdown**: Red <-50%, Yellow -50% to -30%, Green >-30%
+- **Volatility**: Red >50%, Yellow 30-50%, Green <30%
+- **Beta to Portfolio**: Red >1.5, Yellow 0.5-1.5, Green <0.5
+- **VaR (95%)**: Red <-4%, Yellow -4% to -2%, Green >-2%
+
+**Diversification Metrics:**
+- **Correlation to Portfolio**: Red >0.75, Yellow 0.25-0.75, Green <0.25
+- **Risk Contribution**: Red >40%, Yellow 10-40%, Green <10%
+
+**Momentum & Yield Metrics:**
+- **12-1 Momentum**: Red <0%, Yellow 0-20%, Green >20%
+- **Current Yield**: Red <1%, Yellow 1-4%, Green >4%
+- **Average Yield**: Red <1%, Yellow 1-4%, Green >4%
+- **Maximum Yield**: Red <2%, Yellow 2-6%, Green >6%
+
+#### UI Implementation Patterns
+
+**Metric Card Display:**
+```css
+.metric-card {
+  @apply p-4 rounded-lg border-2 transition-all duration-200;
+}
+
+.metric-card-excellent {
+  @apply bg-green-50 border-green-200 text-green-800;
+}
+
+.metric-card-normal {
+  @apply bg-yellow-50 border-yellow-200 text-yellow-800;
+}
+
+.metric-card-poor {
+  @apply bg-red-50 border-red-200 text-red-800;
 }
 ```
 
-**Portfolio Metric Thresholds:**
-- **Total Return**: Red <10%, Yellow 10-30%, Green >30%
-- **Annualized Return**: Red <5%, Yellow 5-15%, Green >15%
-- **Sharpe Ratio**: Red <0.5, Yellow 0.5-1.5, Green >1.5
-- **Sortino Ratio**: Red <1.0, Yellow 1.0-2.0, Green >2.0
-- **Calmar Ratio**: Red <0.5, Yellow 0.5-1.0, Green >1.0
-- **Max Drawdown**: Red >-30%, Yellow -30% to -15%, Green >-15%
-- **Volatility**: Red >20%, Yellow 10-20%, Green <10%
-- **VaR (95%)**: Red >-2%, Yellow -2% to -1%, Green >-1%
-- **Beta**: Red >1.3, Yellow 0.7-1.3, Green <0.7
+**Table Cell Color Coding:**
+```css
+.metric-table-cell {
+  @apply px-4 py-3 text-center font-medium rounded;
+}
 
-#### Ticker Metrics (Individual)
-**Ticker Metric Thresholds:**
-- **Annualized Return**: Red <5%, Yellow 5-20%, Green >20%
-- **Sharpe Ratio**: Red <0.5, Yellow 0.5-1.5, Green >1.5
-- **Sortino Ratio**: Red <0.8, Yellow 0.8-2.0, Green >2.0
-- **Max Drawdown**: Red >-50%, Yellow -50% to -30%, Green >-30%
-- **Volatility**: Red >50%, Yellow 30-50%, Green <30%
-- **Beta**: Red >1.5, Yellow 0.5-1.5, Green <0.5
-- **VaR (95%)**: Red >-4%, Yellow -4% to -2%, Green >-2%
-- **Momentum (12-1)**: Red <0%, Yellow 0-20%, Green >20%
-- **Dividend Yield**: Red <1%, Yellow 1-4%, Green >4%
-- **Maximum Yield**: Red <2%, Yellow 2-6%, Green >6%
+.metric-table-cell-excellent {
+  @apply bg-green-100 text-green-800;
+}
+
+.metric-table-cell-normal {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.metric-table-cell-poor {
+  @apply bg-red-100 text-red-800;
+}
+```
+
+**Legend Display:**
+```css
+.metric-legend {
+  @apply flex items-center space-x-2 text-sm;
+}
+
+.legend-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+.legend-dot-excellent { @apply bg-green-500; }
+.legend-dot-normal { @apply bg-yellow-500; }
+.legend-dot-poor { @apply bg-red-500; }
+```
+
+#### Special Metric Handling
+
+**Inverse Metrics (Lower is Better):**
+- Volatility, Max Drawdown, VaR, Ulcer Index, Time Under Water
+- Color logic: Red for high values, Green for low values
+
+**Range-Based Metrics:**
+- Beta: Optimal around 1.0, penalizes both high and low values
+- Correlation: Lower values indicate better diversification
+
+**Percentage vs Absolute Values:**
+- All thresholds use percentage values except where noted
+- Currency values (dividends) use absolute dollar amounts
+- Index values (Ulcer Index) use decimal notation
+
+#### Accessibility Considerations
+
+**Color Contrast:**
+- All color combinations meet WCAG 2.1 AA standards
+- Minimum 4.5:1 contrast ratio for normal text
+- Minimum 3:1 contrast ratio for large text
+
+**Alternative Indicators:**
+- Icons supplement color coding (trending up/down arrows)
+- Text labels provide context ("Excellent", "Normal", "Poor")
+- Hover states reveal detailed threshold information
+
+**Screen Reader Support:**
+- ARIA labels describe metric performance levels
+- Semantic markup for metric values and thresholds
+- Clear hierarchy for metric groupings
 
 ---
 
@@ -1439,60 +1564,59 @@ const DataTable = ({ data, columns, sortable = true }: Props) => (
 
 ---
 
-## Documentation & Version Management Updates (v4.5.1)
+## Documentation & Version Management Updates (v4.6.0)
 
 ### Overview
-This release focuses on comprehensive documentation updates, version management improvements, and system maintenance to ensure all documentation reflects the current state of the application.
+This release focuses on enhanced financial metrics color coding guidelines, comprehensive UI implementation patterns, and improved accessibility standards for metric visualization.
 
 ### Documentation System Enhancements
 
-#### Comprehensive Documentation Updates
-- **AI.MD Updates**: Updated technical overview to reflect v4.5.1 architecture and current system capabilities
-- **ARCHITECTURE.md Refinement**: Enhanced architecture documentation with current system features and design patterns
-- **BACKEND.MD Enhancement**: Updated backend documentation with current API endpoints and service architecture
-- **FRONTEND.MD Updates**: Enhanced frontend documentation with current component structure and features
-- **METRICS.MD Clarification**: Improved metric explanations and threshold descriptions for different investment mandates
-- **STYLE.MD Simplification**: Updated design system documentation with simplified language and improved clarity
-- **structure.md Enhancement**: Updated repository structure documentation with current features and capabilities
+#### Enhanced Financial Metrics Color Coding
+- **Comprehensive Color System**: Complete three-tier color coding system for all financial metrics
+- **UI Implementation Patterns**: Detailed CSS classes and component patterns for metric visualization
+- **Accessibility Standards**: WCAG 2.1 AA compliant color contrast and screen reader support
+- **Special Metric Handling**: Guidelines for inverse metrics, range-based metrics, and different value types
+- **Portfolio vs Ticker Metrics**: Separate threshold definitions for consolidated and individual security analysis
 
-#### Version Management Improvements
-- **Automated Version Updates**: Enhanced version update script with better file detection and error handling
-- **Cross-Platform Compatibility**: Improved version update script compatibility across different operating systems
-- **Version Synchronization**: Ensured all version references are consistent across frontend, backend, and documentation
-- **File Validation**: Enhanced file validation and error reporting in version management tools
+#### UI Design System Enhancements
+- **Metric Visualization Standards**: Comprehensive guidelines for displaying financial metrics across all components
+- **Color Psychology**: Strategic use of red/yellow/green for intuitive performance assessment
+- **Component Consistency**: Standardized metric card, table cell, and legend display patterns
+- **Responsive Design**: Color coding that works across all device sizes and screen types
 
 ### Technical Implementation
 
-#### Documentation Architecture
-- **Centralized Version Management**: All documentation now references v4.5.1 consistently
-- **Modular Documentation**: Each documentation file focuses on specific aspects of the system
-- **Cross-Reference Updates**: All internal links and references updated to current structure
-- **Version History**: Maintained comprehensive changelog with detailed version information
+#### Color Coding Architecture
+- **Centralized Threshold Management**: All metric thresholds defined in utility functions
+- **Consistent Implementation**: Standardized color classes across all components
+- **Performance Optimization**: Efficient color calculation with memoization
+- **Type Safety**: TypeScript interfaces for metric levels and thresholds
 
-#### Version Management System
-- **Automated Updates**: Enhanced version update script with better file detection
-- **Error Recovery**: Improved error handling and recovery mechanisms
-- **Platform Compatibility**: Better cross-platform support for version updates
-- **File Validation**: Enhanced file validation and error reporting
+#### UI Component Integration
+- **Reusable Color Functions**: Centralized color coding logic for consistent application
+- **Component Patterns**: Standardized metric card, table, and legend implementations
+- **Accessibility Integration**: Built-in ARIA labels and screen reader support
+- **Responsive Adaptation**: Color coding that scales across all device sizes
 
 ### Design System Benefits
 
-#### Developer Experience
-- **Consistent Documentation**: All documentation now reflects current system state
-- **Better Maintenance**: Easier to maintain and update documentation
-- **Version Clarity**: Clear version management and update process
-- **Code Quality**: Improved code organization and maintainability
+#### User Experience
+- **Intuitive Performance Assessment**: Clear visual indicators for metric performance levels
+- **Consistent Visual Language**: Standardized color coding across all financial data displays
+- **Accessible Design**: WCAG 2.1 AA compliant color contrast and screen reader support
+- **Professional Appearance**: Clean, trustworthy interface suitable for financial analysis
 
-#### System Reliability
-- **Documentation Accuracy**: Ensures documentation matches actual system capabilities
-- **Version Consistency**: Prevents version-related confusion and errors
-- **Maintainability**: Easier to maintain and extend the system
-- **Quality Assurance**: Better documentation quality and consistency
+#### Developer Experience
+- **Reusable Components**: Standardized metric display patterns across all components
+- **Clear Implementation Guidelines**: Comprehensive CSS classes and component examples
+- **Type Safety**: TypeScript interfaces for consistent metric handling
+- **Maintainable Code**: Centralized color coding logic for easy updates and modifications
 
 ### Evidence
-- `scripts/update_version.py` - Enhanced version update script
-- `CHANGELOG.md` - Comprehensive version history and changes
-- `docs/` - Updated documentation files across all components
+- `docs/STYLE.MD` - Comprehensive financial metrics color coding guidelines
+- `frontend/src/utils/tickerColorCoding.ts` - Centralized color coding utility functions
+- `frontend/src/components/portfolio/MetricsLegend.tsx` - Legend component implementation
+- `frontend/src/components/portfolio/TickerMetricsTable.tsx` - Table color coding implementation
 
 ---
 
@@ -1514,4 +1638,4 @@ For questions or updates to this design system, please refer to the project's de
 ---
 
 *Last updated: January 2025*
-*Version: 4.5.1*
+*Version: 4.6.0*

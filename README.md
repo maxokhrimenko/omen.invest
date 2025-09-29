@@ -2,7 +2,7 @@
 
 A comprehensive full-stack application for analyzing investment portfolios, built with clean architecture principles. The system consists of a FastAPI backend with clean architecture, a React frontend interface, and a robust database layer.
 
-> **🚀 Version 4.5.2 - Frontend TypeScript Improvements & Code Cleanup**: This release focuses on enhancing TypeScript type safety, improving code organization, and removing unused components for better maintainability and development experience.
+> **🚀 Version 4.5.3 - Frontend TypeScript Improvements & Code Cleanup**: This release focuses on enhancing TypeScript type safety, improving code organization, and removing unused components for better maintainability and development experience.
 
 ## 🏗️ Architecture Overview
 

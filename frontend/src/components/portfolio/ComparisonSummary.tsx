@@ -1,19 +1,17 @@
 import React from 'react';
-import { Trophy, TrendingDown, BarChart3, Shield } from 'lucide-react';
+import { Trophy, TrendingDown, BarChart3 } from 'lucide-react';
 import type { TickerComparisonData } from '../../types/portfolio';
 
 interface ComparisonSummaryProps {
   bestPerformers: TickerComparisonData[];
   worstPerformers: TickerComparisonData[];
   bestSharpe: TickerComparisonData[];
-  lowestRisk: TickerComparisonData[];
 }
 
 const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
   bestPerformers = [],
   worstPerformers = [],
-  bestSharpe = [],
-  lowestRisk = []
+  bestSharpe = []
 }) => {
   const categories = [
     {
@@ -25,7 +23,8 @@ const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
       iconColor: 'text-green-600',
       textColor: 'text-green-900',
       metricColor: 'text-green-700',
-      metricLabel: 'Annual Return'
+      metricLabel: 'Annual Return',
+      metricKey: 'annualizedReturn'
     },
     {
       title: 'Worst Performers',
@@ -36,7 +35,8 @@ const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
       iconColor: 'text-red-600',
       textColor: 'text-red-900',
       metricColor: 'text-red-700',
-      metricLabel: 'Annual Return'
+      metricLabel: 'Annual Return',
+      metricKey: 'annualizedReturn'
     },
     {
       title: 'Best Sharpe Ratio',
@@ -47,23 +47,13 @@ const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
       iconColor: 'text-blue-600',
       textColor: 'text-blue-900',
       metricColor: 'text-blue-700',
-      metricLabel: 'Sharpe Ratio'
-    },
-    {
-      title: 'Lowest Risk',
-      data: lowestRisk,
-      icon: Shield,
-      bgColor: 'bg-purple-50',
-      borderColor: 'border-purple-200',
-      iconColor: 'text-purple-600',
-      textColor: 'text-purple-900',
-      metricColor: 'text-purple-700',
-      metricLabel: 'Volatility'
+      metricLabel: 'Sharpe Ratio',
+      metricKey: 'sharpeRatio'
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
       {categories.map((category, categoryIndex) => {
         const Icon = category.icon;
         return (
@@ -96,9 +86,7 @@ const ComparisonSummary: React.FC<ComparisonSummaryProps> = ({
                     </div>
                     <div className="text-right">
                       <div className={`text-sm font-bold ${category.textColor}`}>
-                        {category.title === 'Best Sharpe Ratio' ? ticker.sharpeRatio : 
-                         category.title === 'Lowest Risk' ? ticker.volatility :
-                         ticker.annualizedReturn}
+                        {ticker[category.metricKey as keyof TickerComparisonData]}
                       </div>
                       <div className="text-xs text-gray-500">
                         {category.metricLabel}

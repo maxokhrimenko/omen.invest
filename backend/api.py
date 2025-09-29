@@ -67,7 +67,14 @@ def _convert_metrics_to_api(metrics):
         "annualizedReturn": f"{metrics.annualized_return.value:.2f}%",
         "sharpeRatio": f"{metrics.sharpe_ratio:.2f}",
         "volatility": f"{metrics.volatility.value:.2f}%",
-        "maxDrawdown": f"{metrics.max_drawdown.value:.2f}%"
+        "maxDrawdown": f"{metrics.max_drawdown.value:.2f}%",
+        "sortinoRatio": f"{metrics.sortino_ratio:.2f}",
+        "calmarRatio": f"{metrics.calmar_ratio:.2f}",
+        "ulcerIndex": f"{metrics.ulcer_index:.4f}",
+        "timeUnderWater": f"{metrics.time_under_water:.4f}",
+        "cvar95": f"{metrics.cvar_95:.2f}",
+        "correlationToPortfolio": f"{metrics.correlation_to_portfolio:.2f}",
+        "riskContributionPercent": f"{metrics.risk_contribution_percent:.2f}%"
     }
 
 def _get_sort_value(metric, sort_key):
@@ -246,7 +253,7 @@ def get_controller() -> MainController:
         load_portfolio_use_case = LoadPortfolioUseCase(portfolio_repo)
         analyze_portfolio_use_case = AnalyzePortfolioUseCase(market_repo)
         analyze_ticker_use_case = AnalyzeTickerUseCase(market_repo)
-        compare_tickers_use_case = CompareTickersUseCase(analyze_ticker_use_case)
+        compare_tickers_use_case = CompareTickersUseCase(analyze_ticker_use_case, market_repo)
         
         _controller = MainController(
             load_portfolio_use_case,
@@ -452,6 +459,13 @@ async def analyze_tickers(start_date: str = None, end_date: str = None):
                 "sharpeRatio": f"{metrics.sharpe_ratio:.3f}",
                 "maxDrawdown": f"{metrics.max_drawdown.value:.2f}%",
                 "sortinoRatio": f"{metrics.sortino_ratio:.3f}",
+                "calmarRatio": f"{metrics.calmar_ratio:.2f}",
+                "ulcerIndex": f"{metrics.ulcer_index:.4f}",
+                "timeUnderWater": f"{metrics.time_under_water:.2f}",
+                "cvar95": f"{metrics.cvar_95:.2f}",
+                "correlationToPortfolio": f"{metrics.correlation_to_portfolio:.2f}",
+                "riskContributionAbsolute": f"{metrics.risk_contribution_absolute:.4f}",
+                "riskContributionPercent": f"{metrics.risk_contribution_percent:.2f}%",
                 "beta": f"{metrics.beta:.3f}",
                 "var95": f"{metrics.var_95.value:.2f}%",
                 "momentum12to1": f"{metrics.momentum_12_1.value:.2f}%",
@@ -569,7 +583,15 @@ async def compare_tickers(request_data: dict):
                 "endPrice": f"${metrics.end_price.amount:.2f}",
                 "hasDataAtStart": True,
                 "position": position_quantity,
-                "marketValue": f"${market_value:.2f}"
+                "marketValue": f"${market_value:.2f}",
+                # Advanced metrics
+                "calmarRatio": f"{metrics.calmar_ratio:.2f}",
+                "ulcerIndex": f"{metrics.ulcer_index:.4f}",
+                "timeUnderWater": f"{metrics.time_under_water:.2f}",
+                "cvar95": f"{metrics.cvar_95:.2f}",
+                "correlationToPortfolio": f"{metrics.correlation_to_portfolio:.2f}",
+                "riskContributionAbsolute": f"{metrics.risk_contribution_absolute:.4f}",
+                "riskContributionPercent": f"{metrics.risk_contribution_percent:.2f}%"
             }
             metrics_data.append(ticker_data)
         
@@ -578,6 +600,24 @@ async def compare_tickers(request_data: dict):
         worst_performers = _get_top_performers(comparison_data.metrics, 'annualized_return', False, 5)
         best_sharpe = _get_top_performers(comparison_data.metrics, 'sharpe_ratio', True, 5)
         lowest_risk = _get_top_performers(comparison_data.metrics, 'volatility', False, 5)
+        
+        # Advanced metrics rankings
+        best_calmar = _get_top_performers(comparison_data.metrics, 'calmar_ratio', True, 5)  # Higher is better
+        worst_calmar = _get_top_performers(comparison_data.metrics, 'calmar_ratio', False, 5)
+        best_sortino = _get_top_performers(comparison_data.metrics, 'sortino_ratio', True, 5)  # Higher is better
+        worst_sortino = _get_top_performers(comparison_data.metrics, 'sortino_ratio', False, 5)
+        best_max_drawdown = _get_top_performers(comparison_data.metrics, 'max_drawdown', True, 5)  # Less negative is better
+        worst_max_drawdown = _get_top_performers(comparison_data.metrics, 'max_drawdown', False, 5)  # More negative is worse
+        best_ulcer = _get_top_performers(comparison_data.metrics, 'ulcer_index', False, 5)  # Lower is better
+        worst_ulcer = _get_top_performers(comparison_data.metrics, 'ulcer_index', True, 5)
+        best_time_under_water = _get_top_performers(comparison_data.metrics, 'time_under_water', False, 5)  # Lower is better
+        worst_time_under_water = _get_top_performers(comparison_data.metrics, 'time_under_water', True, 5)
+        best_cvar = _get_top_performers(comparison_data.metrics, 'cvar_95', False, 5)  # Lower is better (more negative)
+        worst_cvar = _get_top_performers(comparison_data.metrics, 'cvar_95', True, 5)
+        best_correlation = _get_top_performers(comparison_data.metrics, 'correlation_to_portfolio', False, 5)  # Lower absolute correlation is better
+        worst_correlation = _get_top_performers(comparison_data.metrics, 'correlation_to_portfolio', True, 5)
+        best_risk_contribution = _get_top_performers(comparison_data.metrics, 'risk_contribution_percent', False, 5)  # Lower is better
+        worst_risk_contribution = _get_top_performers(comparison_data.metrics, 'risk_contribution_percent', True, 5)
         
         # Build response data
         response_data = {
@@ -588,7 +628,24 @@ async def compare_tickers(request_data: dict):
                 "bestPerformers": best_performers,
                 "worstPerformers": worst_performers,
                 "bestSharpe": best_sharpe,
-                "lowestRisk": lowest_risk
+                "lowestRisk": lowest_risk,
+                # Advanced metrics rankings
+                "bestCalmar": best_calmar,
+                "worstCalmar": worst_calmar,
+                "bestSortino": best_sortino,
+                "worstSortino": worst_sortino,
+                "bestMaxDrawdown": best_max_drawdown,
+                "worstMaxDrawdown": worst_max_drawdown,
+                "bestUlcer": best_ulcer,
+                "worstUlcer": worst_ulcer,
+                "bestTimeUnderWater": best_time_under_water,
+                "worstTimeUnderWater": worst_time_under_water,
+                "bestCvar": best_cvar,
+                "worstCvar": worst_cvar,
+                "bestCorrelation": best_correlation,
+                "worstCorrelation": worst_correlation,
+                "bestRiskContribution": best_risk_contribution,
+                "worstRiskContribution": worst_risk_contribution
             },
             "warnings": {
                 "missingTickers": [],

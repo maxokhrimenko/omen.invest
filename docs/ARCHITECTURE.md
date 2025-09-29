@@ -6,6 +6,17 @@ The Portfolio Analysis Tool has been refactored to follow **Clean Architecture**
 
 ## 🎯 Architectural Principles
 
+### Advanced Risk Metrics & Enhanced Ticker Comparison (v4.5.3)
+The system has been enhanced with comprehensive advanced risk metrics and significantly improved ticker comparison functionality:
+
+1. **Advanced Risk Metrics System**: Added 7 new advanced risk metrics including Calmar Ratio, Ulcer Index, Time Under Water, CVaR, Portfolio Correlation, and Risk Contribution Analysis
+2. **Enhanced Ticker Comparison**: Portfolio-level analysis with correlation and risk contribution metrics
+3. **Portfolio Correlation Calculation**: Real-time calculation of ticker-to-portfolio correlations for diversification analysis
+4. **Risk Contribution Analysis**: Dynamic risk contribution calculation for portfolio optimization
+5. **Extended API Responses**: All analysis endpoints now return advanced risk metrics
+6. **Advanced Rankings**: 16 new ranking categories for comprehensive ticker analysis
+7. **Equal-Weight Portfolio Calculation**: Automatic portfolio returns calculation for correlation analysis
+
 ### Frontend TypeScript Improvements & Code Cleanup (v4.5.2)
 The system has been enhanced with TypeScript improvements and code cleanup for better maintainability:
 
@@ -476,6 +487,7 @@ The application layer orchestrates domain objects to fulfill business use cases.
 - **Responsibilities**:
   - Fetch price and dividend data for single ticker
   - Calculate individual ticker metrics with adaptive momentum calculation
+  - Calculate advanced risk metrics using MetricsCalculator
   - Validate data availability at start date with business day tolerance
   - Handle ticker-specific errors and data validation
 - **Data Validation Features**:
@@ -487,14 +499,32 @@ The application layer orchestrates domain objects to fulfill business use cases.
   - Standard 12-1 momentum when sufficient data available (≥252 days)
   - Fallback calculation using start to 1 month ago (≥21 days)
   - Returns 0 for insufficient data (<21 days)
+- **Advanced Risk Metrics**:
+  - Calmar Ratio: Risk-adjusted return metric comparing annualized return to maximum drawdown
+  - Ulcer Index: Downside risk measure focusing on depth and duration of drawdowns
+  - Time Under Water: Percentage of time spent in drawdown periods
+  - CVaR (Conditional Value at Risk): Expected loss beyond VaR threshold at 95% confidence level
+  - Portfolio Correlation: Correlation coefficient between individual ticker and portfolio returns
+  - Risk Contribution Analysis: Absolute and percentage risk contribution of each ticker to portfolio risk
 
 #### CompareTickersUseCase
 - **Input**: `CompareTickersRequest` (tickers list, date range, risk-free rate)
 - **Output**: `CompareTickersResponse` (comparison, success, message)
 - **Responsibilities**:
   - Analyze multiple tickers using AnalyzeTickerUseCase
-  - Rank and compare performance
-  - Identify best/worst performers
+  - Calculate portfolio-level correlation and risk contribution metrics
+  - Rank and compare performance across all metrics
+  - Identify best/worst performers for each metric category
+- **Portfolio-Level Analysis**:
+  - Equal-weight portfolio calculation for correlation analysis
+  - Real-time portfolio correlation calculation for each ticker
+  - Risk contribution analysis for portfolio optimization
+  - Enhanced comparison with 16 ranking categories
+- **Advanced Rankings**:
+  - Basic metrics: best/worst performers, Sharpe ratio, lowest risk
+  - Advanced risk metrics: Calmar ratio, Sortino ratio, max drawdown
+  - Downside risk: Ulcer index, time under water, CVaR
+  - Portfolio metrics: correlation, risk contribution
 
 ### Request/Response Pattern
 
@@ -639,6 +669,25 @@ class MarketDataRepository(ABC):
   - Total log cleanup
   - Backup and restore functionality
   - Force operations for automation
+
+### Advanced Metrics Calculation
+
+#### MetricsCalculator
+- **Purpose**: Calculate advanced risk metrics and portfolio correlation analysis
+- **Features**:
+  - Advanced risk metrics calculation (Calmar Ratio, Ulcer Index, Time Under Water, CVaR)
+  - Portfolio correlation and risk contribution analysis
+  - Centralized calculation service for shared financial metrics
+  - Integration with both portfolio and ticker analysis use cases
+- **Advanced Risk Metrics**:
+  - **Calmar Ratio**: Risk-adjusted return metric comparing annualized return to maximum drawdown
+  - **Ulcer Index**: Downside risk measure focusing on depth and duration of drawdowns
+  - **Time Under Water**: Percentage of time spent in drawdown periods
+  - **CVaR (Conditional Value at Risk)**: Expected loss beyond VaR threshold at 95% confidence level
+- **Portfolio Analysis**:
+  - **Portfolio Correlation**: Correlation coefficient between individual ticker and portfolio returns
+  - **Risk Contribution Analysis**: Absolute and percentage risk contribution of each ticker to portfolio risk
+  - **Equal-Weight Portfolio Calculation**: Automatic portfolio returns calculation for correlation analysis
 
 ### Configuration Management
 

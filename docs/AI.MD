@@ -5,9 +5,10 @@
 - [2. Tech Stack & Tooling](#2-tech-stack--tooling)
 - [3. Repository Map](#3-repository-map)
 - [4. Architecture Overview](#4-architecture-overview)
-- [5. Frontend TypeScript Improvements & Code Cleanup (v4.5.2)](#5-frontend-typescript-improvements--code-cleanup-v452)
-- [6. Documentation & Version Management Updates (v4.5.1)](#6-documentation--version-management-updates-v451)
-- [7. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)](#7-enhanced-ticker-comparison--frontend-architecture-improvements-v450)
+- [5. Advanced Risk Metrics & Enhanced Ticker Comparison (v4.5.3)](#5-advanced-risk-metrics--enhanced-ticker-comparison-v453)
+- [6. Frontend TypeScript Improvements & Code Cleanup (v4.5.2)](#6-frontend-typescript-improvements--code-cleanup-v452)
+- [7. Documentation & Version Management Updates (v4.5.1)](#7-documentation--version-management-updates-v451)
+- [8. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)](#8-enhanced-ticker-comparison--frontend-architecture-improvements-v450)
 - [7. Annualized Dividend Calculation System (v4.1.1)](#7-annualized-dividend-calculation-system-v411)
 - [8. Parallel Processing & Warehouse Optimization System (v4.4.3)](#8-parallel-processing--warehouse-optimization-system-v443)
 - [9. Enhanced Data Validation & Analysis Accuracy (v4.4.1)](#9-enhanced-data-validation--analysis-accuracy-v441)
@@ -169,7 +170,93 @@ The system follows Clean Architecture with clear separation of concerns. The pre
 - No authentication or authorization required
 Evidence: yfinance_market_repository.py:L1-L135
 
-## 5. Frontend TypeScript Improvements & Code Cleanup (v4.5.2)
+## 5. Advanced Risk Metrics & Enhanced Ticker Comparison (v4.5.3)
+
+**Purpose:**  
+Comprehensive advanced risk metrics for individual ticker analysis and significantly enhanced ticker comparison functionality with portfolio-level correlation and risk contribution analysis.
+
+**Key Features:**
+
+#### Advanced Risk Metrics System
+- **Calmar Ratio**: Risk-adjusted return metric comparing annualized return to maximum drawdown
+- **Ulcer Index**: Downside risk measure focusing on depth and duration of drawdowns
+- **Time Under Water**: Percentage of time spent in drawdown periods
+- **CVaR (Conditional Value at Risk)**: Expected loss beyond VaR threshold at 95% confidence level
+- **Portfolio Correlation**: Correlation coefficient between individual ticker and portfolio returns
+- **Risk Contribution Analysis**: Absolute and percentage risk contribution of each ticker to portfolio risk
+
+#### Enhanced Ticker Comparison
+- **Portfolio-Level Analysis**: Ticker comparison now includes portfolio correlation and risk contribution metrics
+- **Advanced Rankings**: New ranking categories for all advanced risk metrics
+- **Equal-Weight Portfolio Calculation**: Automatic portfolio returns calculation for correlation analysis
+- **Comprehensive Metrics Display**: All advanced metrics included in API responses and comparison results
+
+#### Backend API Enhancements
+- **Extended API Responses**: All analysis endpoints now return advanced risk metrics
+- **Portfolio Correlation Calculation**: Real-time calculation of ticker-to-portfolio correlations
+- **Risk Contribution Analysis**: Dynamic risk contribution calculation for portfolio optimization
+- **Enhanced Comparison Rankings**: 16 new ranking categories for comprehensive ticker analysis
+
+**Technical Implementation:**
+
+#### Advanced Risk Metrics Calculation
+```python
+# Advanced metrics calculation in MetricsCalculator
+def calculate_advanced_metrics(returns, prices, risk_free_rate):
+    return {
+        'calmar_ratio': calmar_ratio,
+        'ulcer_index': ulcer_index,
+        'time_under_water': time_under_water,
+        'cvar_95': cvar_95,
+        'correlation_to_portfolio': correlation,
+        'risk_contribution_absolute': risk_abs,
+        'risk_contribution_percent': risk_pct
+    }
+```
+
+#### Portfolio Correlation Analysis
+```python
+# Portfolio-level correlation and risk contribution
+def calculate_portfolio_correlation_and_risk_contribution(
+    ticker_returns, portfolio_returns, portfolio_weights, ticker_symbol
+):
+    # Calculate correlation coefficient
+    # Calculate risk contribution metrics
+    # Return correlation and risk metrics
+```
+
+#### Enhanced API Responses
+```json
+{
+  "calmarRatio": "1.25",
+  "ulcerIndex": "0.0234",
+  "timeUnderWater": "15.67",
+  "cvar95": "-2.34",
+  "correlationToPortfolio": "0.78",
+  "riskContributionAbsolute": "0.0045",
+  "riskContributionPercent": "12.34%"
+}
+```
+
+**Data Model Changes:**
+- **TickerMetrics Class**: Extended with 7 new advanced risk metrics fields
+- **CompareTickersUseCase**: Complete refactor with portfolio-level analysis capabilities
+- **API Response Format**: Enhanced response structure with all advanced metrics
+- **Ranking System**: Extended ranking system with advanced risk metric categories
+
+**Benefits:**
+- **Comprehensive Risk Assessment**: Complete risk evaluation framework with 7 new metrics
+- **Portfolio Optimization**: Real-time risk contribution analysis for portfolio optimization
+- **Diversification Analysis**: Correlation analysis for better diversification decisions
+- **Risk-Adjusted Returns**: Multiple risk-adjusted return metrics for comprehensive evaluation
+
+**Evidence:** 
+- `backend/src/application/use_cases/analyze_ticker.py` - Extended TickerMetrics with advanced metrics
+- `backend/src/application/use_cases/compare_tickers.py` - Enhanced comparison with portfolio analysis
+- `backend/api.py` - Extended API responses with advanced metrics
+- `backend/src/infrastructure/services/metrics_calculator.py` - Advanced metrics calculation
+
+## 6. Frontend TypeScript Improvements & Code Cleanup (v4.5.2)
 
 **Purpose:**  
 Enhancing TypeScript type safety, improving code organization, and removing unused components for better maintainability and development experience.
@@ -977,7 +1064,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 | LoadPortfolioUseCase | Use Case | Load portfolio from CSV files | execute(LoadPortfolioRequest) | PortfolioRepository | load_portfolio.py:L16-L33 |
 | AnalyzePortfolioUseCase | Use Case | Calculate portfolio-level metrics with data validation | execute(AnalyzePortfolioRequest) | MarketDataRepository | analyze_portfolio.py:L38-L86 |
 | AnalyzeTickerUseCase | Use Case | Calculate individual ticker metrics with data validation and annualized dividend analysis | execute(AnalyzeTickerRequest) | MarketDataRepository | analyze_ticker.py:L39-L91 |
-| CompareTickersUseCase | Use Case | Compare multiple tickers | execute(CompareTickersRequest) | AnalyzeTickerUseCase | compare_tickers.py:L27-L82 |
+| CompareTickersUseCase | Use Case | Compare multiple tickers with portfolio-level analysis | execute(CompareTickersRequest) | AnalyzeTickerUseCase, MarketDataRepository | compare_tickers.py:L27-L82 |
 | CsvPortfolioRepository | Repository | Load/save portfolios from CSV | load(file_path), save(portfolio, file_path) | pandas | csv_portfolio_repository.py:L9-L74 |
 | YFinanceMarketRepository | Repository | Fetch market data from Yahoo Finance | get_price_history(), get_current_prices(), get_dividend_history() | yfinance | yfinance_market_repository.py:L9-L134 |
 | WarehouseMarketRepository | Repository | Read-through cache decorator for market data | get_price_history(), get_current_prices(), get_dividend_history() | WarehouseService, YFinanceMarketRepository | warehouse_market_repository.py:L14-L218 |
@@ -985,6 +1072,7 @@ Overhaul of frontend architecture with logging system, improved error handling, 
 | TradingDayService | Service | Trading day calculation with US holiday awareness | get_trading_days_in_range() | datetime | trading_day_service.py:L8-L50 |
 | LoggerService | Service | Logging management | get_logger(), log_performance(), log_user_action(), log_api_call() | logging | logger_service.py:L21-L235 |
 | ColorMetricsService | Service | Color-code financial metrics based on performance thresholds | get_color_for_metric(), colorize_percentage(), colorize_ratio() | None | color_metrics_service.py:L8-L159 |
+| MetricsCalculator | Service | Calculate advanced risk metrics and portfolio correlation | calculate_advanced_metrics(), calculate_portfolio_correlation_and_risk_contribution() | None | metrics_calculator.py |
 | TableFormatter | Utility | Format tables with color code handling | create_table(), format_table_row(), strip_ansi_codes() | re | table_formatter.py:L8-L95 |
 | DateUtils | Utility | Date validation and working day calculations | is_date_after_previous_working_day(), get_previous_working_day(), get_previous_working_day_string() | datetime, pytz | date_utils.py |
 | Portfolio | Entity | Portfolio aggregate root | get_tickers(), get_positions(), get_total_value() | Position, Ticker | portfolio.py:L6-L43 |

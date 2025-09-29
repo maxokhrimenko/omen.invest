@@ -35,6 +35,14 @@ class TickerMetrics:
     annualized_dividend: Money
     start_price: Money
     end_price: Money
+    # Advanced metrics for comparison
+    calmar_ratio: float
+    ulcer_index: float
+    time_under_water: float
+    cvar_95: float
+    correlation_to_portfolio: float
+    risk_contribution_absolute: float
+    risk_contribution_percent: float
 
 @dataclass
 class AnalyzeTickerResponse:
@@ -253,6 +261,9 @@ class AnalyzeTickerUseCase:
         # Calculate beta
         beta = self._calculate_beta_safe(ticker, returns, benchmark_data)
         
+        # Calculate advanced metrics
+        advanced_metrics = MetricsCalculator.calculate_advanced_metrics(returns, prices, risk_free_rate)
+        
         return TickerMetrics(
             ticker=ticker,
             total_return=total_return,
@@ -260,7 +271,7 @@ class AnalyzeTickerUseCase:
             volatility=volatility,
             sharpe_ratio=sharpe_ratio,
             max_drawdown=max_drawdown,
-            sortino_ratio=sortino_ratio,
+            sortino_ratio=advanced_metrics['sortino_ratio'],
             beta=beta,
             var_95=var_95,
             momentum_12_1=momentum_12_1,
@@ -269,7 +280,15 @@ class AnalyzeTickerUseCase:
             dividend_frequency=dividend_frequency,
             annualized_dividend=annualized_dividend,
             start_price=start_price,
-            end_price=end_price
+            end_price=end_price,
+            # Advanced metrics
+            calmar_ratio=advanced_metrics['calmar_ratio'],
+            ulcer_index=advanced_metrics['ulcer_index'],
+            time_under_water=advanced_metrics['time_under_water'],
+            cvar_95=advanced_metrics['cvar_95'],
+            correlation_to_portfolio=advanced_metrics['correlation_to_portfolio'],
+            risk_contribution_absolute=advanced_metrics['risk_contribution_absolute'],
+            risk_contribution_percent=advanced_metrics['risk_contribution_percent']
         )
     
     def _calculate_momentum(self, prices: pd.Series) -> Percentage:

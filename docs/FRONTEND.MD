@@ -15,7 +15,8 @@
 - [12. Logging & Monitoring](#12-logging--monitoring)
 - [13. Testing](#13-testing)
 - [14. Build & Deployment](#14-build--deployment)
-- [15. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)](#15-enhanced-ticker-comparison--frontend-architecture-improvements-v450)
+- [15. Advanced Risk Metrics & Enhanced Ticker Comparison (v4.5.3)](#15-advanced-risk-metrics--enhanced-ticker-comparison-v453)
+- [16. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)](#16-enhanced-ticker-comparison--frontend-architecture-improvements-v450)
 - [16. Documentation & Version Management Updates (v4.5.1)](#16-documentation--version-management-updates-v451)
 - [17. Frontend TypeScript Improvements & Code Cleanup (v4.5.2)](#17-frontend-typescript-improvements--code-cleanup-v452)
 - [18. Development Guidelines](#18-development-guidelines)
@@ -889,7 +890,87 @@ npm run preview      # Preview production build
 
 ---
 
-## 15. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)
+## 15. Advanced Risk Metrics & Enhanced Ticker Comparison (v4.5.3)
+
+### Overview
+This release introduces comprehensive advanced risk metrics for individual ticker analysis and significantly enhances the ticker comparison functionality with portfolio-level correlation and risk contribution analysis.
+
+### Key Features
+
+#### Advanced Risk Metrics Integration
+- **Extended API Responses**: All analysis endpoints now return advanced risk metrics
+- **Enhanced Data Models**: Frontend types updated to include new advanced metrics fields
+- **Comprehensive Risk Assessment**: 7 new advanced risk metrics for complete risk evaluation
+- **Portfolio Correlation Analysis**: Real-time correlation analysis for diversification insights
+
+#### Enhanced Ticker Comparison
+- **Portfolio-Level Analysis**: Ticker comparison now includes portfolio correlation and risk contribution metrics
+- **Advanced Rankings**: New ranking categories for all advanced risk metrics
+- **Comprehensive Metrics Display**: All advanced metrics included in comparison results
+- **Enhanced Data Visualization**: Better presentation of advanced risk metrics
+
+#### Frontend Type Safety
+- **Extended Type Definitions**: Updated TypeScript interfaces for new advanced metrics
+- **API Response Types**: Enhanced type safety for all new API response fields
+- **Component Integration**: Seamless integration of advanced metrics in existing components
+- **Error Handling**: Proper error handling for new advanced metrics calculations
+
+### Technical Implementation
+
+#### Enhanced API Integration
+```typescript
+// Extended API response types
+interface TickerAnalysis {
+  // ... existing fields
+  calmarRatio: string;
+  ulcerIndex: string;
+  timeUnderWater: string;
+  cvar95: string;
+  correlationToPortfolio: string;
+  riskContributionAbsolute: string;
+  riskContributionPercent: string;
+}
+```
+
+#### Advanced Metrics Display
+```typescript
+// Enhanced comparison results
+interface CompareTickersResults {
+  // ... existing fields
+  bestCalmar: TickerMetrics[];
+  worstCalmar: TickerMetrics[];
+  bestSortino: TickerMetrics[];
+  worstSortino: TickerMetrics[];
+  bestMaxDrawdown: TickerMetrics[];
+  worstMaxDrawdown: TickerMetrics[];
+  bestUlcer: TickerMetrics[];
+  worstUlcer: TickerMetrics[];
+  bestTimeUnderWater: TickerMetrics[];
+  worstTimeUnderWater: TickerMetrics[];
+  bestCvar: TickerMetrics[];
+  worstCvar: TickerMetrics[];
+  bestCorrelation: TickerMetrics[];
+  worstCorrelation: TickerMetrics[];
+  bestRiskContribution: TickerMetrics[];
+  worstRiskContribution: TickerMetrics[];
+}
+```
+
+### Data Model Changes
+- **Enhanced Type Definitions**: Updated TypeScript interfaces for all new advanced metrics
+- **API Response Integration**: Seamless integration of advanced metrics in API responses
+- **Component Updates**: Enhanced components to display advanced risk metrics
+- **Error Handling**: Improved error handling for advanced metrics calculations
+
+### Benefits
+- **Comprehensive Risk Analysis**: Complete risk evaluation framework with 7 new metrics
+- **Portfolio Optimization**: Real-time risk contribution analysis for portfolio optimization
+- **Diversification Insights**: Correlation analysis for better diversification decisions
+- **Enhanced User Experience**: More comprehensive analysis capabilities for informed investment decisions
+
+---
+
+## 16. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)
 
 ### Overview
 This release introduces comprehensive ticker comparison functionality with significant frontend architecture improvements, enhanced user experience, and better data visualization capabilities.

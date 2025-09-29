@@ -4,6 +4,7 @@ import { useCompareTickers } from '../hooks/useCompareTickers';
 import RunAnalysisSection from '../components/portfolio/RunAnalysisSection';
 import DataWarnings from '../components/portfolio/DataWarnings';
 import ComparisonSummary from '../components/portfolio/ComparisonSummary';
+import AdvancedMetricsCards from '../components/portfolio/AdvancedMetricsCards';
 import type { Portfolio } from '../types/portfolio';
 
 interface CompareTickersPageProps {
@@ -89,6 +90,27 @@ const CompareTickersPage: React.FC<CompareTickersPageProps> = ({ portfolio }) =>
           </div>
         </div>
 
+        {/* Temporary Metrics Warning */}
+        <div className="mb-6">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-amber-800 mb-1">
+                  ⚠️ Metrics Calculation Notice
+                </h3>
+                <p className="text-sm text-amber-700 leading-relaxed">
+                  Some advanced metrics on this page may display incorrect values. Our team is actively working on fixes for calculation accuracy. 
+                  Please use these results with caution and refer to the main portfolio analysis for more reliable metrics.
+                </p>
+                <div className="mt-2 text-xs text-amber-600">
+                  <strong>Affected metrics:</strong> Time Under Water, Ulcer Index, Risk Contribution, and other advanced risk metrics
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Analysis Controls */}
         <RunAnalysisSection
           selectedDateRange={selectedDateRange}
@@ -128,13 +150,36 @@ const CompareTickersPage: React.FC<CompareTickersPageProps> = ({ portfolio }) =>
         {analysisResults && (
           <div className="space-y-6">
             
-            {/* Summary Cards */}
-            <ComparisonSummary
-              bestPerformers={analysisResults.bestPerformers || []}
-              worstPerformers={analysisResults.worstPerformers || []}
-              bestSharpe={analysisResults.bestSharpe || []}
-              lowestRisk={analysisResults.lowestRisk || []}
-            />
+             {/* Summary Cards */}
+             <ComparisonSummary
+               bestPerformers={analysisResults.bestPerformers || []}
+               worstPerformers={analysisResults.worstPerformers || []}
+               bestSharpe={analysisResults.bestSharpe || []}
+             />
+
+             {/* Advanced Metrics Cards */}
+             <AdvancedMetricsCards
+               bestCalmar={analysisResults.bestCalmar || []}
+               worstCalmar={analysisResults.worstCalmar || []}
+               bestSortino={analysisResults.bestSortino || []}
+               worstSortino={analysisResults.worstSortino || []}
+               bestMaxDrawdown={analysisResults.bestMaxDrawdown || []}
+               worstMaxDrawdown={analysisResults.worstMaxDrawdown || []}
+               bestUlcer={analysisResults.bestUlcer || []}
+               worstUlcer={analysisResults.worstUlcer || []}
+               bestTimeUnderWater={analysisResults.bestTimeUnderWater || []}
+               worstTimeUnderWater={analysisResults.worstTimeUnderWater || []}
+               bestCvar={analysisResults.bestCvar || []}
+               worstCvar={analysisResults.worstCvar || []}
+               bestCorrelation={analysisResults.bestCorrelation || []}
+               worstCorrelation={analysisResults.worstCorrelation || []}
+               bestRiskContribution={analysisResults.bestRiskContribution || []}
+               worstRiskContribution={analysisResults.worstRiskContribution || []}
+               bestSharpe={analysisResults.bestSharpe || []}
+               worstSharpe={analysisResults.bestSharpe?.slice().reverse() || []}
+               bestRisk={analysisResults.lowestRisk || []}
+               worstRisk={analysisResults.lowestRisk?.slice().reverse() || []}
+             />
           </div>
         )}
 

@@ -13,7 +13,8 @@
 - [10. Logging & Monitoring](#10-logging--monitoring)
 - [11. Configuration](#11-configuration)
 - [12. Testing](#12-testing)
-- [13. Frontend TypeScript Improvements & Code Cleanup (v4.5.2)](#13-frontend-typescript-improvements--code-cleanup-v452)
+- [13. Advanced Risk Metrics & Enhanced Ticker Comparison (v4.5.3)](#13-advanced-risk-metrics--enhanced-ticker-comparison-v453)
+- [14. Frontend TypeScript Improvements & Code Cleanup (v4.5.2)](#14-frontend-typescript-improvements--code-cleanup-v452)
 - [14. Documentation & Version Management Updates (v4.5.1)](#14-documentation--version-management-updates-v451)
 - [15. Enhanced Ticker Comparison & Frontend Architecture Improvements (v4.5.0)](#15-enhanced-ticker-comparison--frontend-architecture-improvements-v450)
 - [15. Portfolio Dividend Metrics System (v4.4.7)](#15-portfolio-dividend-metrics-system-v447)
@@ -538,6 +539,23 @@ sequenceDiagram
   - `colorize_percentage(value)`: Colorize percentage values
   - `colorize_ratio(value)`: Colorize ratio values
 
+### Advanced Metrics Calculation
+
+**MetricsCalculator** (`src/infrastructure/services/metrics_calculator.py`)
+- **Purpose**: Calculate advanced risk metrics and portfolio correlation analysis
+- **Features**:
+  - Advanced risk metrics calculation (Calmar Ratio, Ulcer Index, Time Under Water, CVaR)
+  - Portfolio correlation and risk contribution analysis
+  - Centralized calculation service for shared financial metrics
+  - Integration with both portfolio and ticker analysis use cases
+- **Key Methods**:
+  - `calculate_advanced_metrics(returns, prices, risk_free_rate)`: Calculate all advanced risk metrics
+  - `calculate_portfolio_correlation_and_risk_contribution(ticker_returns, portfolio_returns, portfolio_weights, ticker_symbol)`: Calculate portfolio correlation and risk contribution
+  - `calculate_calmar_ratio(annualized_return, max_drawdown)`: Calculate Calmar ratio
+  - `calculate_ulcer_index(prices)`: Calculate Ulcer index
+  - `calculate_time_under_water(prices)`: Calculate time under water percentage
+  - `calculate_cvar_95(returns)`: Calculate Conditional Value at Risk at 95% confidence level
+
 ### Table Formatting
 
 **TableFormatter** (`src/infrastructure/table_formatter.py`)
@@ -747,7 +765,89 @@ pytest tests/performance/
 
 ---
 
-## 13. Frontend TypeScript Improvements & Code Cleanup (v4.5.2)
+## 13. Advanced Risk Metrics & Enhanced Ticker Comparison (v4.5.3)
+
+### Overview
+This release introduces comprehensive advanced risk metrics for individual ticker analysis and significantly enhances the ticker comparison functionality with portfolio-level correlation and risk contribution analysis.
+
+### Key Features
+
+#### Advanced Risk Metrics System
+- **Calmar Ratio**: Risk-adjusted return metric comparing annualized return to maximum drawdown
+- **Ulcer Index**: Downside risk measure focusing on depth and duration of drawdowns
+- **Time Under Water**: Percentage of time spent in drawdown periods
+- **CVaR (Conditional Value at Risk)**: Expected loss beyond VaR threshold at 95% confidence level
+- **Portfolio Correlation**: Correlation coefficient between individual ticker and portfolio returns
+- **Risk Contribution Analysis**: Absolute and percentage risk contribution of each ticker to portfolio risk
+
+#### Enhanced Ticker Comparison
+- **Portfolio-Level Analysis**: Ticker comparison now includes portfolio correlation and risk contribution metrics
+- **Advanced Rankings**: New ranking categories for all advanced risk metrics
+- **Equal-Weight Portfolio Calculation**: Automatic portfolio returns calculation for correlation analysis
+- **Comprehensive Metrics Display**: All advanced metrics included in API responses and comparison results
+
+#### Backend API Enhancements
+- **Extended API Responses**: All analysis endpoints now return advanced risk metrics
+- **Portfolio Correlation Calculation**: Real-time calculation of ticker-to-portfolio correlations
+- **Risk Contribution Analysis**: Dynamic risk contribution calculation for portfolio optimization
+- **Enhanced Comparison Rankings**: 16 new ranking categories for comprehensive ticker analysis
+
+### Technical Implementation
+
+#### Advanced Risk Metrics Calculation
+```python
+# Advanced metrics calculation in MetricsCalculator
+def calculate_advanced_metrics(returns, prices, risk_free_rate):
+    return {
+        'calmar_ratio': calmar_ratio,
+        'ulcer_index': ulcer_index,
+        'time_under_water': time_under_water,
+        'cvar_95': cvar_95,
+        'correlation_to_portfolio': correlation,
+        'risk_contribution_absolute': risk_abs,
+        'risk_contribution_percent': risk_pct
+    }
+```
+
+#### Portfolio Correlation Analysis
+```python
+# Portfolio-level correlation and risk contribution
+def calculate_portfolio_correlation_and_risk_contribution(
+    ticker_returns, portfolio_returns, portfolio_weights, ticker_symbol
+):
+    # Calculate correlation coefficient
+    # Calculate risk contribution metrics
+    # Return correlation and risk metrics
+```
+
+#### Enhanced API Responses
+```json
+{
+  "calmarRatio": "1.25",
+  "ulcerIndex": "0.0234",
+  "timeUnderWater": "15.67",
+  "cvar95": "-2.34",
+  "correlationToPortfolio": "0.78",
+  "riskContributionAbsolute": "0.0045",
+  "riskContributionPercent": "12.34%"
+}
+```
+
+### Data Model Changes
+- **TickerMetrics Class**: Extended with 7 new advanced risk metrics fields
+- **CompareTickersUseCase**: Complete refactor with portfolio-level analysis capabilities
+- **API Response Format**: Enhanced response structure with all advanced metrics
+- **Ranking System**: Extended ranking system with advanced risk metric categories
+
+### Benefits
+- **Comprehensive Risk Assessment**: Complete risk evaluation framework with 7 new metrics
+- **Portfolio Optimization**: Real-time risk contribution analysis for portfolio optimization
+- **Diversification Analysis**: Correlation analysis for better diversification decisions
+- **Risk-Adjusted Returns**: Multiple risk-adjusted return metrics for comprehensive evaluation
+
+---
+
+## 14. Frontend TypeScript Improvements & Code Cleanup (v4.5.2)
 
 ### Overview
 This release focuses on enhancing TypeScript type safety, improving code organization, and removing unused components for better maintainability and development experience.

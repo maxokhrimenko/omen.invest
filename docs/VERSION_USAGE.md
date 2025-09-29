@@ -3,7 +3,7 @@
 This document tracks where version information is used throughout the Altidus application.
 
 ## Current Version
-**4.5.2** - Frontend TypeScript Improvements & Code Cleanup
+**4.5.3** - Advanced Risk Metrics & Enhanced Ticker Comparison
 
 ## Version File Location
 - **Central Version File**: `/VERSION` (root directory)
@@ -16,7 +16,7 @@ This document tracks where version information is used throughout the Altidus ap
 #### Frontend Package Configuration
 - **File**: `frontend/package.json`
 - **Line**: 4
-- **Usage**: `"version": "4.5.2"`
+- **Usage**: `"version": "4.5.3"`
 - **Purpose**: NPM package version for frontend application
 
 #### Frontend Package Lock
@@ -32,7 +32,7 @@ This document tracks where version information is used throughout the Altidus ap
 - **Code**:
   ```tsx
   <span className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 whitespace-nowrap">
-    alpha 4.5.2
+    alpha 4.5.3
   </span>
   ```
 - **Purpose**: User-visible version display in application sidebar (alpha format)
@@ -43,8 +43,8 @@ This document tracks where version information is used throughout the Altidus ap
 - **File**: `backend/main.py`
 - **Lines**: 4, 84
 - **Usage**: 
-  - Docstring: `Version 4.5.1 - Documentation & Version Management Updates`
-  - Print statement: `print("🚀 Starting Portfolio Analysis Tool v4.5.1...")`
+  - Docstring: `Version 4.5.3 - Advanced Risk Metrics & Enhanced Ticker Comparison`
+  - Print statement: `print("🚀 Starting Portfolio Analysis Tool v4.5.3...")`
 - **Purpose**: Application startup version display and documentation
 
 #### Backend API
@@ -59,14 +59,14 @@ This document tracks where version information is used throughout the Altidus ap
 - **File**: `README.md`
 - **Lines**: 5, 425
 - **Usage**:
-  - Header: `> **🚀 Version 4.5.1 - Documentation & Version Management Updates**`
-  - Footer: `Current version: 4.5.1 - **Documentation & Version Management Updates**`
+  - Header: `> **🚀 Version 4.5.3 - Advanced Risk Metrics & Enhanced Ticker Comparison**`
+  - Footer: `Current version: 4.5.3 - **Advanced Risk Metrics & Enhanced Ticker Comparison**`
 - **Purpose**: Documentation version display
 
 #### Changelog
 - **File**: `CHANGELOG.md`
 - **Line**: 8
-- **Usage**: `## [4.5.1] - 2025-01-28`
+- **Usage**: `## [4.5.3] - 2025-01-27`
 - **Purpose**: Version history tracking
 
 ### 4. Development Scripts
@@ -95,11 +95,11 @@ When updating the version, the following files need to be updated:
 ## Version Consistency
 
 ### Current Status
-- ✅ Frontend package.json: 4.5.1
-- ✅ Frontend sidebar: alpha 4.5.1
-- ✅ Backend main.py: 4.5.1
-- ✅ README.md: 4.5.1
-- ✅ CHANGELOG.md: 4.5.1
+- ✅ Frontend package.json: 4.5.3
+- ✅ Frontend sidebar: alpha 4.5.3
+- ✅ Backend main.py: 4.5.3
+- ✅ README.md: 4.5.3
+- ✅ CHANGELOG.md: 4.5.3
 - ⚠️ Backend API: 1.0.0 (different versioning scheme)
 
 ### Recommendations
